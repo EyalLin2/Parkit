@@ -12,14 +12,21 @@ Any user leaving a spot can report it; any user looking for a spot can
 find it nearby. Reports decay over time and are self-policed by the
 community, so the map stays trustworthy without manual moderation.
 
+ParkIt ships as a **native mobile app** (iOS + Android), not a web
+app — full, reliable access to GPS, camera, and push notifications
+without browser permission friction.
+
 ## User Roles & Access
 
 There is a single user role. Every registered user can both **report**
 a spot and **seek** a spot — these are actions, not separate account
 types.
 
-- Registration is lightweight (e.g. Google/Apple/phone) but mandatory
-  for *any* use of the app, including just viewing the map.
+- Registration is lightweight — Google/Apple sign-in **plus phone
+  number verification** (SMS code) — but mandatory for *any* use of
+  the app, including just viewing the map. The phone check is an
+  extra anti-abuse layer, since it's harder to script than an OAuth
+  login alone.
 - Anonymous/guest viewing is intentionally not supported: letting
   non-contributors see live spots for free removes the incentive to
   report, and the whole system depends on reciprocity.
