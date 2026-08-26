@@ -19,6 +19,28 @@ without browser permission friction.
 The app ships in **Hebrew only** for MVP; UI strings are structured
 so English can be added later without rework.
 
+## Design Principles
+
+Every screen and interaction is judged against these:
+
+- **Fast over feature-rich.** The core use cases (report a spot, find
+  a spot) happen in seconds, often one-handed, often mid-errand —
+  every added tap or field has to earn its place.
+- **AI and automation remove steps, they don't add screens.** GPS
+  auto-pin, AI photo blur, and the driving-safety gate all exist so
+  the user does *less*, not so the app looks smarter. Automation
+  should be invisible when it works.
+- **Modern, not maximalist.** Visual polish (motion, typography,
+  color) is welcome, but never at the cost of clarity — a first-time
+  user should understand the map and the two core actions (report /
+  find) with zero onboarding beyond the one permissions screen
+  already defined.
+- This isn't a new direction — it's already the tiebreaker behind
+  every earlier decision in this doc: a cold-start nudge instead of
+  an empty state, a reopen banner instead of push infrastructure,
+  cancel-within-2-minutes instead of a confirmation dialog. Any
+  future feature gets held to the same bar.
+
 ## User Roles & Access
 
 There is a single user role. Every registered user can both **report**
