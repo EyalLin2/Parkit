@@ -68,6 +68,8 @@ the same time.
 
 - Users earn points and badges for reporting spots and for reports that
   get confirmed as accurate.
-- The leaderboard is **city-wide**.
+- The leaderboard is **national** — one ranking across all users, not
+  scoped per city. Keeps ranking logic simple and avoids needing to
+  track each user's home city.
 - The leaderboard **resets weekly**, so new users have a fair shot at
   ranking. Points and badges themselves are cumulative and never reset.

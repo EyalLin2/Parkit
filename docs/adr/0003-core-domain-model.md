@@ -15,8 +15,6 @@ Three entities cover the full spec:
 
 **User**
 - `id`, `auth_provider` + `external_id`, `display_name`
-- `home_city` — set once at signup, not derived dynamically from
-  location, so leaderboard membership stays stable
 - `points` (all-time, cumulative — never resets)
 - `weekly_points` (drives the leaderboard; resets weekly)
 - `consecutive_bad_reports` (increments on a `FLAGGED_FALSE`
