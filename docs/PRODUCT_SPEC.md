@@ -54,11 +54,17 @@ types.
 - A reporter can **cancel their own report within 2 minutes** of
   submitting it, in case of a misclick or wrong pin — as long as no
   one has claimed it yet.
-- Photo is optional. If attached, it's run through automatic AI
-  blurring (plates + faces), and the reporter sees a **preview
-  confirming what was blurred** (or that nothing needed blurring)
-  before tapping **Confirm & Send** — no photo goes out without the
-  reporter seeing the blurred result first.
+- Photo is optional. If attached, it's compressed/resized on-device
+  before upload (keeps uploads fast and storage cheap), then run
+  through automatic AI blurring (plates + faces); the reporter sees a
+  **preview confirming what was blurred** (or that nothing needed
+  blurring) before tapping **Confirm & Send** — no photo goes out
+  without the reporter seeing the blurred result first.
+- **Photo retention.** The photo is deleted automatically the moment
+  its spot leaves the active state (taken / flagged-removed /
+  expired) — nobody needs it after that, so storage never grows
+  unbounded without a separate cleanup job. Where/how photos are
+  physically stored is an architecture decision, not a product one.
 - **Duplicate reports.** A new report within ~15 meters of an existing
   active spot is treated as a refresh of that spot (resets its decay
   clock) rather than a new pin; the second reporter still earns
