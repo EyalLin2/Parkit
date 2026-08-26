@@ -57,7 +57,14 @@ the same time.
 
 ## Seeker Experience
 
-- The map can be filtered by radius, and also by:
+- The map always centers on the seeker's **current GPS location**,
+  filtered by radius (e.g. 500m/1km/2km) — there is no manual city
+  search. A user physically in Netanya cannot browse spots in Tel
+  Aviv; they'd need to actually be there. This keeps search simple
+  (a distance query, no city concept to maintain) and matches how
+  the feature is actually used — finding a spot *right now*, not
+  planning one remotely.
+- Also filterable by:
   - Spot type: street / lot / disabled / EV charging
   - Free vs. paid
 - **Cold start.** If no spots are found nearby, the app shows an
