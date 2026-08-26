@@ -50,10 +50,14 @@ types.
   (speed/GPS-based) — the report screen only becomes available once
   the vehicle has actually stopped. This is a should-have, not a
   hard MVP blocker: if it proves too costly to build reliably, we
-  drop it rather than delay the release.
+  drop it rather than delay the release. The block applies **only to
+  creating a new report** — viewing the map, claiming a spot, and
+  navigating stay usable while driving, since that's the seeker's
+  primary use case.
 - A reporter can **cancel their own report within 2 minutes** of
   submitting it, in case of a misclick or wrong pin — as long as no
-  one has claimed it yet.
+  one has claimed it yet. A canceled report doesn't count toward the
+  rate-limiting cooldown (below) — it's as if nothing was reported.
 - Photo is optional. If attached, it's compressed/resized on-device
   before upload (keeps uploads fast and storage cheap), then run
   through automatic AI blurring (plates + faces); the reporter sees a
@@ -67,8 +71,14 @@ types.
   physically stored is an architecture decision, not a product one.
 - **Duplicate reports.** A new report within ~15 meters of an existing
   active spot is treated as a refresh of that spot (resets its decay
-  clock) rather than a new pin; the second reporter still earns
-  partial points.
+  clock) rather than a new pin. The refresh bonus points only apply
+  if the refresher is a **different user** from the original
+  reporter — a self-refresh just resets the clock, no extra points,
+  so a user can't farm points by re-reporting their own spot.
+  **Ownership stays with the original reporter**: whatever the spot's
+  final outcome (taken / flagged / expired), the points and
+  reputation consequences apply to them, not the refresher, who gets
+  only the one-time refresh bonus.
 
 ## Spot Lifecycle & States
 
@@ -106,6 +116,11 @@ the same time.
   reports the *same* location, that's treated as a stronger signal:
   they're temporarily blocked from reporting for about a minute, on
   top of the general cooldown.
+- **Known limitation, accepted for MVP:** two colluding users could
+  farm points by one reporting a fake spot and the other immediately
+  confirming "I took it." Not solved now — pattern detection (e.g.
+  the same pair repeatedly confirming each other) is deferred to a
+  later version; it doesn't block MVP.
 
 ## Seeker Experience
 
