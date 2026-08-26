@@ -33,6 +33,10 @@ types.
 - Anonymous/guest viewing is intentionally not supported: letting
   non-contributors see live spots for free removes the incentive to
   report, and the whole system depends on reciprocity.
+- Before requesting GPS/camera/phone permissions, a short one-screen
+  explainer says why each is needed — kept brief, not a multi-step
+  tutorial, just enough to raise permission opt-in and not feel
+  invasive.
 
 ## Reporting a Spot
 
@@ -40,8 +44,16 @@ types.
   can drag to fine-tune before submitting — GPS in dense areas can be
   off by 10–20m.
 - A report is created at the moment the reporter is actually leaving,
-  not as a future prediction — this keeps the age-based decay below
-  accurate.
+  not as a future prediction — this keeps the age-based decay
+  (Hot/Warm/Cold, see below) accurate.
+- **Reporting is blocked while the phone detects the car is moving**
+  (speed/GPS-based) — the report screen only becomes available once
+  the vehicle has actually stopped. This is a should-have, not a
+  hard MVP blocker: if it proves too costly to build reliably, we
+  drop it rather than delay the release.
+- A reporter can **cancel their own report within 2 minutes** of
+  submitting it, in case of a misclick or wrong pin — as long as no
+  one has claimed it yet.
 - Photo is optional. If attached, it's run through automatic AI
   blurring (plates + faces), and the reporter sees a **preview
   confirming what was blurred** (or that nothing needed blurring)
@@ -104,9 +116,13 @@ the same time.
 - **Cold start.** If no spots are found nearby, the app shows an
   encouraging prompt to be the first to report in that area, with a
   bonus-points incentive attached.
-- **No push notifications for MVP** — the map refreshes when opened;
-  real-time alerts for newly reported spots nearby are a post-MVP
-  addition, once there's a reason to justify the realtime plumbing.
+- **Navigate** on a chosen spot hands off to Waze/Google Maps for
+  turn-by-turn directions — ParkIt doesn't build its own navigation.
+- **No push notifications for MVP.** Instead, reopening the app shows
+  a one-time banner if something relevant happened to your own spot
+  (claimed, flagged as false) since you last had it open. Push may
+  replace or supplement this later — revisit once there's a reason
+  to justify the realtime plumbing.
 
 ## Gamification & Leaderboard
 
@@ -121,3 +137,11 @@ the same time.
   track each user's home city.
 - The leaderboard **resets weekly**, so new users have a fair shot at
   ranking. Points and badges themselves are cumulative and never reset.
+
+## Profile — "My Activity"
+
+A user's own screen, showing:
+- Current points and earned badges.
+- Past reports with their outcome (taken / expired / flagged as
+  false) — this is where points and badges actually become visible
+  and meaningful, not just abstract numbers on a leaderboard.
