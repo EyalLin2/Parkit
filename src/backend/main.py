@@ -2,9 +2,11 @@ from fastapi import FastAPI, Response
 
 from database import check_postgres
 from redis_client import check_redis
+from routers.auth import router as auth_router
 from routers.spots import router as spots_router
 
 app = FastAPI(title="ParkIt API")
+app.include_router(auth_router)
 app.include_router(spots_router)
 
 

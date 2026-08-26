@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     app_env: str = "local"
     database_url: str
     redis_url: str
+    jwt_secret: str = "dev-secret-change-me"
 
 
 settings = Settings()
