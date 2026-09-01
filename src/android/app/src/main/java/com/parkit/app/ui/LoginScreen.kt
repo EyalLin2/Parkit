@@ -46,9 +46,9 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
-            painter = painterResource(R.drawable.ic_pin_center),
-            contentDescription = null,
-            modifier = Modifier.size(72.dp),
+            painter = painterResource(R.drawable.ic_logo),
+            contentDescription = "ParkIt logo",
+            modifier = Modifier.size(88.dp),
         )
         Text(
             "ParkIt",

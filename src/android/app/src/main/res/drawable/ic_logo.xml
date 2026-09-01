@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Rounded-square badge, navy brand color -->
+    <path
+        android:fillColor="#1B4F91"
+        android:pathData="M22,0 h56 a22,22 0 0,1 22,22 v56 a22,22 0 0,1 -22,22 h-56 a22,22 0 0,1 -22,-22 v-56 a22,22 0 0,1 22,-22 Z" />
+    <!-- Pin mark, matching the map reticle / launcher icon family -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,20 C37,20 27,30 27,42 C27,60 50,80 50,80 C50,80 73,60 73,42 C73,30 63,20 50,20 Z" />
+    <path
+        android:fillColor="#1B4F91"
+        android:pathData="M50,31 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+</vector>
