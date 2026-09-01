@@ -1,3 +1,4 @@
+import base64
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
 from database import get_db
+from media import delete_photo, save_photo
 from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
 from points import award_points, reconcile_weekly_points
 from redis_client import get_redis
@@ -45,6 +47,22 @@ async def _reconcile_spot_states(db: AsyncSession) -> None:
         .where(Spot.status == SpotStatus.claimed, Spot.claimed_at < now - timedelta(seconds=CLAIM_TTL_SECONDS))
         .values(status=SpotStatus.active, claimed_by=None, claimed_at=None)
     )
+    expiring_photos = (
+        (
+            await db.execute(
+                select(Spot.photo_url).where(
+                    Spot.status == SpotStatus.active,
+                    Spot.reported_at < now - timedelta(minutes=EXPIRY_MINUTES),
+                    Spot.photo_url.is_not(None),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for photo_url in expiring_photos:
+        delete_photo(photo_url)
+
     await db.execute(
         update(Spot)
         .where(Spot.status == SpotStatus.active, Spot.reported_at < now - timedelta(minutes=EXPIRY_MINUTES))
@@ -101,10 +119,17 @@ async def report_spot(
             location=origin,
             spot_type=payload.spot_type,
             payment=payload.payment,
-            photo_url=payload.photo_url,
         )
         db.add(spot)
         award_points(user, POINTS_REPORT)
+
+    if payload.photo_staging_id:
+        await db.flush()  # assigns spot.id (a new spot's PK default runs at INSERT, not construction)
+        staged = await redis.get(f"photo_staging:{payload.photo_staging_id}")
+        if staged is None:
+            raise HTTPException(400, "Photo expired or not found — please re-upload")
+        await redis.delete(f"photo_staging:{payload.photo_staging_id}")
+        spot.photo_url = save_photo(spot.id, base64.b64decode(staged))
 
     await redis.set(f"report_cooldown:{user_id}", "1", ex=REPORT_COOLDOWN_SECONDS)
     same_spot_key = f"same_spot_count:{user_id}:{bucket}"
@@ -200,6 +225,7 @@ async def submit_feedback(
         spot.status = SpotStatus.removed
         spot.removed_reason = RemovedReason.taken_confirmed
         spot.removed_at = now
+        delete_photo(spot.photo_url)
         reporter.consecutive_bad_reports = 0
         if now - spot.reported_at <= timedelta(minutes=CONFIRM_BONUS_WINDOW_MINUTES):
             award_points(reporter, POINTS_CONFIRM_BONUS)
@@ -215,6 +241,7 @@ async def submit_feedback(
             spot.status = SpotStatus.removed
             spot.removed_reason = RemovedReason.flagged_false
             spot.removed_at = now
+            delete_photo(spot.photo_url)
             award_points(reporter, -POINTS_FALSE_PENALTY)
             reporter.consecutive_bad_reports += 1
             if reporter.consecutive_bad_reports >= BAD_REPORT_BLOCK_THRESHOLD:
@@ -244,6 +271,7 @@ async def cancel_report(
 
     user = await db.get(User, user_id)
     award_points(user, -POINTS_REPORT)
+    delete_photo(spot.photo_url)
 
     bucket = _location_bucket(spot.lat, spot.lng)
     await redis.delete(f"report_cooldown:{user_id}")
