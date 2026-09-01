@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth import get_current_user_id
 from database import get_db
 from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
+from points import award_points, reconcile_weekly_points
 from redis_client import get_redis
 from schemas import FeedbackCreate, SpotCreate, SpotOut
 
@@ -60,6 +61,7 @@ async def report_spot(
     redis: Redis = Depends(get_redis),
 ) -> Spot:
     await _reconcile_spot_states(db)
+    await reconcile_weekly_points(db)
 
     user = await db.get(User, user_id)
     if user is None:
@@ -89,7 +91,7 @@ async def report_spot(
     if existing is not None:
         existing.reported_at = now
         if existing.reporter_id != user_id:
-            user.points += POINTS_REFRESH_BONUS
+            award_points(user, POINTS_REFRESH_BONUS)
         spot = existing
     else:
         spot = Spot(
@@ -102,7 +104,7 @@ async def report_spot(
             photo_url=payload.photo_url,
         )
         db.add(spot)
-        user.points += POINTS_REPORT
+        award_points(user, POINTS_REPORT)
 
     await redis.set(f"report_cooldown:{user_id}", "1", ex=REPORT_COOLDOWN_SECONDS)
     same_spot_key = f"same_spot_count:{user_id}:{bucket}"
@@ -175,6 +177,8 @@ async def submit_feedback(
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    await reconcile_weekly_points(db)
+
     spot = await db.get(Spot, spot_id)
     if spot is None:
         raise HTTPException(404, "Spot not found")
@@ -198,7 +202,7 @@ async def submit_feedback(
         spot.removed_at = now
         reporter.consecutive_bad_reports = 0
         if now - spot.reported_at <= timedelta(minutes=CONFIRM_BONUS_WINDOW_MINUTES):
-            reporter.points += POINTS_CONFIRM_BONUS
+            award_points(reporter, POINTS_CONFIRM_BONUS)
     else:
         flag_count = (
             await db.execute(
@@ -211,7 +215,7 @@ async def submit_feedback(
             spot.status = SpotStatus.removed
             spot.removed_reason = RemovedReason.flagged_false
             spot.removed_at = now
-            reporter.points -= POINTS_FALSE_PENALTY
+            award_points(reporter, -POINTS_FALSE_PENALTY)
             reporter.consecutive_bad_reports += 1
             if reporter.consecutive_bad_reports >= BAD_REPORT_BLOCK_THRESHOLD:
                 reporter.reporting_blocked_until = now + timedelta(hours=BAD_REPORT_BLOCK_HOURS)
@@ -226,6 +230,8 @@ async def cancel_report(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ) -> None:
+    await reconcile_weekly_points(db)
+
     spot = await db.get(Spot, spot_id)
     if spot is None or spot.reporter_id != user_id:
         raise HTTPException(404, "Spot not found")
@@ -237,7 +243,7 @@ async def cancel_report(
         raise HTTPException(409, "Cancel window has passed")
 
     user = await db.get(User, user_id)
-    user.points -= POINTS_REPORT
+    award_points(user, -POINTS_REPORT)
 
     bucket = _location_bucket(spot.lat, spot.lng)
     await redis.delete(f"report_cooldown:{user_id}")

@@ -10,9 +10,9 @@ CI/CD, containerization, and observability practices end-to-end.
 - [x] CI pipeline skeleton (lint, format checks)
 
 ## Phase 1 — Application MVP
-- [ ] Define core domain (parking spots, reservations, users)
-- [ ] Minimal API implementation
-- [ ] Containerize application (Dockerfile)
+- [x] Define core domain (parking spots, reservations, users)
+- [x] Minimal API implementation
+- [x] Containerize application (Dockerfile)
 
 ## Phase 2 — Infrastructure as Code
 - [ ] Terraform modules (network, compute, database)
