@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from geoalchemy2.functions import ST_DWithin, ST_Distance, ST_MakePoint, ST_SetSRID
+from geoalchemy2.functions import ST_Distance, ST_DWithin, ST_MakePoint, ST_SetSRID
 from redis.asyncio import Redis
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -176,9 +176,7 @@ async def submit_feedback(
         raise HTTPException(400, "Cannot leave feedback on your own report")
 
     already_voted = (
-        await db.execute(
-            select(SpotFeedback).where(SpotFeedback.spot_id == spot_id, SpotFeedback.user_id == user_id)
-        )
+        await db.execute(select(SpotFeedback).where(SpotFeedback.spot_id == spot_id, SpotFeedback.user_id == user_id))
     ).scalar_one_or_none()
     if already_voted is not None:
         raise HTTPException(409, "Feedback already submitted for this spot")

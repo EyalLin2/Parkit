@@ -6,8 +6,8 @@ CI/CD, containerization, and observability practices end-to-end.
 
 ## Phase 0 — Foundations
 - [x] Repository structure & branching strategy
-- [ ] ADR process established
-- [ ] CI pipeline skeleton (lint, format checks)
+- [x] ADR process established
+- [x] CI pipeline skeleton (lint, format checks)
 
 ## Phase 1 — Application MVP
 - [ ] Define core domain (parking spots, reservations, users)
@@ -19,7 +19,7 @@ CI/CD, containerization, and observability practices end-to-end.
 - [ ] Separate environments (dev/staging)
 
 ## Phase 3 — CI/CD
-- [ ] Automated build & test pipeline
+- [x] Automated build & test pipeline
 - [ ] Automated deployment to dev environment
 
 ## Phase 4 — Orchestration
