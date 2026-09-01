@@ -29,3 +29,6 @@ venv/
 
 # Local secrets
 .env
+
+# Locally-stored uploaded photos (stand-in for S3, see src/backend/media.py)
+src/backend/media/

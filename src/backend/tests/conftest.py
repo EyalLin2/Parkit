@@ -18,6 +18,7 @@ from httpx import ASGITransport, AsyncClient
 
 from config import settings
 from database import engine
+from media import MEDIA_DIR
 from models import Base
 from redis_client import redis_client
 
@@ -69,6 +70,8 @@ async def _clean_state():
     await engine.dispose()
     await redis_client.flushdb()
     await redis_client.aclose()
+    for f in MEDIA_DIR.glob("*.jpg"):
+        f.unlink()
 
 
 @pytest_asyncio.fixture

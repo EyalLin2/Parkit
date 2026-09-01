@@ -11,7 +11,7 @@ class SpotCreate(BaseModel):
     lng: float = Field(ge=-180, le=180)
     spot_type: SpotType
     payment: Payment
-    photo_url: str | None = None
+    photo_staging_id: str | None = None
 
 
 class SpotOut(BaseModel):

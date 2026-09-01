@@ -1,8 +1,11 @@
 from fastapi import FastAPI, Response
+from fastapi.staticfiles import StaticFiles
 
 from database import check_postgres
+from media import MEDIA_DIR
 from redis_client import check_redis
 from routers.auth import router as auth_router
+from routers.photos import router as photos_router
 from routers.spots import router as spots_router
 from routers.users import router as users_router
 
@@ -10,6 +13,8 @@ app = FastAPI(title="ParkIt API")
 app.include_router(auth_router)
 app.include_router(spots_router)
 app.include_router(users_router)
+app.include_router(photos_router)
+app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 
 
 @app.get("/healthz")

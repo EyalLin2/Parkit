@@ -7,3 +7,6 @@ redis==5.2.1
 geoalchemy2==0.16.0
 alembic==1.14.0
 pyjwt==2.10.1
+python-multipart==0.0.20
+opencv-python-headless==4.10.0.84
+numpy==2.1.3
