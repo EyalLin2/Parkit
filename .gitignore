@@ -27,6 +27,14 @@ venv/
 .pytest_cache/
 .ruff_cache/
 
+# Android
+src/android/local.properties
+src/android/.gradle/
+src/android/**/build/
+*.iml
+captures/
+.cxx/
+
 # Local secrets
 .env
 
