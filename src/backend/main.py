@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -9,12 +11,15 @@ from routers.photos import router as photos_router
 from routers.spots import router as spots_router
 from routers.users import router as users_router
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
 app = FastAPI(title="ParkIt API")
 app.include_router(auth_router)
 app.include_router(spots_router)
 app.include_router(users_router)
 app.include_router(photos_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
+app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 
 
 @app.get("/healthz")

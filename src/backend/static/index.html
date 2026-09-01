@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ParkIt — Demo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --accent:#1B4F91; --bg:#F3F4F7; --surface:#fff; --border:#DEE2E8; --text:#1A1F29; --muted:#5B6472; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: var(--text); background: var(--bg); }
+  #app { display:flex; height:100vh; }
+  #map { flex:1; }
+  #panel { width:340px; background:var(--surface); border-left:1px solid var(--border); overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:1rem; }
+  h1 { font-size:1.1rem; margin:0; }
+  .badge { font-family: monospace; font-size:.65rem; background:#FBEDE0; color:#B8631A; padding:.15rem .4rem; border-radius:3px; }
+  fieldset { border:1px solid var(--border); border-radius:6px; padding:.7rem; }
+  legend { font-size:.75rem; color:var(--muted); padding:0 .3rem; }
+  label { display:block; font-size:.8rem; margin:.4rem 0 .15rem; }
+  input, select, button { font-size:.85rem; padding:.4rem; border:1px solid var(--border); border-radius:5px; width:100%; }
+  button { background: var(--accent); color:#fff; border:none; cursor:pointer; margin-top:.5rem; }
+  button.secondary { background:#EAECEF; color:var(--text); }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:.4rem; }
+  .row > * { flex:1; }
+  #status { font-size:.75rem; color:var(--muted); min-height:1rem; }
+  #leaderboard { list-style:none; margin:0; padding:0; font-size:.82rem; }
+  #leaderboard li { display:flex; justify-content:space-between; padding:.25rem 0; border-bottom:1px solid var(--border); }
+  #profile { font-size:.82rem; line-height:1.6; }
+  .popup-actions { display:flex; flex-direction:column; gap:.3rem; margin-top:.4rem; }
+  .popup-actions button { margin:0; }
+  .hint { font-size:.72rem; color:var(--muted); }
+  #photoPreview { max-width:100%; border-radius:6px; margin-top:.4rem; display:none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+  <div id="panel">
+    <h1>ParkIt <span class="badge">demo — not the real app</span></h1>
+    <div class="hint">Backend-only project — this page is a thin demo client. Click the map to drop a pin, then report a spot there.</div>
+
+    <fieldset id="authBox">
+      <legend>Account</legend>
+      <div id="loggedOut">
+        <label>Display name</label>
+        <input id="displayName" placeholder="Eyal">
+        <button id="loginBtn">Dev login</button>
+      </div>
+      <div id="loggedIn" style="display:none">
+        <div id="whoami"></div>
+        <button class="secondary" id="logoutBtn">Log out</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Report a spot</legend>
+      <div class="hint" id="pinHint">Click the map to choose a location.</div>
+      <label>Type</label>
+      <select id="spotType">
+        <option value="street">street</option>
+        <option value="lot">lot</option>
+        <option value="disabled">disabled</option>
+        <option value="ev_charging">ev_charging</option>
+      </select>
+      <label>Payment</label>
+      <select id="payment">
+        <option value="free">free</option>
+        <option value="paid">paid</option>
+      </select>
+      <label>Photo (optional — runs through the local blur stand-in)</label>
+      <input type="file" id="photoFile" accept="image/*">
+      <img id="photoPreview">
+      <div id="faceCount" class="hint"></div>
+      <button id="reportBtn" disabled>Report spot</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Search filters</legend>
+      <label>Radius (m)</label>
+      <input id="radius" type="number" value="1500" min="100" max="5000">
+      <button class="secondary" id="refreshBtn">Refresh nearby spots</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>My Activity</legend>
+      <div id="profile">log in to see your profile</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Leaderboard (weekly)</legend>
+      <ol id="leaderboard"></ol>
+    </fieldset>
+
+    <div id="status"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API = "";
+const TLV = [32.0809, 34.7806];
+
+let token = localStorage.getItem("parkit_token");
+let userId = localStorage.getItem("parkit_user_id");
+let pendingStagingId = null;
+let clickedLatLng = null;
+const markers = new Map();
+
+const map = L.map("map").setView(TLV, 15);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors",
+}).addTo(map);
+
+const pinMarker = L.marker(TLV, { opacity: 0.6 });
+map.on("click", (e) => {
+  clickedLatLng = e.latlng;
+  pinMarker.setLatLng(e.latlng).addTo(map);
+  document.getElementById("pinHint").textContent =
+    `Pin at ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+  document.getElementById("reportBtn").disabled = !token;
+});
+
+navigator.geolocation?.getCurrentPosition(
+  (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 15),
+  () => {},
+);
+
+function setStatus(msg, isError) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.style.color = isError ? "#B8631A" : "#5B6472";
+}
+
+async function api(path, opts = {}) {
+  const headers = opts.headers || {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const resp = await fetch(API + path, { ...opts, headers });
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(body.detail || `${resp.status} ${resp.statusText}`);
+  }
+  return resp.status === 204 ? null : resp.json();
+}
+
+function updateAuthUI() {
+  document.getElementById("loggedOut").style.display = token ? "none" : "block";
+  document.getElementById("loggedIn").style.display = token ? "block" : "none";
+  document.getElementById("whoami").textContent = token ? `Logged in (user ${userId.slice(0, 8)}…)` : "";
+  document.getElementById("reportBtn").disabled = !token || !clickedLatLng;
+}
+
+document.getElementById("loginBtn").onclick = async () => {
+  const displayName = document.getElementById("displayName").value.trim() || "Demo User";
+  try {
+    const body = await api("/auth/dev-login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        auth_provider: "dev",
+        external_id: "demo-" + displayName.toLowerCase().replace(/\s+/g, "-"),
+        display_name: displayName,
+      }),
+    });
+    token = body.access_token;
+    userId = body.user_id;
+    localStorage.setItem("parkit_token", token);
+    localStorage.setItem("parkit_user_id", userId);
+    updateAuthUI();
+    setStatus("Logged in.");
+    refreshProfile();
+    refreshLeaderboard();
+    refreshSpots();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+};
+
+document.getElementById("logoutBtn").onclick = () => {
+  token = null;
+  userId = null;
+  localStorage.removeItem("parkit_token");
+  localStorage.removeItem("parkit_user_id");
+  updateAuthUI();
+  document.getElementById("profile").textContent = "log in to see your profile";
+};
+
+document.getElementById("photoFile").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    setStatus("Uploading + blurring…");
+    const body = await api("/photos/stage", { method: "POST", body: fd });
+    pendingStagingId = body.staging_id;
+    const img = document.getElementById("photoPreview");
+    img.src = "data:image/jpeg;base64," + body.preview_base64;
+    img.style.display = "block";
+    document.getElementById("faceCount").textContent = `${body.faces_blurred} face(s) blurred (local stand-in — not real Rekognition)`;
+    setStatus("Preview ready.");
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+};
+
+document.getElementById("reportBtn").onclick = async () => {
+  if (!clickedLatLng) return;
+  try {
+    const payload = {
+      lat: clickedLatLng.lat,
+      lng: clickedLatLng.lng,
+      spot_type: document.getElementById("spotType").value,
+      payment: document.getElementById("payment").value,
+    };
+    if (pendingStagingId) payload.photo_staging_id = pendingStagingId;
+    await api("/spots", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setStatus("Spot reported.");
+    pendingStagingId = null;
+    document.getElementById("photoFile").value = "";
+    document.getElementById("photoPreview").style.display = "none";
+    document.getElementById("faceCount").textContent = "";
+    refreshSpots();
+    refreshProfile();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+};
+
+function spotAge(reportedAt) {
+  const mins = (Date.now() - new Date(reportedAt).getTime()) / 60000;
+  if (mins < 5) return "🔥 Hot";
+  if (mins < 15) return "🟠 Warm";
+  return "🔵 Cold";
+}
+
+function popupHtml(spot) {
+  const mine = spot.reporter_id === userId;
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <b>${spot.spot_type} · ${spot.payment}</b><br>
+    ${spotAge(spot.reported_at)} · status: ${spot.status}<br>
+    ${spot.photo_url ? `<img src="${spot.photo_url}" style="max-width:180px;border-radius:4px;margin-top:.3rem">` : ""}
+    <div class="popup-actions"></div>
+  `;
+  const actions = div.querySelector(".popup-actions");
+  if (!token) return div;
+
+  if (spot.status === "active" && !mine) {
+    const claimBtn = document.createElement("button");
+    claimBtn.textContent = "Claim";
+    claimBtn.onclick = () => act(() => api(`/spots/${spot.id}/claim`, { method: "POST" }));
+    actions.appendChild(claimBtn);
+  }
+  if (!mine) {
+    const took = document.createElement("button");
+    took.textContent = "I took it";
+    took.onclick = () => act(() => api(`/spots/${spot.id}/feedback`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "confirmed_taken" }),
+    }));
+    const flag = document.createElement("button");
+    flag.className = "secondary";
+    flag.textContent = "Spot is taken (flag)";
+    flag.onclick = () => act(() => api(`/spots/${spot.id}/feedback`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "flagged_false" }),
+    }));
+    actions.appendChild(took);
+    actions.appendChild(flag);
+  }
+  if (mine && spot.status === "active") {
+    const cancel = document.createElement("button");
+    cancel.className = "secondary";
+    cancel.textContent = "Cancel my report";
+    cancel.onclick = () => act(() => api(`/spots/${spot.id}`, { method: "DELETE" }));
+    actions.appendChild(cancel);
+  }
+  return div;
+}
+
+async function act(fn) {
+  try {
+    await fn();
+    setStatus("Done.");
+    refreshSpots();
+    refreshProfile();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+async function refreshSpots() {
+  const center = map.getCenter();
+  const radius = document.getElementById("radius").value;
+  try {
+    const spots = await api(`/spots?lat=${center.lat}&lng=${center.lng}&radius_m=${radius}`);
+    for (const m of markers.values()) map.removeLayer(m);
+    markers.clear();
+    for (const spot of spots) {
+      const marker = L.marker([spot.lat, spot.lng]).addTo(map);
+      marker.bindPopup(() => popupHtml(spot));
+      markers.set(spot.id, marker);
+    }
+    setStatus(`${spots.length} active spot(s) nearby.`);
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+async function refreshProfile() {
+  if (!token) return;
+  try {
+    const p = await api("/users/me");
+    document.getElementById("profile").innerHTML = `
+      points: <b>${p.points}</b> · weekly: <b>${p.weekly_points}</b><br>
+      successful reports: ${p.successful_reports}<br>
+      badges: ${p.badges.length ? p.badges.join(", ") : "none yet"}<br>
+      activity: ${p.activity.length} report(s)
+    `;
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+async function refreshLeaderboard() {
+  if (!token) return;
+  try {
+    const rows = await api("/leaderboard?limit=10");
+    const ol = document.getElementById("leaderboard");
+    ol.innerHTML = rows.map((r) => `<li><span>#${r.rank} ${r.display_name}</span><span>${r.weekly_points}</span></li>`).join("") || "<li>no one has weekly points yet</li>";
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+document.getElementById("refreshBtn").onclick = () => { refreshSpots(); refreshLeaderboard(); };
+map.on("moveend", refreshSpots);
+
+updateAuthUI();
+if (token) { refreshProfile(); refreshLeaderboard(); }
+refreshSpots();
+</script>
+</body>
+</html>
