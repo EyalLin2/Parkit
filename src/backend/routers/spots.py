@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
 from database import get_db
-from models import FeedbackType, RemovedReason, Spot, SpotFeedback, SpotStatus, User
+from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
 from redis_client import get_redis
 from schemas import FeedbackCreate, SpotCreate, SpotOut
 
@@ -122,6 +122,8 @@ async def nearby_spots(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
     radius_m: int = Query(1000, gt=0, le=5000),
+    spot_type: list[SpotType] | None = Query(None),
+    payment: Payment | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> list[Spot]:
     await _reconcile_spot_states(db)
@@ -133,6 +135,10 @@ async def nearby_spots(
         .where(ST_DWithin(Spot.location, origin, radius_m))
         .order_by(ST_Distance(Spot.location, origin))
     )
+    if spot_type:
+        stmt = stmt.where(Spot.spot_type.in_(spot_type))
+    if payment:
+        stmt = stmt.where(Spot.payment == payment)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 

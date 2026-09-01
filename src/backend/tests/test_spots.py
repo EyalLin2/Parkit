@@ -20,6 +20,39 @@ async def test_reported_spot_is_findable_via_nearby_search(client, make_user):
     assert report.json()["id"] in await _nearby_ids(client)
 
 
+async def test_nearby_search_filters_by_spot_type(client, make_user):
+    _, headers = await make_user("reporter")
+    report = await _report(client, headers, spot_type="ev_charging")
+    spot_id = report.json()["id"]
+
+    matching = await _nearby_ids(client, spot_type="ev_charging")
+    assert spot_id in matching
+
+    non_matching = await _nearby_ids(client, spot_type="disabled")
+    assert spot_id not in non_matching
+
+
+async def test_nearby_search_filters_by_multiple_spot_types(client, make_user):
+    _, headers = await make_user("reporter")
+    report = await _report(client, headers, spot_type="lot")
+    spot_id = report.json()["id"]
+
+    matching = await _nearby_ids(client, spot_type=["street", "lot"])
+    assert spot_id in matching
+
+
+async def test_nearby_search_filters_by_payment(client, make_user):
+    _, headers = await make_user("reporter")
+    report = await _report(client, headers, payment="paid")
+    spot_id = report.json()["id"]
+
+    matching = await _nearby_ids(client, payment="paid")
+    assert spot_id in matching
+
+    non_matching = await _nearby_ids(client, payment="free")
+    assert spot_id not in non_matching
+
+
 async def test_second_report_from_the_same_user_within_cooldown_is_rate_limited(client, make_user):
     _, headers = await make_user("reporter")
     first = await _report(client, headers, lat=32.09, lng=34.79)
