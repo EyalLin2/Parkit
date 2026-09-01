@@ -23,9 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
@@ -242,10 +244,19 @@ fun MapScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("ParkIt", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                        Image(
+                            painter = painterResource(R.drawable.ic_logo),
+                            contentDescription = "ParkIt logo",
+                            modifier = Modifier.size(36.dp),
+                        )
+                        Text(
+                            "ParkIt",
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.weight(1f).padding(start = 10.dp),
+                        )
                         IconButton(onClick = onOpenProfile) { Icon(Icons.Filled.Person, contentDescription = "Profile") }
                         IconButton(onClick = { sessionStore.clear(); onLoggedOut() }) {
                             Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
@@ -262,22 +273,36 @@ fun MapScreen(
                 }
             }
 
-            Surface(
+            // Pinch-to-zoom alone isn't reliably discoverable (and doesn't work at
+            // all via a mouse on an emulator), so explicit zoom controls sit above
+            // the My Location button rather than replacing it.
+            Column(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 172.dp),
-                shape = CircleShape,
-                shadowElevation = 6.dp,
-                color = MaterialTheme.colorScheme.surface,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                IconButton(onClick = {
-                    if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED
-                    ) {
-                        useDeviceLocation()
-                    } else {
-                        locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                Surface(shape = RoundedCornerShape(14.dp), shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
+                    Column {
+                        IconButton(onClick = { mapViewRef?.controller?.zoomIn() }) {
+                            Icon(Icons.Filled.Add, contentDescription = "Zoom in")
+                        }
+                        IconButton(onClick = { mapViewRef?.controller?.zoomOut() }) {
+                            Icon(Icons.Filled.Remove, contentDescription = "Zoom out")
+                        }
                     }
-                }) {
-                    Icon(Icons.Filled.MyLocation, contentDescription = "My location", tint = MaterialTheme.colorScheme.primary)
+                }
+                Surface(shape = CircleShape, shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
+                    IconButton(onClick = {
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                            android.content.pm.PackageManager.PERMISSION_GRANTED
+                        ) {
+                            useDeviceLocation()
+                        } else {
+                            locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        }
+                    }) {
+                        Icon(Icons.Filled.MyLocation, contentDescription = "My location", tint = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
 
