@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from models import FeedbackType, Payment, SpotStatus, SpotType
+from models import FeedbackType, Payment, RemovedReason, SpotStatus, SpotType
 
 
 class SpotCreate(BaseModel):
@@ -31,3 +31,31 @@ class SpotOut(BaseModel):
 
 class FeedbackCreate(BaseModel):
     type: FeedbackType
+
+
+class ActivityItem(BaseModel):
+    spot_id: uuid.UUID
+    spot_type: SpotType
+    payment: Payment
+    reported_at: datetime
+    status: SpotStatus
+    removed_reason: RemovedReason | None
+
+    model_config = {"from_attributes": True}
+
+
+class ProfileOut(BaseModel):
+    user_id: uuid.UUID
+    display_name: str
+    points: int
+    weekly_points: int
+    successful_reports: int
+    badges: list[int]
+    activity: list[ActivityItem]
+
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    user_id: uuid.UUID
+    display_name: str
+    weekly_points: int

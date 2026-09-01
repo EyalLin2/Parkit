@@ -56,6 +56,7 @@ class User(Base):
 
     points: Mapped[int] = mapped_column(default=0)
     weekly_points: Mapped[int] = mapped_column(default=0)
+    weekly_points_reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     consecutive_bad_reports: Mapped[int] = mapped_column(default=0)
     reporting_blocked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
