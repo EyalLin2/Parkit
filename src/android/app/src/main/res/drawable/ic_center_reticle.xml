@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+    <!-- Outlined targeting reticle — deliberately NOT a solid pin, so it can
+         never be mistaken for an actual reported-spot marker on the map. -->
+    <path
+        android:strokeColor="#1B4F91"
+        android:strokeWidth="2.5"
+        android:pathData="M20,20 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0" />
+    <path android:fillColor="#1B4F91" android:pathData="M20,20 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+    <path android:strokeColor="#1B4F91" android:strokeWidth="2" android:pathData="M20,0 L20,7" />
+    <path android:strokeColor="#1B4F91" android:strokeWidth="2" android:pathData="M20,33 L20,40" />
+    <path android:strokeColor="#1B4F91" android:strokeWidth="2" android:pathData="M0,20 L7,20" />
+    <path android:strokeColor="#1B4F91" android:strokeWidth="2" android:pathData="M33,20 L40,20" />
+</vector>
