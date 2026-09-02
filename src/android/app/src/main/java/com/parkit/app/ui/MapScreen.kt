@@ -374,6 +374,7 @@ fun MapScreen(
                 scope.launch { snackbarHostState.showSnackbar("Spot reported 🅿️") }
                 refreshSpotsNow()
             },
+            onSessionExpired = onLoggedOut,
         )
     }
 
@@ -387,6 +388,7 @@ fun MapScreen(
                 selectedSpot = null
                 refreshSpotsNow()
             },
+            onSessionExpired = onLoggedOut,
         )
     }
 

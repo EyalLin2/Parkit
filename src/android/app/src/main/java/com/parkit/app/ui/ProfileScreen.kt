@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.LeaderboardEntry
 import com.parkit.app.api.ProfileOut
+import com.parkit.app.api.isUnauthorized
 
 private val Gold = Color(0xFFC9971C)
 private val GoldTint = Color(0xFFFDF6E3)
@@ -69,7 +70,7 @@ private val BADGE_TIERS = listOf(
 )
 
 @Composable
-fun ProfileScreen(api: ApiService, onBack: () -> Unit) {
+fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> Unit) {
     var profile by remember { mutableStateOf<ProfileOut?>(null) }
     var leaderboard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -79,7 +80,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit) {
             profile = api.myProfile()
             leaderboard = api.leaderboard(10)
         } catch (e: Exception) {
-            error = e.message
+            if (e.isUnauthorized()) onSessionExpired() else error = e.message
         }
     }
 
