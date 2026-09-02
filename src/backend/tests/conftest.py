@@ -8,9 +8,14 @@ everywhere else — no mocked persistence layer.
 import os
 import uuid
 
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://parkit:parkit_dev_password@db:5432/parkit_test")
-os.environ.setdefault("REDIS_URL", "redis://redis:6379/1")
-os.environ.setdefault("JWT_SECRET", "test-secret")
+# Force-set (not setdefault): when pytest runs inside the backend dev
+# container, DATABASE_URL/REDIS_URL are already set in the environment
+# (docker-compose env_file) to the real dev database — setdefault would
+# silently no-op and the autouse cleanup fixture below would then wipe
+# every row in the dev database after each test.
+os.environ["DATABASE_URL"] = "postgresql+asyncpg://parkit:parkit_dev_password@db:5432/parkit_test"
+os.environ["REDIS_URL"] = "redis://redis:6379/1"
+os.environ["JWT_SECRET"] = "test-secret"
 
 import asyncpg
 import pytest_asyncio
@@ -64,6 +69,9 @@ async def _clean_state():
     # the app modules — their connection pools must be torn down after every
     # test or the next test's loop reuses connections bound to a dead loop.
     yield
+    assert _db_name().endswith("_test"), (
+        f"refusing to wipe non-test database {_db_name()!r} — DATABASE_URL is misconfigured"
+    )
     async with engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             await conn.execute(table.delete())
