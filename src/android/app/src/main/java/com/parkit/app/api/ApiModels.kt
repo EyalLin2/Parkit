@@ -22,6 +22,7 @@ data class SpotCreate(
     val lng: Double,
     @Json(name = "spot_type") val spotType: String,
     val payment: String,
+    @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "photo_staging_id") val photoStagingId: String? = null,
 )
 
@@ -33,6 +34,7 @@ data class SpotOut(
     val lng: Double,
     @Json(name = "spot_type") val spotType: String,
     val payment: String,
+    @Json(name = "vehicle_size") val vehicleSize: String?,
     @Json(name = "photo_url") val photoUrl: String?,
     val status: String,
     @Json(name = "reported_at") val reportedAt: String,

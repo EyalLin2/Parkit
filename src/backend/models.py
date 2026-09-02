@@ -24,6 +24,12 @@ class Payment(str, enum.Enum):
     paid = "paid"
 
 
+class VehicleSize(str, enum.Enum):
+    compact = "compact"
+    regular = "regular"
+    large = "large"
+
+
 class SpotStatus(str, enum.Enum):
     active = "active"
     claimed = "claimed"
@@ -75,6 +81,7 @@ class Spot(Base):
 
     spot_type: Mapped[SpotType] = mapped_column(Enum(SpotType, name="spot_type"))
     payment: Mapped[Payment] = mapped_column(Enum(Payment, name="payment"))
+    vehicle_size: Mapped[VehicleSize | None] = mapped_column(Enum(VehicleSize, name="vehicle_size"), nullable=True)
     photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     status: Mapped[SpotStatus] = mapped_column(Enum(SpotStatus, name="spot_status"), default=SpotStatus.active)
