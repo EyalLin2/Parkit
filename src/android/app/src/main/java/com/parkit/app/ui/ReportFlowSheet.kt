@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.SpotCreate
+import com.parkit.app.api.isUnauthorized
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -67,6 +68,7 @@ fun ReportFlowSheet(
     addressLabel: String,
     onDismiss: () -> Unit,
     onReported: () -> Unit,
+    onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -94,7 +96,7 @@ fun ReportFlowSheet(
             val previewBytes = Base64.decode(staged.previewBase64, Base64.DEFAULT)
             blurredPreview = BitmapFactory.decodeByteArray(previewBytes, 0, previewBytes.size)
         } catch (e: Exception) {
-            error = "Photo upload failed: ${e.message}"
+            if (e.isUnauthorized()) onSessionExpired() else error = "Photo upload failed: ${e.message}"
         } finally {
             uploading = false
         }
@@ -120,7 +122,7 @@ fun ReportFlowSheet(
                 api.reportSpot(SpotCreate(lat = lat, lng = lng, spotType = selectedType, payment = "free", photoStagingId = stagingId))
                 onReported()
             } catch (e: Exception) {
-                error = e.message
+                if (e.isUnauthorized()) onSessionExpired() else error = e.message
             } finally {
                 submitting = false
             }

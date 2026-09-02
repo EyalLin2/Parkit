@@ -34,6 +34,7 @@ import com.parkit.app.api.ApiService
 import com.parkit.app.api.FeedbackCreate
 import com.parkit.app.api.GeocodingClient
 import com.parkit.app.api.SpotOut
+import com.parkit.app.api.isUnauthorized
 import kotlinx.coroutines.launch
 
 /** A "callout" for a tapped pin — full address, type, how long ago it was
@@ -46,6 +47,7 @@ fun SpotActionsSheet(
     myUserId: String?,
     onDismiss: () -> Unit,
     onChanged: () -> Unit,
+    onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
     var busy by remember { mutableStateOf(false) }
@@ -71,7 +73,7 @@ fun SpotActionsSheet(
                 action()
                 onChanged()
             } catch (e: Exception) {
-                error = e.message ?: "Action failed"
+                if (e.isUnauthorized()) onSessionExpired() else error = e.message ?: "Action failed"
             } finally {
                 busy = false
             }

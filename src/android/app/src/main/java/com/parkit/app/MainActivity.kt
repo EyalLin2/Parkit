@@ -47,6 +47,14 @@ fun ParkItApp(sessionStore: SessionStore) {
     val api = ApiClient.create(sessionStore)
     val startDestination = if (sessionStore.token.value != null) "map" else "login"
 
+    // One path back to login for both a manual Logout tap and an expired
+    // JWT (dev-login tokens last 24h with no refresh) — popUpTo(0) clears
+    // the back stack regardless of which screen triggered it.
+    val goToLogin: () -> Unit = {
+        sessionStore.clear()
+        navController.navigate("login") { popUpTo(0) { inclusive = true } }
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
             LoginScreen(
@@ -60,11 +68,11 @@ fun ParkItApp(sessionStore: SessionStore) {
                 api = api,
                 sessionStore = sessionStore,
                 onOpenProfile = { navController.navigate("profile") },
-                onLoggedOut = { navController.navigate("login") { popUpTo("map") { inclusive = true } } },
+                onLoggedOut = goToLogin,
             )
         }
         composable("profile") {
-            ProfileScreen(api = api, onBack = { navController.popBackStack() })
+            ProfileScreen(api = api, onBack = { navController.popBackStack() }, onSessionExpired = goToLogin)
         }
     }
 }
