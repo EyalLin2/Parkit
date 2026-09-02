@@ -2,6 +2,7 @@
 
 package com.parkit.app.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -135,6 +136,7 @@ private fun MetricCard(icon: ImageVector, value: String, label: String, tint: Co
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = tint.copy(alpha = 0.12f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         modifier = modifier,
     ) {
         Column(Modifier.padding(14.dp)) {
@@ -152,7 +154,7 @@ private fun BadgeItem(tier: BadgeTier, unlocked: Boolean) {
             modifier = Modifier
                 .size(56.dp)
                 .background(
-                    if (unlocked) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f),
+                    if (unlocked) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.06f),
                     CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -160,7 +162,7 @@ private fun BadgeItem(tier: BadgeTier, unlocked: Boolean) {
             Icon(
                 tier.icon,
                 contentDescription = "${tier.label} badge",
-                tint = if (unlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                tint = if (unlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                 modifier = Modifier.size(28.dp),
             )
         }
@@ -175,6 +177,17 @@ private fun BadgeItem(tier: BadgeTier, unlocked: Boolean) {
 }
 
 @Composable
+private fun Avatar(name: String, background: Color) {
+    val initial = name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    Box(
+        modifier = Modifier.size(40.dp).background(background, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(initial, style = MaterialTheme.typography.titleMedium, color = Color.White)
+    }
+}
+
+@Composable
 private fun LeaderboardRow(entry: LeaderboardEntry) {
     val (medalColor, tint) = when (entry.rank) {
         1 -> Gold to GoldTint
@@ -182,28 +195,45 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
         3 -> Bronze to BronzeTint
         else -> null to null
     }
+    val avatarColor = when (entry.rank) {
+        1 -> Gold
+        2 -> Silver
+        3 -> Bronze
+        else -> MaterialTheme.colorScheme.primary
+    }
 
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = tint ?: MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (tint != null) 2.dp else 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (entry.rank == 1) 6.dp else if (tint != null) 2.dp else 0.dp),
+        border = if (entry.rank == 1) BorderStroke(1.5.dp, Gold) else null,
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Avatar(entry.displayName, avatarColor)
+            Text(
+                entry.displayName,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f).padding(start = 12.dp),
+            )
             if (medalColor != null) {
-                Icon(Icons.Filled.EmojiEvents, contentDescription = "Rank ${entry.rank}", tint = medalColor, modifier = Modifier.size(26.dp))
+                Icon(
+                    Icons.Filled.EmojiEvents,
+                    contentDescription = "Rank ${entry.rank}",
+                    tint = medalColor,
+                    modifier = Modifier.size(22.dp).padding(end = 6.dp),
+                )
             } else {
                 Text(
                     "#${entry.rank}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier.padding(end = 6.dp),
                 )
             }
-            Text(entry.displayName, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f).padding(start = 12.dp))
             Text("${entry.weeklyPoints} pts", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         }
     }

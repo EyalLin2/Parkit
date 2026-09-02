@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -263,13 +264,32 @@ fun MapScreen(
                         }
                     }
                 }
-                Row(
-                    modifier = Modifier.padding(top = 8.dp).horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.padding(top = 8.dp),
                 ) {
-                    FilterChip(selected = typeFilter == null, onClick = { typeFilter = null }, label = { Text("All") })
-                    FilterChip(selected = typeFilter == "street", onClick = { typeFilter = "street" }, label = { Text("Regular") })
-                    FilterChip(selected = typeFilter == "disabled", onClick = { typeFilter = "disabled" }, label = { Text("Disabled") })
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp).horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        listOf(null to "All", "street" to "Regular", "disabled" to "Disabled").forEach { (value, label) ->
+                            val selected = typeFilter == value
+                            FilterChip(
+                                selected = selected,
+                                onClick = { typeFilter = value },
+                                label = { Text(label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                                border = if (selected) null else FilterChipDefaults.filterChipBorder(enabled = true, selected = false),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -314,7 +334,7 @@ fun MapScreen(
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 10.dp,
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Filled.LocationOn,
@@ -333,7 +353,7 @@ fun MapScreen(
                         onClick = { showReportFlow = true },
                         shape = RoundedCornerShape(50),
                         colors = ButtonDefaults.buttonColors(),
-                        modifier = Modifier.fillMaxWidth().height(56.dp).padding(top = 12.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 8.dp),
                     ) {
                         Text("Report Parking Here", style = MaterialTheme.typography.titleMedium)
                     }
