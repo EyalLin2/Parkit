@@ -100,6 +100,13 @@ fun SpotActionsSheet(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            spot.vehicleSize?.let {
+                Text(
+                    "Fits: ${it.replaceFirstChar(Char::uppercase)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             OutlinedButton(
                 onClick = {

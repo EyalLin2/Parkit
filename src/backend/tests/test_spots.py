@@ -53,6 +53,18 @@ async def test_nearby_search_filters_by_payment(client, make_user):
     assert spot_id not in non_matching
 
 
+async def test_reported_spot_carries_optional_vehicle_size(client, make_user):
+    _, headers_a = await make_user("a")
+    _, headers_b = await make_user("b")
+
+    report = await _report(client, headers_a, vehicle_size="large")
+    assert report.status_code == 201
+    assert report.json()["vehicle_size"] == "large"
+
+    no_size = await _report(client, headers_b, lat=32.09, lng=34.79)
+    assert no_size.json()["vehicle_size"] is None
+
+
 async def test_second_report_from_the_same_user_within_cooldown_is_rate_limited(client, make_user):
     _, headers = await make_user("reporter")
     first = await _report(client, headers, lat=32.09, lng=34.79)

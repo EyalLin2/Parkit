@@ -79,6 +79,7 @@ fun ReportFlowSheet(
     var facesBlurred by remember { mutableStateOf<Int?>(null) }
     var uploading by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf("street") }
+    var selectedVehicleSize by remember { mutableStateOf("regular") }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -119,7 +120,16 @@ fun ReportFlowSheet(
         error = null
         scope.launch {
             try {
-                api.reportSpot(SpotCreate(lat = lat, lng = lng, spotType = selectedType, payment = "free", photoStagingId = stagingId))
+                api.reportSpot(
+                    SpotCreate(
+                        lat = lat,
+                        lng = lng,
+                        spotType = selectedType,
+                        payment = "free",
+                        vehicleSize = selectedVehicleSize,
+                        photoStagingId = stagingId,
+                    )
+                )
                 onReported()
             } catch (e: Exception) {
                 if (e.isUnauthorized()) onSessionExpired() else error = e.message
@@ -191,6 +201,20 @@ fun ReportFlowSheet(
                             colors = if (selected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
                             modifier = Modifier.weight(1f).height(48.dp),
                         ) { Text(label) }
+                    }
+                }
+
+                Spacer(Modifier.padding(top = 18.dp))
+                Text("Fits which car size?", style = MaterialTheme.typography.titleSmall)
+                Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    listOf("compact" to "Compact", "regular" to "Regular", "large" to "Large").forEach { (value, label) ->
+                        val selected = selectedVehicleSize == value
+                        Button(
+                            onClick = { selectedVehicleSize = value },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = if (selected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
+                            modifier = Modifier.weight(1f).height(44.dp),
+                        ) { Text(label, style = MaterialTheme.typography.bodySmall) }
                     }
                 }
 

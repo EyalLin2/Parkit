@@ -119,6 +119,7 @@ async def report_spot(
             location=origin,
             spot_type=payload.spot_type,
             payment=payload.payment,
+            vehicle_size=payload.vehicle_size,
         )
         db.add(spot)
         award_points(user, POINTS_REPORT)

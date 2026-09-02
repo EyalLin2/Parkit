@@ -326,6 +326,20 @@ fun MapScreen(
                 }
             }
 
+            Surface(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 138.dp),
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                shadowElevation = 4.dp,
+            ) {
+                Text(
+                    "${spots.size} spot${if (spots.size == 1) "" else "s"} available within ${DEFAULT_RADIUS_M}m",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+
             // One unified card: address confirmation + the single report action, rather
             // than two separate floating pieces.
             Surface(

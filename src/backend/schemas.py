@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from models import FeedbackType, Payment, RemovedReason, SpotStatus, SpotType
+from models import FeedbackType, Payment, RemovedReason, SpotStatus, SpotType, VehicleSize
 
 
 class SpotCreate(BaseModel):
@@ -11,6 +11,7 @@ class SpotCreate(BaseModel):
     lng: float = Field(ge=-180, le=180)
     spot_type: SpotType
     payment: Payment
+    vehicle_size: VehicleSize | None = None
     photo_staging_id: str | None = None
 
 
@@ -21,6 +22,7 @@ class SpotOut(BaseModel):
     lng: float
     spot_type: SpotType
     payment: Payment
+    vehicle_size: VehicleSize | None
     photo_url: str | None
     status: SpotStatus
     reported_at: datetime
