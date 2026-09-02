@@ -8,14 +8,17 @@ everywhere else — no mocked persistence layer.
 import os
 import uuid
 
-# Force-set (not setdefault): when pytest runs inside the backend dev
-# container, DATABASE_URL/REDIS_URL are already set in the environment
-# (docker-compose env_file) to the real dev database — setdefault would
-# silently no-op and the autouse cleanup fixture below would then wipe
-# every row in the dev database after each test.
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://parkit:parkit_dev_password@db:5432/parkit_test"
-os.environ["REDIS_URL"] = "redis://redis:6379/1"
-os.environ["JWT_SECRET"] = "test-secret"
+if os.environ.get("GITHUB_ACTIONS") != "true":
+    # Inside the backend dev container, DATABASE_URL/REDIS_URL are already
+    # set in the environment (docker-compose env_file) to the real dev
+    # database — setdefault would silently no-op there and the autouse
+    # cleanup fixture below would then wipe every row in the dev database
+    # after each test. CI sets its own already-correct test URLs (see
+    # backend-ci.yml), so leave those alone rather than overriding with
+    # docker-compose hostnames that don't resolve on the runner.
+    os.environ["DATABASE_URL"] = "postgresql+asyncpg://parkit:parkit_dev_password@db:5432/parkit_test"
+    os.environ["REDIS_URL"] = "redis://redis:6379/1"
+os.environ.setdefault("JWT_SECRET", "test-secret")
 
 import asyncpg
 import pytest_asyncio

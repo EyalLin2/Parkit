@@ -28,9 +28,7 @@ SPREAD_DEGREES = 0.012
 
 async def seed(lat: float, lng: float, count: int) -> None:
     async with AsyncSessionLocal() as db:
-        reporter = (
-            await db.execute(select(User).where(User.external_id == SEEDER_EXTERNAL_ID))
-        ).scalar_one_or_none()
+        reporter = (await db.execute(select(User).where(User.external_id == SEEDER_EXTERNAL_ID))).scalar_one_or_none()
         if reporter is None:
             reporter = User(auth_provider="dev", external_id=SEEDER_EXTERNAL_ID, display_name="Demo Seeder")
             db.add(reporter)
@@ -40,9 +38,7 @@ async def seed(lat: float, lng: float, count: int) -> None:
         for _ in range(count):
             spot_lat = lat + random.uniform(-SPREAD_DEGREES, SPREAD_DEGREES)
             spot_lng = lng + random.uniform(-SPREAD_DEGREES, SPREAD_DEGREES)
-            spot_type = random.choices(
-                [t for t, _ in SPOT_TYPE_WEIGHTS], weights=[w for _, w in SPOT_TYPE_WEIGHTS]
-            )[0]
+            spot_type = random.choices([t for t, _ in SPOT_TYPE_WEIGHTS], weights=[w for _, w in SPOT_TYPE_WEIGHTS])[0]
             reported_at = now - timedelta(minutes=random.choice(MINUTES_AGO_CHOICES))
             vehicle_size = random.choice(list(VehicleSize))
 
