@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,16 +28,13 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -84,70 +82,135 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Profile & Leaderboard") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
-                },
-            )
-        },
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            val p = profile
-            if (p == null) {
-                CircularProgressIndicator()
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MetricRow(Icons.Filled.Star, p.points.toString(), "Points", MaterialTheme.colorScheme.primary)
-                    MetricRow(Icons.AutoMirrored.Filled.TrendingUp, p.weeklyPoints.toString(), "This week", Color(0xFF2C7A4B))
-                    MetricRow(Icons.Filled.CheckCircle, p.successfulReports.toString(), "Successful reports", Color(0xFFB8631A))
-                }
+    // Same floating-pill language as the map screen (rounded surface, soft
+    // shadow, sitting on the app background) instead of a flush-edge Material
+    // TopAppBar — that flat white bar butting straight into a gray body was
+    // exactly the "generic template" seam this screen kept getting called out
+    // for, even after two prior polish passes.
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        val p = profile
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 92.dp,
+                bottom = 24.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            error?.let { msg -> item { Text(msg, color = MaterialTheme.colorScheme.error) } }
 
-                Text(
-                    "Badges & Achievements",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 20.dp, bottom = 10.dp),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    BADGE_TIERS.forEach { tier ->
-                        BadgeItem(tier, successfulReports = p.successfulReports, unlocked = p.badges.contains(tier.threshold))
+            if (p == null) {
+                item { CircularProgressIndicator(modifier = Modifier.padding(top = 24.dp)) }
+            } else {
+                item { IdentityCard(p) }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
+                        MetricRow(Icons.Filled.Star, p.points.toString(), "Points", MaterialTheme.colorScheme.primary)
+                        MetricRow(Icons.AutoMirrored.Filled.TrendingUp, p.weeklyPoints.toString(), "This week", Color(0xFF2C7A4B))
+                        MetricRow(Icons.Filled.CheckCircle, p.successfulReports.toString(), "Successful reports", Color(0xFFB8631A))
                     }
                 }
-
-                Text(
-                    "${p.activity.size} report(s) in your activity",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 14.dp),
-                )
+                item {
+                    Surface(
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 3.dp,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Badges & Achievements", style = MaterialTheme.typography.titleMedium)
+                            Row(horizontalArrangement = Arrangement.spacedBy(24.dp), modifier = Modifier.padding(top = 14.dp)) {
+                                BADGE_TIERS.forEach { tier ->
+                                    BadgeItem(tier, successfulReports = p.successfulReports, unlocked = p.badges.contains(tier.threshold))
+                                }
+                            }
+                            Text(
+                                "${p.activity.size} report(s) in your activity",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 14.dp),
+                            )
+                        }
+                    }
+                }
             }
 
-            Text(
-                "Weekly leaderboard",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
-            )
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(leaderboard) { row -> LeaderboardRow(row) }
-                if (leaderboard.isEmpty()) {
-                    item { Text("No one has weekly points yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                }
+            item {
+                Text(
+                    "Weekly leaderboard",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
+                )
+            }
+            items(leaderboard) { row -> LeaderboardRow(row) }
+            if (leaderboard.isEmpty()) {
+                item { Text("No one has weekly points yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+        }
+
+        // Fully opaque (unlike the map screen's header) — there's no live map
+        // underneath to justify a translucent hint, and translucency here
+        // only risked ghosting whatever was on screen before navigating in.
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 6.dp,
+            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth()
+                .padding(horizontal = 16.dp).padding(top = 8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                Text(
+                    "Profile & Leaderboard",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Who you are, front and center — the screen used to drop you straight into
+ * stat cards with no identity shown anywhere, which read as impersonal. */
+@Composable
+private fun IdentityCard(profile: ProfileOut) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shadowElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Avatar(profile.displayName, MaterialTheme.colorScheme.primary, size = 56.dp)
+            Column(modifier = Modifier.padding(start = 14.dp)) {
+                Text(profile.displayName, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "ParkIt member",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
 }
 
 /** Compact horizontal metric row: a small colored icon badge, a big bold
- * number, and a muted label — a plain white card, not a blocky tint. */
+ * number, and a muted label, lifted off the page with the same shadow
+ * weight as the map screen's floating cards. */
 @Composable
 private fun MetricRow(icon: ImageVector, value: String, label: String, accent: Color) {
-    Card(
+    Surface(
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 3.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -251,10 +314,10 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
         else -> MaterialTheme.colorScheme.primary
     }
 
-    Card(
+    Surface(
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = tint ?: MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (tint != null) 2.dp else 1.dp),
+        color = tint ?: MaterialTheme.colorScheme.surface,
+        shadowElevation = if (tint != null) 3.dp else 2.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -291,11 +354,11 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
  * a soft glow (a colored shadow) instead of just another list row. */
 @Composable
 private fun PodiumCard(entry: LeaderboardEntry) {
-    Card(
+    Surface(
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = GoldTint),
+        color = GoldTint,
         border = BorderStroke(1.5.dp, Gold),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shadowElevation = 0.dp,
         modifier = Modifier
             .fillMaxWidth()
             .shadow(elevation = 10.dp, shape = MaterialTheme.shapes.large, ambientColor = Gold, spotColor = Gold),
