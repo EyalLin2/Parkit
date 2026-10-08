@@ -40,3 +40,7 @@ captures/
 
 # Locally-stored uploaded photos (stand-in for S3, see src/backend/media.py)
 src/backend/media/
+
+# Ad-hoc APK drops into the /demo static mount for sharing a build over a
+# tunnel — a distribution artifact, not source.
+src/backend/static/*.apk
