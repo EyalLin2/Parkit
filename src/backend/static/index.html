@@ -108,8 +108,13 @@ let clickedLatLng = null;
 const markers = new Map();
 
 const map = L.map("map").setView(TLV, 15);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "&copy; OpenStreetMap contributors",
+// Esri's free, keyless World Street basemap — not OSM's own tile.openstreetmap.org,
+// which this demo used to hit directly. That public server is meant for light,
+// low-volume use and commonly throttles/blocks requests without a registered
+// User-Agent; tiles would just silently never load. Same fix already applied
+// to the native Android app's map (see MapTiles.kt) for the same reason.
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+  attribution: "&copy; Esri",
 }).addTo(map);
 
 const pinMarker = L.marker(TLV, { opacity: 0.6 });
