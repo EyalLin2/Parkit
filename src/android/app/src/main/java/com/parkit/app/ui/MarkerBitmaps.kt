@@ -15,13 +15,23 @@ import kotlin.math.min
 object MarkerBitmaps {
     private const val DIAMETER_PX = 84
 
-    fun badge(colorHex: String, label: String): Bitmap {
-        val bmp = Bitmap.createBitmap(DIAMETER_PX, DIAMETER_PX, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        val center = DIAMETER_PX / 2f
-        val radius = center - 4f
+    // Padding around the circle so a soft drop-shadow has room to bleed into —
+    // without it, pins read as flat stickers pasted on the map instead of
+    // objects with depth (the "Google Maps pin" look).
+    private const val PADDING_PX = 12
+    private const val CANVAS_PX = DIAMETER_PX + PADDING_PX * 2
 
-        val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.FILL }
+    fun badge(colorHex: String, label: String): Bitmap {
+        val bmp = Bitmap.createBitmap(CANVAS_PX, CANVAS_PX, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val center = CANVAS_PX / 2f
+        val radius = DIAMETER_PX / 2f - 4f
+
+        val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+            setShadowLayer(8f, 0f, 3f, Color.argb(110, 0, 0, 0))
+        }
         canvas.drawCircle(center, center, radius + 4f, ring)
 
         val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(colorHex); style = Paint.Style.FILL }

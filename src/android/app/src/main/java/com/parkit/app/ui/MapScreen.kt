@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,7 +67,6 @@ import kotlinx.coroutines.launch
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
@@ -74,6 +74,23 @@ import kotlin.math.pow
 
 private val TEL_AVIV = GeoPoint(32.0809, 34.7806)
 private const val DEFAULT_RADIUS_M = 1500
+
+// Guards against snapping to an out-of-country GPS fix (e.g. an
+// emulator/device defaulting to Mountain View, CA) — see useDeviceLocation().
+private val SERVICE_AREA_CENTER = TEL_AVIV
+private const val SERVICE_AREA_RADIUS_KM = 350.0
+
+private fun distanceKm(a: GeoPoint, b: GeoPoint): Double {
+    val earthRadiusKm = 6371.0
+    val dLat = Math.toRadians(b.latitude - a.latitude)
+    val dLon = Math.toRadians(b.longitude - a.longitude)
+    val lat1 = Math.toRadians(a.latitude)
+    val lat2 = Math.toRadians(b.latitude)
+    val sinDLat = Math.sin(dLat / 2)
+    val sinDLon = Math.sin(dLon / 2)
+    val h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon
+    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+}
 
 private fun statusColor(spot: SpotOut, myUserId: String?): String = when {
     spot.status == "claimed" -> "#B8631A"
@@ -105,6 +122,8 @@ fun MapScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isDarkTheme = isSystemInDarkTheme()
+    val tileSource = if (isDarkTheme) MapTiles.DARK_MATTER else MapTiles.VOYAGER
 
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
     var spots by remember { mutableStateOf<List<SpotOut>>(emptyList()) }
@@ -138,8 +157,15 @@ fun MapScreen(
         }
         if (loc != null) {
             val here = GeoPoint(loc.latitude, loc.longitude)
-            mapViewRef?.controller?.animateTo(here)
-            geocodeTarget = here
+            // ParkIt only operates in Israel. A device/emulator with a stale or
+            // default GPS fix (classically Mountain View, CA on emulators) would
+            // otherwise yank a first-time user — or every demo — away from the
+            // service area onto an irrelevant map. Silently ignore anything
+            // outside it and keep the Tel Aviv default instead.
+            if (distanceKm(SERVICE_AREA_CENTER, here) <= SERVICE_AREA_RADIUS_KM) {
+                mapViewRef?.controller?.animateTo(here)
+                geocodeTarget = here
+            }
         }
     }
 
@@ -167,7 +193,7 @@ fun MapScreen(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
                     MapView(ctx).apply {
-                        setTileSource(TileSourceFactory.MAPNIK)
+                        setTileSource(tileSource)
                         setMultiTouchControls(true)
                         setBuiltInZoomControls(false)
                         controller.setZoom(16.0)
@@ -186,6 +212,9 @@ fun MapScreen(
                     }
                 },
                 update = { mapView ->
+                    if (mapView.tileProvider.tileSource.name() != tileSource.name()) {
+                        mapView.setTileSource(tileSource)
+                    }
                     mapView.overlays.filterIsInstance<Marker>().let { mapView.overlays.removeAll(it) }
 
                     val visible = typeFilter?.let { f -> spots.filter { it.spotType == f } } ?: spots
