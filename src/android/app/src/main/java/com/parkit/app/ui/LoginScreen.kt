@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.parkit.app.R
@@ -35,10 +37,12 @@ import java.util.UUID
 
 @Composable
 fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> Unit) {
+    val context = LocalContext.current
     var displayName by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val defaultName = stringResource(R.string.login_default_name)
 
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp),
@@ -47,7 +51,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
     ) {
         Image(
             painter = painterResource(R.drawable.ic_logo),
-            contentDescription = "ParkIt logo",
+            contentDescription = stringResource(R.string.logo_cd),
             modifier = Modifier.size(88.dp),
         )
         Text(
@@ -56,13 +60,13 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
             modifier = Modifier.padding(top = 12.dp),
         )
         Text(
-            "Find and share free parking, in seconds.",
+            stringResource(R.string.login_tagline),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Text(
-            "Demo client for a backend-only project — not the real native app.",
+            stringResource(R.string.login_demo_notice),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -72,7 +76,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
         OutlinedTextField(
             value = displayName,
             onValueChange = { displayName = it },
-            label = { Text("Your name") },
+            label = { Text(stringResource(R.string.login_name_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
         )
@@ -83,13 +87,13 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
                 error = null
                 scope.launch {
                     try {
-                        val name = displayName.ifBlank { "Demo User" }
+                        val name = displayName.ifBlank { defaultName }
                         val externalId = "android-" + name.lowercase().replace(" ", "-") + "-" + UUID.randomUUID().toString().take(6)
                         val result = api.devLogin(DevLoginRequest(externalId = externalId, displayName = name))
                         sessionStore.save(result.accessToken, result.userId, name)
                         onLoggedIn()
                     } catch (e: Exception) {
-                        error = "Couldn't reach the backend at 10.0.2.2:8000 (${e.message}). Is it running?"
+                        error = context.getString(R.string.login_error_backend, "10.0.2.2:8000", e.message)
                     } finally {
                         loading = false
                     }
@@ -100,7 +104,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
             modifier = Modifier.fillMaxWidth().height(56.dp).padding(top = 16.dp),
         ) {
             if (loading) CircularProgressIndicator(modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-            else Text("Continue", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary)
+            else Text(stringResource(R.string.login_continue), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary)
         }
 
         error?.let {

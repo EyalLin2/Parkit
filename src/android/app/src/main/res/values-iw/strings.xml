@@ -1,0 +1,112 @@
+<resources>
+    <string name="app_name">ParkIt</string>
+    <string name="logo_cd">לוגו ParkIt</string>
+
+    <!-- Login -->
+    <string name="login_tagline">מוצאים ומשתפים חניה חינם, בשניות.</string>
+    <string name="login_demo_notice">לקוח דמו לפרויקט בקאנד — לא האפליקציה הנייטיבית האמיתית.</string>
+    <string name="login_name_label">השם שלך</string>
+    <string name="login_continue">המשך</string>
+    <string name="login_default_name">משתמש דמו</string>
+    <string name="login_error_backend">לא הצלחתי להתחבר לשרת בכתובת %1$s (%2$s). הוא רץ?</string>
+
+    <!-- Map -->
+    <string name="map_filter_all">הכל</string>
+    <string name="map_filter_regular">רגיל</string>
+    <string name="map_filter_disabled">נכים</string>
+    <string name="map_profile_cd">פרופיל</string>
+    <string name="map_logout_cd">התנתקות</string>
+    <string name="map_zoom_in_cd">התקרבות</string>
+    <string name="map_zoom_out_cd">התרחקות</string>
+    <string name="map_my_location_cd">המיקום שלי</string>
+    <string name="map_report_location_cd">מיקום לדיווח</string>
+    <string name="map_report_fab_cd">דווח על חניה כאן</string>
+    <string name="map_locating">מאתר מיקום…</string>
+    <string name="map_load_error">טעינת החניות נכשלה: %1$s</string>
+    <string name="map_reported_snackbar">החניה דווחה 🅿️</string>
+    <plurals name="spots_available">
+        <item quantity="one">חניה אחת פנויה בטווח %2$d מ\'</item>
+        <item quantity="two">%1$d חניות פנויות בטווח %2$d מ\'</item>
+        <item quantity="other">%1$d חניות פנויות בטווח %2$d מ\'</item>
+    </plurals>
+
+    <!-- Report flow -->
+    <string name="report_title">דיווח על חניה</string>
+    <string name="report_photo_required">תמונה היא שלב חובה — זה מה שהופך דיווחים לאמינים.</string>
+    <string name="report_take_photo_cd">צילום תמונה</string>
+    <string name="report_preview_cd">תצוגה מקדימה של התמונה המטושטשת</string>
+    <string name="report_photo_upload_failed">העלאת התמונה נכשלה: %1$s</string>
+    <plurals name="report_faces_blurred">
+        <item quantity="one">פרצוף אחד טושטש (סימולציה מקומית, לא Rekognition אמיתי)</item>
+        <item quantity="two">%1$d פרצופים טושטשו (סימולציה מקומית, לא Rekognition אמיתי)</item>
+        <item quantity="other">%1$d פרצופים טושטשו (סימולציה מקומית, לא Rekognition אמיתי)</item>
+    </plurals>
+    <string name="report_type_question">איזה סוג חניה?</string>
+    <string name="report_type_regular">רגילה</string>
+    <string name="report_type_disabled">נכים</string>
+    <string name="report_size_question">מתאימה לאיזה גודל רכב?</string>
+    <string name="report_size_compact">קטן</string>
+    <string name="report_size_regular">רגיל</string>
+    <string name="report_size_large">גדול</string>
+    <string name="report_confirm">אישור דיווח</string>
+
+    <!-- Spot actions -->
+    <string name="spot_type_disabled">נכים</string>
+    <string name="spot_type_regular">רגילה</string>
+    <string name="spot_status">סטטוס: %1$s</string>
+    <string name="spot_fits">מתאימה ל: %1$s</string>
+    <string name="spot_navigate">ניווט</string>
+    <string name="spot_claim">אני תופס את החניה</string>
+    <string name="spot_i_took_it">תפסתי אותה</string>
+    <string name="spot_flag_taken">החניה תפוסה (דיווח)</string>
+    <string name="spot_cancel_report">ביטול הדיווח שלי</string>
+    <string name="spot_action_failed">הפעולה נכשלה</string>
+
+    <!-- Relative time (marker badges + spot detail) -->
+    <string name="time_now_short">כעת</string>
+    <string name="time_minutes_short">%1$dד\'</string>
+    <string name="time_hours_short">%1$dש\'</string>
+    <string name="time_days_short">%1$dי\'</string>
+    <string name="time_now_long">הרגע</string>
+    <plurals name="time_minutes_long">
+        <item quantity="one">לפני דקה</item>
+        <item quantity="two">לפני %1$d דקות</item>
+        <item quantity="other">לפני %1$d דקות</item>
+    </plurals>
+    <plurals name="time_hours_long">
+        <item quantity="one">לפני שעה</item>
+        <item quantity="two">לפני %1$d שעות</item>
+        <item quantity="other">לפני %1$d שעות</item>
+    </plurals>
+    <plurals name="time_days_long">
+        <item quantity="one">לפני יום</item>
+        <item quantity="two">לפני %1$d ימים</item>
+        <item quantity="other">לפני %1$d ימים</item>
+    </plurals>
+
+    <!-- Profile / Leaderboard -->
+    <string name="profile_title">פרופיל</string>
+    <string name="profile_back_cd">חזרה</string>
+    <string name="profile_member">חבר/ה ב-ParkIt</string>
+    <string name="profile_total_points">סה״כ נקודות</string>
+    <string name="profile_this_week">השבוע</string>
+    <string name="profile_successful_reports">דיווחים מוצלחים</string>
+    <string name="profile_badges_title">באדג׳ים והישגים</string>
+    <string name="profile_badge_rookie">מתחיל</string>
+    <string name="profile_badge_pro">מקצוען</string>
+    <string name="profile_badge_legend">אגדה</string>
+    <string name="profile_unlocked">נפתח</string>
+    <plurals name="profile_activity_count">
+        <item quantity="one">דיווח אחד בפעילות שלך</item>
+        <item quantity="two">%1$d דיווחים בפעילות שלך</item>
+        <item quantity="other">%1$d דיווחים בפעילות שלך</item>
+    </plurals>
+    <string name="profile_leaderboard_title">ליגה שבועית</string>
+    <string name="profile_leaderboard_empty">עדיין אין למישהו נקודות השבוע.</string>
+    <string name="profile_top_parker">המחנה המוביל השבוע</string>
+    <string name="profile_points_suffix">%1$d נק\'</string>
+    <string name="profile_rank_prefix">#%1$d</string>
+    <string name="profile_language_label">שפה</string>
+    <string name="profile_language_english">English</string>
+    <string name="profile_language_hebrew">עברית</string>
+</resources>

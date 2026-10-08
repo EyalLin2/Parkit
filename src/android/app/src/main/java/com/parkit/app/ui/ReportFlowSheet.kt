@@ -43,8 +43,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.SpotCreate
 import com.parkit.app.api.isUnauthorized
@@ -97,7 +100,7 @@ fun ReportFlowSheet(
             val previewBytes = Base64.decode(staged.previewBase64, Base64.DEFAULT)
             blurredPreview = BitmapFactory.decodeByteArray(previewBytes, 0, previewBytes.size)
         } catch (e: Exception) {
-            if (e.isUnauthorized()) onSessionExpired() else error = "Photo upload failed: ${e.message}"
+            if (e.isUnauthorized()) onSessionExpired() else error = context.getString(R.string.report_photo_upload_failed, e.message)
         } finally {
             uploading = false
         }
@@ -144,7 +147,7 @@ fun ReportFlowSheet(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Report parking", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.report_title), style = MaterialTheme.typography.headlineSmall)
             Text(addressLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(Modifier.padding(top = 20.dp))
@@ -162,7 +165,7 @@ fun ReportFlowSheet(
                         IconButton(onClick = { startCamera() }, modifier = Modifier.size(120.dp)) {
                             Icon(
                                 Icons.Filled.PhotoCamera,
-                                contentDescription = "Take a photo",
+                                contentDescription = stringResource(R.string.report_take_photo_cd),
                                 modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.primary,
                             )
@@ -170,7 +173,7 @@ fun ReportFlowSheet(
                     }
                 }
                 Text(
-                    "A photo is required — it's what makes reports trustworthy.",
+                    stringResource(R.string.report_photo_required),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 14.dp),
@@ -178,12 +181,12 @@ fun ReportFlowSheet(
             } else {
                 Image(
                     bitmap = blurredPreview!!.asImageBitmap(),
-                    contentDescription = "Blurred photo preview",
+                    contentDescription = stringResource(R.string.report_preview_cd),
                     modifier = Modifier.fillMaxWidth().height(180.dp),
                 )
                 facesBlurred?.let {
                     Text(
-                        "$it face(s) blurred (local stand-in, not real Rekognition)",
+                        pluralStringResource(R.plurals.report_faces_blurred, it, it),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 6.dp),
@@ -191,9 +194,12 @@ fun ReportFlowSheet(
                 }
 
                 Spacer(Modifier.padding(top = 18.dp))
-                Text("What kind of spot?", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.report_type_question), style = MaterialTheme.typography.titleSmall)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    listOf("street" to "Regular", "disabled" to "Disabled").forEach { (value, label) ->
+                    listOf(
+                        "street" to stringResource(R.string.report_type_regular),
+                        "disabled" to stringResource(R.string.report_type_disabled),
+                    ).forEach { (value, label) ->
                         val selected = selectedType == value
                         Button(
                             onClick = { selectedType = value },
@@ -205,9 +211,13 @@ fun ReportFlowSheet(
                 }
 
                 Spacer(Modifier.padding(top = 18.dp))
-                Text("Fits which car size?", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.report_size_question), style = MaterialTheme.typography.titleSmall)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf("compact" to "Compact", "regular" to "Regular", "large" to "Large").forEach { (value, label) ->
+                    listOf(
+                        "compact" to stringResource(R.string.report_size_compact),
+                        "regular" to stringResource(R.string.report_size_regular),
+                        "large" to stringResource(R.string.report_size_large),
+                    ).forEach { (value, label) ->
                         val selected = selectedVehicleSize == value
                         Button(
                             onClick = { selectedVehicleSize = value },
@@ -226,7 +236,7 @@ fun ReportFlowSheet(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                 ) {
                     if (submitting) CircularProgressIndicator(modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Confirm Report", style = MaterialTheme.typography.titleMedium)
+                    else Text(stringResource(R.string.report_confirm), style = MaterialTheme.typography.titleMedium)
                 }
             }
 

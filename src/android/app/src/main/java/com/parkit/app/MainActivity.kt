@@ -1,5 +1,6 @@
 package com.parkit.app
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.parkit.app.api.ApiClient
 import com.parkit.app.auth.SessionStore
+import com.parkit.app.locale.LocaleManager
 import com.parkit.app.ui.LoginScreen
 import com.parkit.app.ui.MapScreen
 import com.parkit.app.ui.ProfileScreen
@@ -20,6 +22,10 @@ import com.parkit.app.ui.theme.ParkItTheme
 import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleManager.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

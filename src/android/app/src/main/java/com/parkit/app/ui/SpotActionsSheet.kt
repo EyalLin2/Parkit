@@ -29,7 +29,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.FeedbackCreate
 import com.parkit.app.api.GeocodingClient
@@ -73,7 +75,7 @@ fun SpotActionsSheet(
                 action()
                 onChanged()
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.message ?: "Action failed"
+                if (e.isUnauthorized()) onSessionExpired() else error = e.message ?: context.getString(R.string.spot_action_failed)
             } finally {
                 busy = false
             }
@@ -85,24 +87,24 @@ fun SpotActionsSheet(
             Text(address ?: "%.5f, %.5f".format(spot.lat, spot.lng), style = MaterialTheme.typography.headlineSmall)
             Row {
                 Text(
-                    if (spot.spotType == "disabled") "Disabled" else "Regular",
+                    if (spot.spotType == "disabled") stringResource(R.string.spot_type_disabled) else stringResource(R.string.spot_type_regular),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "  ·  ${MarkerBitmaps.relativeTimeLong(spot.reportedAt)}",
+                    "  ·  ${MarkerBitmaps.relativeTimeLong(context, spot.reportedAt)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Text(
-                "Status: ${spot.status}",
+                stringResource(R.string.spot_status, spot.status),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             spot.vehicleSize?.let {
                 Text(
-                    "Fits: ${it.replaceFirstChar(Char::uppercase)}",
+                    stringResource(R.string.spot_fits, it.replaceFirstChar(Char::uppercase)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -117,7 +119,7 @@ fun SpotActionsSheet(
                 modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 16.dp),
             ) {
                 Icon(Icons.Filled.Navigation, contentDescription = null)
-                Text("Navigate", modifier = Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.spot_navigate), modifier = Modifier.padding(start = 8.dp))
             }
 
             if (busy) CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
@@ -129,7 +131,7 @@ fun SpotActionsSheet(
                     enabled = !busy,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 12.dp),
-                ) { Text("Claim this spot") }
+                ) { Text(stringResource(R.string.spot_claim)) }
             }
             if (!isMine) {
                 Button(
@@ -137,13 +139,13 @@ fun SpotActionsSheet(
                     enabled = !busy,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 12.dp),
-                ) { Text("I took it") }
+                ) { Text(stringResource(R.string.spot_i_took_it)) }
                 OutlinedButton(
                     onClick = { run { api.submitFeedback(spot.id, FeedbackCreate("flagged_false")) } },
                     enabled = !busy,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 12.dp),
-                ) { Text("Spot is taken (flag)") }
+                ) { Text(stringResource(R.string.spot_flag_taken)) }
             }
             if (isMine && spot.status == "active") {
                 OutlinedButton(
@@ -151,7 +153,7 @@ fun SpotActionsSheet(
                     enabled = !busy,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 12.dp),
-                ) { Text("Cancel my report") }
+                ) { Text(stringResource(R.string.spot_cancel_report)) }
             }
 
             androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp))

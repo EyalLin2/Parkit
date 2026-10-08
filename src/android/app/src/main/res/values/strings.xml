@@ -1,3 +1,106 @@
 <resources>
     <string name="app_name">ParkIt</string>
+    <string name="logo_cd">ParkIt logo</string>
+
+    <!-- Login -->
+    <string name="login_tagline">Find and share free parking, in seconds.</string>
+    <string name="login_demo_notice">Demo client for a backend-only project — not the real native app.</string>
+    <string name="login_name_label">Your name</string>
+    <string name="login_continue">Continue</string>
+    <string name="login_default_name">Demo User</string>
+    <string name="login_error_backend">Couldn\'t reach the backend at %1$s (%2$s). Is it running?</string>
+
+    <!-- Map -->
+    <string name="map_filter_all">All</string>
+    <string name="map_filter_regular">Regular</string>
+    <string name="map_filter_disabled">Disabled</string>
+    <string name="map_profile_cd">Profile</string>
+    <string name="map_logout_cd">Logout</string>
+    <string name="map_zoom_in_cd">Zoom in</string>
+    <string name="map_zoom_out_cd">Zoom out</string>
+    <string name="map_my_location_cd">My location</string>
+    <string name="map_report_location_cd">Report location</string>
+    <string name="map_report_fab_cd">Report parking here</string>
+    <string name="map_locating">Locating…</string>
+    <string name="map_load_error">Couldn\'t load spots: %1$s</string>
+    <string name="map_reported_snackbar">Spot reported 🅿️</string>
+    <plurals name="spots_available">
+        <item quantity="one">%1$d spot available within %2$dm</item>
+        <item quantity="other">%1$d spots available within %2$dm</item>
+    </plurals>
+
+    <!-- Report flow -->
+    <string name="report_title">Report parking</string>
+    <string name="report_photo_required">A photo is required — it\'s what makes reports trustworthy.</string>
+    <string name="report_take_photo_cd">Take a photo</string>
+    <string name="report_preview_cd">Blurred photo preview</string>
+    <string name="report_photo_upload_failed">Photo upload failed: %1$s</string>
+    <plurals name="report_faces_blurred">
+        <item quantity="one">%1$d face blurred (local stand-in, not real Rekognition)</item>
+        <item quantity="other">%1$d faces blurred (local stand-in, not real Rekognition)</item>
+    </plurals>
+    <string name="report_type_question">What kind of spot?</string>
+    <string name="report_type_regular">Regular</string>
+    <string name="report_type_disabled">Disabled</string>
+    <string name="report_size_question">Fits which car size?</string>
+    <string name="report_size_compact">Compact</string>
+    <string name="report_size_regular">Regular</string>
+    <string name="report_size_large">Large</string>
+    <string name="report_confirm">Confirm Report</string>
+
+    <!-- Spot actions -->
+    <string name="spot_type_disabled">Disabled</string>
+    <string name="spot_type_regular">Regular</string>
+    <string name="spot_status">Status: %1$s</string>
+    <string name="spot_fits">Fits: %1$s</string>
+    <string name="spot_navigate">Navigate</string>
+    <string name="spot_claim">Claim this spot</string>
+    <string name="spot_i_took_it">I took it</string>
+    <string name="spot_flag_taken">Spot is taken (flag)</string>
+    <string name="spot_cancel_report">Cancel my report</string>
+    <string name="spot_action_failed">Action failed</string>
+
+    <!-- Relative time (marker badges + spot detail) -->
+    <string name="time_now_short">now</string>
+    <string name="time_minutes_short">%1$dm</string>
+    <string name="time_hours_short">%1$dh</string>
+    <string name="time_days_short">%1$dd</string>
+    <string name="time_now_long">just now</string>
+    <plurals name="time_minutes_long">
+        <item quantity="one">%1$d minute ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <plurals name="time_hours_long">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <plurals name="time_days_long">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+
+    <!-- Profile / Leaderboard -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_back_cd">Back</string>
+    <string name="profile_member">ParkIt member</string>
+    <string name="profile_total_points">total points</string>
+    <string name="profile_this_week">This week</string>
+    <string name="profile_successful_reports">Successful reports</string>
+    <string name="profile_badges_title">Badges &amp; Achievements</string>
+    <string name="profile_badge_rookie">Rookie</string>
+    <string name="profile_badge_pro">Pro</string>
+    <string name="profile_badge_legend">Legend</string>
+    <string name="profile_unlocked">Unlocked</string>
+    <plurals name="profile_activity_count">
+        <item quantity="one">%1$d report in your activity</item>
+        <item quantity="other">%1$d reports in your activity</item>
+    </plurals>
+    <string name="profile_leaderboard_title">Weekly leaderboard</string>
+    <string name="profile_leaderboard_empty">No one has weekly points yet.</string>
+    <string name="profile_top_parker">Top parker this week</string>
+    <string name="profile_points_suffix">%1$d pts</string>
+    <string name="profile_rank_prefix">#%1$d</string>
+    <string name="profile_language_label">Language</string>
+    <string name="profile_language_english">English</string>
+    <string name="profile_language_hebrew">עברית</string>
 </resources>
