@@ -1,7 +1,15 @@
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
+
+# Python's mimetypes module doesn't know this extension, so StaticFiles was
+# serving .apk files as text/plain — harmless for curl, but real phone
+# browsers can refuse to treat an unrecognized-content-type download as an
+# installable package. Only matters for the ad-hoc /demo static mount below
+# (used to hand out a debug build for testing), not the product itself.
+mimetypes.add_type("application/vnd.android.package-archive", ".apk")
 
 from database import check_postgres
 from media import MEDIA_DIR
