@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.CircularProgressIndicator
@@ -100,6 +101,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
         ) {
             item { HeroHeader(profile = p, onBack = onBack) }
             item { LanguageCard() }
+            item { ShareCard() }
 
             error?.let { msg -> item { Text(msg, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) } }
 
@@ -108,6 +110,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
             } else {
                 item { SecondaryStatsRow(p) }
                 item { BadgesCard(p) }
+                item { MyReportsCard(p.activity) }
             }
 
             item {
@@ -240,6 +243,41 @@ private fun LanguageCard() {
     }
 }
 
+/** A plain Android share-sheet hand-off — no fake store link (the app
+ * isn't published anywhere), just the honest message a demo project can
+ * make: the feature itself, not a URL that doesn't exist yet. */
+@Composable
+private fun ShareCard() {
+    val context = LocalContext.current
+    val shareTitle = stringResource(R.string.profile_share_title)
+    val shareMessage = stringResource(R.string.profile_share_message)
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(shareTitle, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            androidx.compose.material3.OutlinedButton(
+                onClick = {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, shareMessage)
+                    }
+                    context.startActivity(android.content.Intent.createChooser(intent, shareTitle))
+                },
+            ) {
+                Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(stringResource(R.string.profile_share_button), modifier = Modifier.padding(start = 6.dp))
+            }
+        }
+    }
+}
+
 /** Two secondary numbers share ONE card (divided, not stacked as two
  * identical full-width cards) — demoting them visually under the hero's
  * Points number instead of giving every stat equal weight. */
@@ -355,6 +393,72 @@ private fun BadgeItem(tier: BadgeTier, successfulReports: Int, unlocked: Boolean
                 modifier = Modifier.padding(top = 3.dp),
             )
         }
+    }
+}
+
+/** Your own report history — the data (ProfileOut.activity) was already
+ * being fetched for the badge-progress count below it, just never shown
+ * as an actual list. One card, thin dividers between rows, matching the
+ * rest-of-leaderboard pattern rather than a card per report. */
+@Composable
+private fun MyReportsCard(activity: List<com.parkit.app.api.ActivityItem>) {
+    val context = LocalContext.current
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Text(
+                stringResource(R.string.profile_my_reports_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+            if (activity.isEmpty()) {
+                Text(
+                    stringResource(R.string.profile_my_reports_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            } else {
+                activity.forEachIndexed { index, item ->
+                    MyReportRow(item, context)
+                    if (index != activity.lastIndex) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MyReportRow(item: com.parkit.app.api.ActivityItem, context: android.content.Context) {
+    val (statusLabelRes, statusColor) = when {
+        item.status == "active" -> R.string.report_status_active to MaterialTheme.colorScheme.primary
+        item.status == "claimed" -> R.string.report_status_claimed to Color(0xFFB8631A)
+        item.removedReason == "taken_confirmed" -> R.string.report_status_confirmed_taken to Color(0xFF2C7A4B)
+        item.removedReason == "flagged_false" -> R.string.report_status_flagged_false to MaterialTheme.colorScheme.error
+        else -> R.string.report_status_expired to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val typeLabel = if (item.spotType == "disabled") stringResource(R.string.spot_type_disabled) else stringResource(R.string.spot_type_regular)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Box(modifier = Modifier.size(8.dp).background(statusColor, CircleShape))
+        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+            Text(typeLabel, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                MarkerBitmaps.relativeTimeLong(context, item.reportedAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(stringResource(statusLabelRes), style = MaterialTheme.typography.labelMedium, color = statusColor)
     }
 }
 

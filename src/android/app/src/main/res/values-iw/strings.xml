@@ -109,4 +109,18 @@
     <string name="profile_language_label">שפה</string>
     <string name="profile_language_english">English</string>
     <string name="profile_language_hebrew">עברית</string>
+
+    <!-- My Reports -->
+    <string name="profile_my_reports_title">הדיווחים שלי</string>
+    <string name="profile_my_reports_empty">עדיין לא דיווחת על אף חניה.</string>
+    <string name="report_status_active">פעיל</string>
+    <string name="report_status_claimed">נתפס</string>
+    <string name="report_status_confirmed_taken">אושר כנתפס</string>
+    <string name="report_status_flagged_false">דווח כשגוי</string>
+    <string name="report_status_expired">פג תוקף</string>
+
+    <!-- Share -->
+    <string name="profile_share_title">שיתוף ParkIt</string>
+    <string name="profile_share_button">הזמנת חבר/ה</string>
+    <string name="profile_share_message">אני משתמש/ת ב-ParkIt כדי למצוא ולדווח על חניות חינם בקרבת מקום — נסו גם אתם!</string>
 </resources>
