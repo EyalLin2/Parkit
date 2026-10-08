@@ -1,10 +1,12 @@
 package com.parkit.app.ui
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
+import com.parkit.app.R
 import java.time.Duration
 import java.time.Instant
 import kotlin.math.min
@@ -51,26 +53,27 @@ object MarkerBitmaps {
     fun clusterBadge(count: Int): Bitmap = badge("#1B4F91", count.toString())
 
     /** "2m" / "1h" / "3d" / "now" — compact enough to fit on a small pin. */
-    fun relativeTimeShort(iso: String): String = try {
+    fun relativeTimeShort(context: Context, iso: String): String = try {
         val minutes = Duration.between(Instant.parse(iso), Instant.now()).toMinutes()
         when {
-            minutes < 1 -> "now"
-            minutes < 60 -> "${minutes}m"
-            minutes < 1440 -> "${minutes / 60}h"
-            else -> "${min(minutes / 1440, 99)}d"
+            minutes < 1 -> context.getString(R.string.time_now_short)
+            minutes < 60 -> context.getString(R.string.time_minutes_short, minutes)
+            minutes < 1440 -> context.getString(R.string.time_hours_short, minutes / 60)
+            else -> context.getString(R.string.time_days_short, min(minutes / 1440, 99))
         }
     } catch (_: Exception) {
         ""
     }
 
     /** "2 minutes ago" / "1 hour ago" — for the full callout card. */
-    fun relativeTimeLong(iso: String): String = try {
+    fun relativeTimeLong(context: Context, iso: String): String = try {
         val minutes = Duration.between(Instant.parse(iso), Instant.now()).toMinutes()
+        val res = context.resources
         when {
-            minutes < 1 -> "just now"
-            minutes < 60 -> "$minutes minute${if (minutes == 1L) "" else "s"} ago"
-            minutes < 1440 -> "${minutes / 60} hour${if (minutes / 60 == 1L) "" else "s"} ago"
-            else -> "${minutes / 1440} day${if (minutes / 1440 == 1L) "" else "s"} ago"
+            minutes < 1 -> context.getString(R.string.time_now_long)
+            minutes < 60 -> res.getQuantityString(R.plurals.time_minutes_long, minutes.toInt(), minutes.toInt())
+            minutes < 1440 -> res.getQuantityString(R.plurals.time_hours_long, (minutes / 60).toInt(), minutes / 60)
+            else -> res.getQuantityString(R.plurals.time_days_long, (minutes / 1440).toInt(), minutes / 1440)
         }
     } catch (_: Exception) {
         ""

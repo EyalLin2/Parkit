@@ -2,6 +2,7 @@
 
 package com.parkit.app.ui
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,8 @@ import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,28 +47,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.LeaderboardEntry
 import com.parkit.app.api.ProfileOut
 import com.parkit.app.api.isUnauthorized
+import com.parkit.app.locale.LocaleManager
 
 private val Gold = Color(0xFFC9971C)
 private val Silver = Color(0xFF8C97A6)
 private val Bronze = Color(0xFFB8703C)
 
-private data class BadgeTier(val threshold: Int, val label: String, val icon: ImageVector, val color: Color)
+private data class BadgeTier(val threshold: Int, val labelRes: Int, val icon: ImageVector, val color: Color)
 
 // Same medal-color language as the leaderboard podium below, so a badge
 // reads as "the bronze/silver/gold tier of the same system" instead of
 // three identical blue circles that only differ by which icon is inside.
 private val BADGE_TIERS = listOf(
-    BadgeTier(10, "Rookie", Icons.Filled.MilitaryTech, Bronze),
-    BadgeTier(50, "Pro", Icons.Filled.WorkspacePremium, Silver),
-    BadgeTier(200, "Legend", Icons.Filled.EmojiEvents, Gold),
+    BadgeTier(10, R.string.profile_badge_rookie, Icons.Filled.MilitaryTech, Bronze),
+    BadgeTier(50, R.string.profile_badge_pro, Icons.Filled.WorkspacePremium, Silver),
+    BadgeTier(200, R.string.profile_badge_legend, Icons.Filled.EmojiEvents, Gold),
 )
 
 @Composable
@@ -85,8 +94,12 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
 
     val p = profile
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
             item { HeroHeader(profile = p, onBack = onBack) }
+            item { LanguageCard() }
 
             error?.let { msg -> item { Text(msg, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) } }
 
@@ -99,7 +112,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
 
             item {
                 Text(
-                    "Weekly leaderboard",
+                    stringResource(R.string.profile_leaderboard_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp).padding(top = 22.dp, bottom = 10.dp),
                 )
@@ -108,7 +121,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
             if (leaderboard.isEmpty()) {
                 item {
                     Text(
-                        "No one has weekly points yet.",
+                        stringResource(R.string.profile_leaderboard_empty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
@@ -142,10 +155,10 @@ private fun HeroHeader(profile: ProfileOut?, onBack: () -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.profile_back_cd), tint = MaterialTheme.colorScheme.onPrimary)
             }
             Text(
-                "Profile",
+                stringResource(R.string.profile_title),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.padding(start = 4.dp),
@@ -169,7 +182,7 @@ private fun HeroHeader(profile: ProfileOut?, onBack: () -> Unit) {
                 modifier = Modifier.padding(top = 10.dp),
             )
             Text(
-                "ParkIt member",
+                stringResource(R.string.profile_member),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
             )
@@ -182,7 +195,47 @@ private fun HeroHeader(profile: ProfileOut?, onBack: () -> Unit) {
                     modifier = Modifier.padding(start = 6.dp),
                 )
             }
-            Text("total points", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
+            Text(stringResource(R.string.profile_total_points), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
+        }
+    }
+}
+
+/** Explicit in-app language choice, independent of the device's system
+ * language — requested directly ("יכול שיהיה בחירת שפה?"), not just
+ * following whatever locale the phone happens to be set to. */
+@Composable
+private fun LanguageCard() {
+    val context = LocalContext.current
+    val current = LocaleManager.getLanguage(context) ?: java.util.Locale.getDefault().language
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 18.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(stringResource(R.string.profile_language_label), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            listOf("en" to stringResource(R.string.profile_language_english), "he" to stringResource(R.string.profile_language_hebrew)).forEach { (code, label) ->
+                val selected = current == code
+                FilterChip(
+                    selected = selected,
+                    onClick = {
+                        if (!selected) {
+                            LocaleManager.setLanguage(context, code)
+                            (context as? Activity)?.recreate()
+                        }
+                    },
+                    label = { Text(label) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
     }
 }
@@ -202,7 +255,7 @@ private fun SecondaryStatsRow(profile: ProfileOut) {
             StatTile(
                 Icons.Filled.CheckCircle,
                 profile.weeklyPoints.toString(),
-                "This week",
+                stringResource(R.string.profile_this_week),
                 Color(0xFF2C7A4B),
                 modifier = Modifier.weight(1f),
             )
@@ -210,7 +263,7 @@ private fun SecondaryStatsRow(profile: ProfileOut) {
             StatTile(
                 Icons.Filled.MilitaryTech,
                 profile.successfulReports.toString(),
-                "Successful reports",
+                stringResource(R.string.profile_successful_reports),
                 Color(0xFFB8631A),
                 modifier = Modifier.weight(1f),
             )
@@ -230,7 +283,7 @@ private fun StatTile(icon: ImageVector, value: String, label: String, accent: Co
             label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -244,7 +297,7 @@ private fun BadgesCard(profile: ProfileOut) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Badges & Achievements", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.profile_badges_title), style = MaterialTheme.typography.titleMedium)
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
@@ -254,7 +307,7 @@ private fun BadgesCard(profile: ProfileOut) {
                 }
             }
             Text(
-                "${profile.activity.size} report(s) in your activity",
+                pluralStringResource(R.plurals.profile_activity_count, profile.activity.size, profile.activity.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 14.dp),
@@ -274,20 +327,20 @@ private fun BadgeItem(tier: BadgeTier, successfulReports: Int, unlocked: Boolean
         ) {
             Icon(
                 tier.icon,
-                contentDescription = "${tier.label} badge",
+                contentDescription = stringResource(tier.labelRes),
                 tint = if (unlocked) tier.color else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
                 modifier = Modifier.size(28.dp),
             )
         }
         Text(
-            tier.label,
+            stringResource(tier.labelRes),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (unlocked) FontWeight.Bold else FontWeight.Normal,
             color = if (unlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 6.dp),
         )
         if (unlocked) {
-            Text("Unlocked", style = MaterialTheme.typography.labelSmall, color = tier.color)
+            Text(stringResource(R.string.profile_unlocked), style = MaterialTheme.typography.labelSmall, color = tier.color)
         } else {
             LinearProgressIndicator(
                 progress = { (successfulReports.coerceAtMost(tier.threshold).toFloat() / tier.threshold) },
@@ -338,17 +391,17 @@ private fun PodiumRow(top3: List<LeaderboardEntry>) {
         slots.forEachIndexed { i, entry ->
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                 if (entry != null) {
-                    Icon(Icons.Filled.EmojiEvents, contentDescription = "Rank ${ranks[i]}", tint = stepColors[i], modifier = Modifier.size(if (i == 1) 26.dp else 20.dp))
+                    Icon(Icons.Filled.EmojiEvents, contentDescription = stringResource(R.string.profile_rank_prefix, ranks[i]), tint = stepColors[i], modifier = Modifier.size(if (i == 1) 26.dp else 20.dp))
                     Avatar(entry.displayName, stepColors[i], size = avatarSizes[i])
                     Text(
                         entry.displayName,
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 6.dp),
                     )
-                    Text("${entry.weeklyPoints} pts", style = MaterialTheme.typography.labelSmall, color = stepColors[i])
+                    Text(stringResource(R.string.profile_points_suffix, entry.weeklyPoints), style = MaterialTheme.typography.labelSmall, color = stepColors[i])
                 } else {
                     Spacer(Modifier.height(avatarSizes[i] + 46.dp))
                 }
@@ -384,7 +437,7 @@ private fun RestOfLeaderboardCard(entries: List<LeaderboardEntry>, modifier: Mod
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "#${entry.rank}",
+                        stringResource(R.string.profile_rank_prefix, entry.rank),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.width(32.dp),
@@ -395,7 +448,7 @@ private fun RestOfLeaderboardCard(entries: List<LeaderboardEntry>, modifier: Mod
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f).padding(start = 12.dp),
                     )
-                    Text("${entry.weeklyPoints} pts", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.profile_points_suffix, entry.weeklyPoints), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                 }
                 if (index != entries.lastIndex) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), modifier = Modifier.padding(horizontal = 16.dp))
