@@ -29,10 +29,10 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -326,7 +326,7 @@ fun MapScreen(
             // all via a mouse on an emulator), so explicit zoom controls sit above
             // the My Location button rather than replacing it.
             Column(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 172.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 150.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -356,7 +356,7 @@ fun MapScreen(
             }
 
             Surface(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 138.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 150.dp),
                 shape = RoundedCornerShape(50),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                 shadowElevation = 4.dp,
@@ -369,21 +369,29 @@ fun MapScreen(
                 )
             }
 
-            // One unified card: address confirmation + the single report action, rather
-            // than two separate floating pieces.
-            Surface(
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 10.dp,
+            // A circular floating "+" action (Waze's own report-button pattern,
+            // also how Spent's add-expense FAB reads) instead of a full-width
+            // bar — leaves far more of the map visible, and reads as a single
+            // deliberate action rather than a form bar docked to the screen.
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    shadowElevation = 4.dp,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
                         Icon(
                             Icons.Filled.LocationOn,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(16.dp),
                         )
                         Text(
                             resolvedAddress ?: "Locating…",
@@ -392,14 +400,16 @@ fun MapScreen(
                             modifier = Modifier.padding(start = 6.dp),
                         )
                     }
-                    Button(
-                        onClick = { showReportFlow = true },
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(),
-                        modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 8.dp),
-                    ) {
-                        Text("Report Parking Here", style = MaterialTheme.typography.titleMedium)
-                    }
+                }
+                FloatingActionButton(
+                    onClick = { showReportFlow = true },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
+                    modifier = Modifier.size(64.dp),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Report parking here", modifier = Modifier.size(32.dp))
                 }
             }
         }
