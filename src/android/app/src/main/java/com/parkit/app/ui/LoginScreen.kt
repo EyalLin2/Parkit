@@ -93,7 +93,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
                         sessionStore.save(result.accessToken, result.userId, name)
                         onLoggedIn()
                     } catch (e: Exception) {
-                        error = context.getString(R.string.login_error_backend, "10.0.2.2:8000", e.message)
+                        error = context.getString(R.string.login_error_backend, com.parkit.app.api.BASE_URL, e.message)
                     } finally {
                         loading = false
                     }
