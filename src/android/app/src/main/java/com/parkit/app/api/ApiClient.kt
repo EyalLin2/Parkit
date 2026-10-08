@@ -1,5 +1,6 @@
 package com.parkit.app.api
 
+import com.parkit.app.ApiConfig
 import com.parkit.app.auth.SessionStore
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -10,12 +11,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
 /**
- * 10.0.2.2 is the Android emulator's alias for the host machine's
- * localhost — that's where `docker compose up` runs the backend. Point
- * this at your machine's LAN IP instead if you're running on a real
- * device (both need to be on the same network).
+ * Defaults to 10.0.2.2 — the Android emulator's alias for the host
+ * machine's localhost, where `docker compose up` runs the backend.
+ * Overridable at build time (see app/build.gradle.kts' apiBaseUrl
+ * property) for a build meant to reach the backend from a real device —
+ * either the host's LAN IP (same Wi-Fi) or a public tunnel URL.
  */
-const val BASE_URL = "http://10.0.2.2:8000/"
+val BASE_URL = ApiConfig.BASE_URL
 
 object ApiClient {
     fun create(sessionStore: SessionStore): ApiService {
