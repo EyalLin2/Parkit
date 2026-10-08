@@ -59,6 +59,12 @@ val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0
 val generatedApiConfigDir = layout.buildDirectory.dir("generated/source/apiconfig")
 
 val generateApiConfig = tasks.register("generateApiConfig") {
+    // Without this, Gradle's up-to-date check has no idea the task's output
+    // depends on apiBaseUrl, and happily skips re-running it when only the
+    // property changes between builds — silently keeping a stale BASE_URL
+    // baked into the APK. Caught this only by noticing a rebuilt APK was
+    // still pointing at a tunnel URL from two builds ago.
+    inputs.property("apiBaseUrl", apiBaseUrl)
     outputs.dir(generatedApiConfigDir)
     doLast {
         val dir = generatedApiConfigDir.get().dir("com/parkit/app").asFile
