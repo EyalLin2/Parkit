@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,7 +35,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -153,21 +159,42 @@ fun ReportFlowSheet(
             Spacer(Modifier.padding(top = 20.dp))
 
             if (blurredPreview == null) {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (uploading) {
-                        CircularProgressIndicator()
-                    } else {
-                        IconButton(onClick = { startCamera() }, modifier = Modifier.size(120.dp)) {
+                Box(modifier = Modifier.size(132.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .border(3.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), CircleShape)
+                            .padding(6.dp)
+                            .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (uploading) {
+                            CircularProgressIndicator()
+                        } else {
+                            IconButton(onClick = { startCamera() }, modifier = Modifier.size(108.dp)) {
+                                Icon(
+                                    Icons.Filled.PhotoCamera,
+                                    contentDescription = stringResource(R.string.report_take_photo_cd),
+                                    modifier = Modifier.size(44.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
+                    if (!uploading) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(36.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                .border(3.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Icon(
-                                Icons.Filled.PhotoCamera,
-                                contentDescription = stringResource(R.string.report_take_photo_cd),
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary,
+                                Icons.Filled.Add,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
@@ -197,16 +224,16 @@ fun ReportFlowSheet(
                 Text(stringResource(R.string.report_type_question), style = MaterialTheme.typography.titleSmall)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf(
-                        "street" to stringResource(R.string.report_type_regular),
-                        "disabled" to stringResource(R.string.report_type_disabled),
-                    ).forEach { (value, label) ->
-                        val selected = selectedType == value
-                        Button(
+                        Triple("street", stringResource(R.string.report_type_regular), Icons.Filled.DirectionsCar),
+                        Triple("disabled", stringResource(R.string.report_type_disabled), Icons.AutoMirrored.Filled.Accessible),
+                    ).forEach { (value, label, icon) ->
+                        SelectableTile(
+                            label = label,
+                            icon = icon,
+                            selected = selectedType == value,
                             onClick = { selectedType = value },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = if (selected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
-                            modifier = Modifier.weight(1f).height(48.dp),
-                        ) { Text(label) }
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
 
@@ -214,17 +241,18 @@ fun ReportFlowSheet(
                 Text(stringResource(R.string.report_size_question), style = MaterialTheme.typography.titleSmall)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf(
-                        "compact" to stringResource(R.string.report_size_compact),
-                        "regular" to stringResource(R.string.report_size_regular),
-                        "large" to stringResource(R.string.report_size_large),
-                    ).forEach { (value, label) ->
-                        val selected = selectedVehicleSize == value
-                        Button(
+                        Triple("compact", stringResource(R.string.report_size_compact), 16.dp),
+                        Triple("regular", stringResource(R.string.report_size_regular), 20.dp),
+                        Triple("large", stringResource(R.string.report_size_large), 24.dp),
+                    ).forEach { (value, label, iconSize) ->
+                        SelectableTile(
+                            label = label,
+                            icon = Icons.Filled.DirectionsCar,
+                            iconSize = iconSize,
+                            selected = selectedVehicleSize == value,
                             onClick = { selectedVehicleSize = value },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = if (selected) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
-                            modifier = Modifier.weight(1f).height(44.dp),
-                        ) { Text(label, style = MaterialTheme.typography.bodySmall) }
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
 
@@ -232,7 +260,7 @@ fun ReportFlowSheet(
                 Button(
                     onClick = { submit() },
                     enabled = !submitting,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(50),
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                 ) {
                     if (submitting) CircularProgressIndicator(modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
@@ -241,6 +269,57 @@ fun ReportFlowSheet(
             }
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp)) }
+        }
+    }
+}
+
+/** A real visual tile, not a text button — icon on its own colored badge,
+ * label underneath, strong filled-color state when selected. Matches the
+ * "icon on a tinted circle" language used for badges/stat-tiles elsewhere
+ * instead of a plain bordered rectangle of text. */
+@Composable
+private fun SelectableTile(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconSize: androidx.compose.ui.unit.Dp = 22.dp,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = if (selected) accent else MaterialTheme.colorScheme.secondaryContainer,
+        shadowElevation = if (selected) 3.dp else 0.dp,
+        modifier = modifier,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(iconSize + 20.dp)
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f) else accent.copy(alpha = 0.14f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = if (selected) MaterialTheme.colorScheme.onPrimary else accent,
+                    modifier = Modifier.size(iconSize),
+                )
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
     }
 }
