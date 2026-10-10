@@ -5,6 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -65,15 +69,31 @@ fun ParkItApp(sessionStore: SessionStore) {
         navController.navigate("login") { popUpTo(0) { inclusive = true } }
     }
 
+    // Real motion, not a hard cut between screens — a fade for the one-way
+    // login→map handoff (it's a state change, not a "place" to go back to),
+    // and a directional push/pop slide for map↔profile that uses
+    // Start/End (not Left/Right) specifically so it mirrors correctly in
+    // Hebrew/RTL instead of always sliding the same physical direction.
+    val motionSpec = tween<Float>(280)
+    val offsetSpec = tween<androidx.compose.ui.unit.IntOffset>(280)
+
     NavHost(navController = navController, startDestination = startDestination) {
-        composable("login") {
+        composable(
+            "login",
+            exitTransition = { fadeOut(animationSpec = motionSpec) },
+        ) {
             LoginScreen(
                 api = api,
                 sessionStore = sessionStore,
                 onLoggedIn = { navController.navigate("map") { popUpTo("login") { inclusive = true } } },
             )
         }
-        composable("map") {
+        composable(
+            "map",
+            enterTransition = { fadeIn(animationSpec = motionSpec) },
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
+        ) {
             MapScreen(
                 api = api,
                 sessionStore = sessionStore,
@@ -81,7 +101,11 @@ fun ParkItApp(sessionStore: SessionStore) {
                 onLoggedOut = goToLogin,
             )
         }
-        composable("profile") {
+        composable(
+            "profile",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
+        ) {
             ProfileScreen(api = api, onBack = { navController.popBackStack() }, onSessionExpired = goToLogin)
         }
     }
