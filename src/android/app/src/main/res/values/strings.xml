@@ -23,7 +23,7 @@
     <string name="map_report_fab_cd">Report parking here</string>
     <string name="map_locating">Locating…</string>
     <string name="map_load_error">Couldn\'t load spots: %1$s</string>
-    <string name="map_reported_snackbar">Spot reported 🅿️</string>
+    <string name="map_reported_snackbar">Spot reported</string>
     <plurals name="spots_available">
         <item quantity="one">%1$d spot available within %2$dm</item>
         <item quantity="other">%1$d spots available within %2$dm</item>
@@ -36,8 +36,8 @@
     <string name="report_preview_cd">Blurred photo preview</string>
     <string name="report_photo_upload_failed">Photo upload failed: %1$s</string>
     <plurals name="report_faces_blurred">
-        <item quantity="one">%1$d face blurred (local stand-in, not real Rekognition)</item>
-        <item quantity="other">%1$d faces blurred (local stand-in, not real Rekognition)</item>
+        <item quantity="one">%1$d face blurred for privacy</item>
+        <item quantity="other">%1$d faces blurred for privacy</item>
     </plurals>
     <string name="report_type_question">What kind of spot?</string>
     <string name="report_type_regular">Regular</string>
@@ -59,6 +59,11 @@
     <string name="spot_flag_taken">Spot is taken (flag)</string>
     <string name="spot_cancel_report">Cancel my report</string>
     <string name="spot_action_failed">Action failed</string>
+    <string name="error_not_found">That spot isn\'t there anymore.</string>
+    <string name="error_conflict">Someone else just did that first.</string>
+    <string name="error_server">Something went wrong on our end. Try again in a moment.</string>
+    <string name="error_network">Check your connection and try again.</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
 
     <!-- Relative time (marker badges + spot detail) -->
     <string name="time_now_short">now</string>

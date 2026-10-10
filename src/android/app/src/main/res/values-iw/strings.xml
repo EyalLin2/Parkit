@@ -23,7 +23,7 @@
     <string name="map_report_fab_cd">דווח על חניה כאן</string>
     <string name="map_locating">מאתר מיקום…</string>
     <string name="map_load_error">טעינת החניות נכשלה: %1$s</string>
-    <string name="map_reported_snackbar">החניה דווחה 🅿️</string>
+    <string name="map_reported_snackbar">החניה דווחה</string>
     <plurals name="spots_available">
         <item quantity="one">חניה אחת פנויה בטווח %2$d מ\'</item>
         <item quantity="two">%1$d חניות פנויות בטווח %2$d מ\'</item>
@@ -37,9 +37,9 @@
     <string name="report_preview_cd">תצוגה מקדימה של התמונה המטושטשת</string>
     <string name="report_photo_upload_failed">העלאת התמונה נכשלה: %1$s</string>
     <plurals name="report_faces_blurred">
-        <item quantity="one">פרצוף אחד טושטש (סימולציה מקומית, לא Rekognition אמיתי)</item>
-        <item quantity="two">%1$d פרצופים טושטשו (סימולציה מקומית, לא Rekognition אמיתי)</item>
-        <item quantity="other">%1$d פרצופים טושטשו (סימולציה מקומית, לא Rekognition אמיתי)</item>
+        <item quantity="one">פרצוף אחד טושטש לשם פרטיות</item>
+        <item quantity="two">%1$d פרצופים טושטשו לשם פרטיות</item>
+        <item quantity="other">%1$d פרצופים טושטשו לשם פרטיות</item>
     </plurals>
     <string name="report_type_question">איזה סוג חניה?</string>
     <string name="report_type_regular">רגילה</string>
@@ -61,6 +61,11 @@
     <string name="spot_flag_taken">החניה תפוסה (דיווח)</string>
     <string name="spot_cancel_report">ביטול הדיווח שלי</string>
     <string name="spot_action_failed">הפעולה נכשלה</string>
+    <string name="error_not_found">החניה הזו כבר לא קיימת.</string>
+    <string name="error_conflict">מישהו אחר כבר הקדים אותך.</string>
+    <string name="error_server">משהו השתבש אצלנו. נסה שוב בעוד רגע.</string>
+    <string name="error_network">בדוק את החיבור שלך ונסה שוב.</string>
+    <string name="error_generic">משהו השתבש. נסה שוב.</string>
 
     <!-- Relative time (marker badges + spot detail) -->
     <string name="time_now_short">כעת</string>

@@ -65,6 +65,7 @@ import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.LeaderboardEntry
 import com.parkit.app.api.ProfileOut
+import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
 import com.parkit.app.locale.LocaleManager
 import com.parkit.app.ui.theme.ThemeManager
@@ -86,6 +87,7 @@ private val BADGE_TIERS = listOf(
 
 @Composable
 fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> Unit, onLogout: () -> Unit) {
+    val context = LocalContext.current
     var profile by remember { mutableStateOf<ProfileOut?>(null) }
     var leaderboard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -95,7 +97,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
             profile = api.myProfile()
             leaderboard = api.leaderboard(10)
         } catch (e: Exception) {
-            if (e.isUnauthorized()) onSessionExpired() else error = e.message
+            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
         }
     }
 
