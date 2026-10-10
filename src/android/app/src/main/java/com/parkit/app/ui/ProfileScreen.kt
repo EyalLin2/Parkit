@@ -21,7 +21,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.Share
@@ -502,7 +504,17 @@ private fun MyReportRow(item: com.parkit.app.api.ActivityItem, context: android.
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Box(modifier = Modifier.size(8.dp).background(statusColor, CircleShape))
+        Box(
+            modifier = Modifier.size(40.dp).background(statusColor.copy(alpha = 0.14f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (item.spotType == "disabled") Icons.AutoMirrored.Filled.Accessible else Icons.Filled.DirectionsCar,
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(20.dp),
+            )
+        }
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
             Text(typeLabel, style = MaterialTheme.typography.bodyMedium)
             Text(
