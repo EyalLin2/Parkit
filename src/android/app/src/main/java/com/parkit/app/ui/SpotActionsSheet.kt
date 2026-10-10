@@ -53,6 +53,7 @@ import com.parkit.app.api.ApiService
 import com.parkit.app.api.FeedbackCreate
 import com.parkit.app.api.GeocodingClient
 import com.parkit.app.api.SpotOut
+import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
 import kotlinx.coroutines.launch
 
@@ -106,7 +107,7 @@ fun SpotActionsSheet(
                 action()
                 onChanged()
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.message ?: context.getString(R.string.spot_action_failed)
+                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
             } finally {
                 busy = false
             }

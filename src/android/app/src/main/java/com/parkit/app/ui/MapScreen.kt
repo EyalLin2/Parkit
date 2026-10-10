@@ -65,6 +65,7 @@ import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.GeocodingClient
 import com.parkit.app.api.SpotOut
+import com.parkit.app.api.friendlyMessage
 import com.parkit.app.auth.SessionStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -147,6 +148,19 @@ fun MapScreen(
     var geocodeTarget by remember { mutableStateOf(TEL_AVIV) }
     var resolvedAddress by remember { mutableStateOf<String?>(null) }
 
+    // osmdroid draws tiles straight onto its own Canvas, outside Compose, so
+    // there's no clean per-tile "loaded" callback to hook into — a blank/gray
+    // map with zero feedback was the exact "can't load maps" complaint this
+    // answers. A brief spinner over the cold-start window (tiles are either
+    // already cached and this never gets noticed, or they're genuinely still
+    // loading and now there's visible proof something is happening) is the
+    // same tradeoff most map apps make rather than wiring a precise signal.
+    var showMapLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        delay(1400)
+        showMapLoading = false
+    }
+
     LaunchedEffect(geocodeTarget) {
         delay(600)
         try {
@@ -157,7 +171,7 @@ fun MapScreen(
         try {
             spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
         } catch (e: Exception) {
-            snackbarHostState.showSnackbar(context.getString(R.string.map_load_error, e.message))
+            snackbarHostState.showSnackbar(context.getString(R.string.map_load_error, e.friendlyMessage(context)))
         }
     }
 
@@ -277,6 +291,20 @@ fun MapScreen(
                 contentDescription = stringResource(R.string.map_report_location_cd),
                 modifier = Modifier.align(Alignment.Center).size(40.dp),
             )
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showMapLoading,
+                enter = androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.fadeOut(),
+                modifier = Modifier.align(Alignment.Center),
+            ) {
+                Surface(shape = CircleShape, shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.padding(16.dp).size(28.dp),
+                        strokeWidth = 3.dp,
+                    )
+                }
+            }
 
             // Floating translucent header — logo/profile/logout + a type filter row underneath.
             Column(

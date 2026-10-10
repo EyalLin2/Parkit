@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Add
@@ -56,6 +57,7 @@ import androidx.core.content.ContextCompat
 import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.SpotCreate
+import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -106,7 +108,7 @@ fun ReportFlowSheet(
             val previewBytes = Base64.decode(staged.previewBase64, Base64.DEFAULT)
             blurredPreview = BitmapFactory.decodeByteArray(previewBytes, 0, previewBytes.size)
         } catch (e: Exception) {
-            if (e.isUnauthorized()) onSessionExpired() else error = context.getString(R.string.report_photo_upload_failed, e.message)
+            if (e.isUnauthorized()) onSessionExpired() else error = context.getString(R.string.report_photo_upload_failed, e.friendlyMessage(context))
         } finally {
             uploading = false
         }
@@ -141,7 +143,7 @@ fun ReportFlowSheet(
                 )
                 onReported()
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.message
+                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
             } finally {
                 submitting = false
             }
@@ -209,9 +211,10 @@ fun ReportFlowSheet(
                 Image(
                     bitmap = blurredPreview!!.asImageBitmap(),
                     contentDescription = stringResource(R.string.report_preview_cd),
-                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(16.dp)),
                 )
-                facesBlurred?.let {
+                facesBlurred?.takeIf { it > 0 }?.let {
                     Text(
                         pluralStringResource(R.plurals.report_faces_blurred, it, it),
                         style = MaterialTheme.typography.bodySmall,
