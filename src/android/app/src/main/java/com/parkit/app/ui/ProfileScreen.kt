@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -84,7 +85,7 @@ private val BADGE_TIERS = listOf(
 )
 
 @Composable
-fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> Unit) {
+fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> Unit, onLogout: () -> Unit) {
     var profile by remember { mutableStateOf<ProfileOut?>(null) }
     var leaderboard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -143,7 +144,31 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
                 }
             }
 
+            item { LogoutCard(onLogout) }
             item { Spacer(Modifier.height(24.dp)) }
+        }
+    }
+}
+
+/** Sign-out moved here from the map's top chrome — it's an account action,
+ * not something that belongs next to a live map's filters/profile shortcut.
+ * Full-width + outlined-in-error-color only (no filled red button) so it
+ * reads as "available" rather than as an alarming, attention-grabbing CTA. */
+@Composable
+private fun LogoutCard(onLogout: () -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp),
+    ) {
+        androidx.compose.material3.TextButton(
+            onClick = onLogout,
+            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.map_logout_cd), modifier = Modifier.padding(start = 8.dp))
         }
     }
 }

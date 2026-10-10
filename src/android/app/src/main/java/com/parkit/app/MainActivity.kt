@@ -106,7 +106,7 @@ fun ParkItApp(sessionStore: SessionStore) {
             enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
             popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
         ) {
-            ProfileScreen(api = api, onBack = { navController.popBackStack() }, onSessionExpired = goToLogin)
+            ProfileScreen(api = api, onBack = { navController.popBackStack() }, onSessionExpired = goToLogin, onLogout = goToLogin)
         }
     }
 }

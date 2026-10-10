@@ -27,16 +27,34 @@ private class EsriTileSource(name: String, baseUrl: String) : OnlineTileSourceBa
 }
 
 object MapTiles {
-    // Colorful streets/labels/parks — the closest free, keyless match to
-    // Google Maps/Waze's default look.
-    val VOYAGER: OnlineTileSourceBase = EsriTileSource(
-        "EsriWorldStreet",
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/",
+    /** A basemap is two stacked raster layers, same pattern Google Maps/Waze
+     * use under the hood: a plain, almost-label-free "canvas" for color/shape,
+     * with a separate transparent-PNG "reference" layer of roads+place labels
+     * drawn on top. The single-layer World_Street_Map we used before bakes
+     * dense labels directly into the base tile — busy, mustard-colored,
+     * reads as a 2010-era OSM demo rather than a clean modern map. Esri's
+     * Canvas pair gives the same soft, minimal look without that noise. */
+    data class Layers(val base: OnlineTileSourceBase, val reference: OnlineTileSourceBase)
+
+    val LIGHT = Layers(
+        base = EsriTileSource(
+            "EsriLightGrayBase",
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/",
+        ),
+        reference = EsriTileSource(
+            "EsriLightGrayRef",
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/",
+        ),
     )
 
-    // Muted dark canvas — Esri's equivalent of Google Maps' night mode.
-    val DARK_MATTER: OnlineTileSourceBase = EsriTileSource(
-        "EsriWorldDarkGray",
-        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/",
+    val DARK = Layers(
+        base = EsriTileSource(
+            "EsriDarkGrayBase",
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/",
+        ),
+        reference = EsriTileSource(
+            "EsriDarkGrayRef",
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/",
+        ),
     )
 }
