@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: parkit-backend
+    runtime: docker
+    dockerContext: ./src/backend
+    dockerfilePath: ./src/backend/Dockerfile
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_ENV
+        value: production
+      # Supabase connection string, with its scheme changed from
+      # postgresql:// to postgresql+asyncpg:// (this backend uses an async
+      # SQLAlchemy engine). Set manually in the Render dashboard, not
+      # stored here.
+      - key: DATABASE_URL
+        sync: false
+      # Upstash gives a rediss:// (TLS) URL directly — use it as-is.
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
