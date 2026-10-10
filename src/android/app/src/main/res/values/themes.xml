@@ -4,4 +4,14 @@
         <item name="android:statusBarColor">#F3F4F7</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <!-- Shown for the brief window between process start and setContent() —
+         necessarily follows the system's dark/light setting (see
+         values-night/themes.xml): there's no app code running yet to
+         consult the in-app theme override stored in SharedPreferences. -->
+    <style name="Theme.ParkIt.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#F3F4F7</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.ParkIt</item>
+    </style>
 </resources>

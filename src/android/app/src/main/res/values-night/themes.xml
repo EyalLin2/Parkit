@@ -1,0 +1,10 @@
+<resources>
+    <!-- Dark-system-theme variant of the splash background only — the
+         actual app theme (Theme.ParkIt) is driven entirely by Compose
+         (see ThemeManager/ParkItTheme), not by this resource qualifier. -->
+    <style name="Theme.ParkIt.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#12161D</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.ParkIt</item>
+    </style>
+</resources>

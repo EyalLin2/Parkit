@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -19,6 +20,7 @@ import com.parkit.app.ui.LoginScreen
 import com.parkit.app.ui.MapScreen
 import com.parkit.app.ui.ProfileScreen
 import com.parkit.app.ui.theme.ParkItTheme
+import com.parkit.app.ui.theme.ThemeManager
 import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
@@ -27,6 +29,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -35,6 +38,7 @@ class MainActivity : ComponentActivity() {
         Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().osmdroidTileCache = cacheDir
 
+        ThemeManager.init(this)
         val sessionStore = SessionStore(this)
 
         setContent {
