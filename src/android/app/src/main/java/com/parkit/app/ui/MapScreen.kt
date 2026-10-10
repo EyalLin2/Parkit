@@ -7,7 +7,10 @@ import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +24,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
@@ -30,8 +34,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,8 +52,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -406,16 +410,7 @@ fun MapScreen(
                         )
                     }
                 }
-                FloatingActionButton(
-                    onClick = { showReportFlow = true },
-                    shape = CircleShape,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
-                    modifier = Modifier.size(64.dp),
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.map_report_fab_cd), modifier = Modifier.size(32.dp))
-                }
+                ReportFab(onClick = { showReportFlow = true })
             }
         }
     }
@@ -452,5 +447,46 @@ fun MapScreen(
 
     DisposableEffect(Unit) {
         onDispose { mapViewRef?.onDetach() }
+    }
+}
+
+/** The single most important action on the whole screen deserved more
+ * than a flat Material default FAB — a gloss-gradient fill (not flat
+ * color) for real depth, a deeper shadow, and a spring-overshoot
+ * entrance so it arrives with some life instead of just being present
+ * from frame one. */
+@Composable
+private fun ReportFab(onClick: () -> Unit) {
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+        ),
+        label = "fabEntrance",
+    )
+
+    val primary = MaterialTheme.colorScheme.primary
+    val gradient = androidx.compose.ui.graphics.Brush.linearGradient(
+        colors = listOf(androidx.compose.ui.graphics.lerp(primary, Color.White, 0.22f), primary),
+    )
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = scale }
+            .size(64.dp)
+            .shadow(elevation = 14.dp, shape = CircleShape, ambientColor = primary, spotColor = primary)
+            .background(gradient, CircleShape)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = rememberRipple(bounded = true, radius = 32.dp), onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Filled.Add,
+            contentDescription = stringResource(R.string.map_report_fab_cd),
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(32.dp),
+        )
     }
 }
