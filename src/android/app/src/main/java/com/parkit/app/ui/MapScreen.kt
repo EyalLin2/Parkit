@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
@@ -72,10 +71,19 @@ import kotlinx.coroutines.launch
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
+import org.osmdroid.tileprovider.MapTileProviderBasic
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.TilesOverlay
 import kotlin.math.pow
+
+/** The transparent-PNG roads+labels layer that sits on top of the plain
+ * color "base" tile — see MapTiles' doc comment for why the basemap is
+ * split into two layers instead of one. */
+private fun referenceOverlay(ctx: android.content.Context, source: OnlineTileSourceBase): TilesOverlay =
+    TilesOverlay(MapTileProviderBasic(ctx, source), ctx).apply { loadingBackgroundColor = android.graphics.Color.TRANSPARENT }
 
 private val TEL_AVIV = GeoPoint(32.0809, 34.7806)
 private const val DEFAULT_RADIUS_M = 1500
@@ -128,7 +136,7 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = com.parkit.app.ui.theme.isDarkThemeActive()
-    val tileSource = if (isDarkTheme) MapTiles.DARK_MATTER else MapTiles.VOYAGER
+    val layers = if (isDarkTheme) MapTiles.DARK else MapTiles.LIGHT
 
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
     var spots by remember { mutableStateOf<List<SpotOut>>(emptyList()) }
@@ -198,7 +206,8 @@ fun MapScreen(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
                     MapView(ctx).apply {
-                        setTileSource(tileSource)
+                        setTileSource(layers.base)
+                        overlays.add(referenceOverlay(ctx, layers.reference))
                         setMultiTouchControls(true)
                         setBuiltInZoomControls(false)
                         controller.setZoom(16.0)
@@ -217,8 +226,10 @@ fun MapScreen(
                     }
                 },
                 update = { mapView ->
-                    if (mapView.tileProvider.tileSource.name() != tileSource.name()) {
-                        mapView.setTileSource(tileSource)
+                    if (mapView.tileProvider.tileSource.name() != layers.base.name()) {
+                        mapView.setTileSource(layers.base)
+                        mapView.overlays.filterIsInstance<TilesOverlay>().let { mapView.overlays.removeAll(it) }
+                        mapView.overlays.add(0, referenceOverlay(mapView.context, layers.reference))
                     }
                     mapView.overlays.filterIsInstance<Marker>().let { mapView.overlays.removeAll(it) }
 
@@ -279,22 +290,45 @@ fun MapScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_logo),
-                            contentDescription = stringResource(R.string.logo_cd),
-                            modifier = Modifier.size(36.dp),
-                        )
+                        Box(
+                            modifier = Modifier.size(34.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_logo),
+                                contentDescription = stringResource(R.string.logo_cd),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                         Text(
                             "ParkIt",
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f).padding(start = 10.dp),
                         )
-                        IconButton(onClick = onOpenProfile) { Icon(Icons.Filled.Person, contentDescription = stringResource(R.string.map_profile_cd)) }
-                        IconButton(onClick = { sessionStore.clear(); onLoggedOut() }) {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = stringResource(R.string.map_logout_cd))
+                        // One profile entry point, not a profile+logout pair —
+                        // logout is an account action and now lives in Profile
+                        // itself, decluttering the map's primary chrome down to
+                        // what you actually need while looking for parking.
+                        Box(
+                            modifier = Modifier.size(38.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = rememberRipple(bounded = true, radius = 19.dp),
+                                    onClick = onOpenProfile,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.Person,
+                                contentDescription = stringResource(R.string.map_profile_cd),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(20.dp),
+                            )
                         }
                     }
                 }
@@ -333,23 +367,26 @@ fun MapScreen(
 
             // Pinch-to-zoom alone isn't reliably discoverable (and doesn't work at
             // all via a mouse on an emulator), so explicit zoom controls sit above
-            // the My Location button rather than replacing it.
+            // the My Location button rather than replacing it. Sized and shaped
+            // to match the locate button below them (small circles, own shadow
+            // each) instead of one tall joined pill — the previous version read
+            // as a dated widget bolted onto the map rather than part of the UI.
             Column(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 150.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Surface(shape = RoundedCornerShape(14.dp), shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
-                    Column {
-                        IconButton(onClick = { mapViewRef?.controller?.zoomIn() }) {
-                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.map_zoom_in_cd))
-                        }
-                        IconButton(onClick = { mapViewRef?.controller?.zoomOut() }) {
-                            Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.map_zoom_out_cd))
-                        }
+                Surface(shape = CircleShape, shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(40.dp)) {
+                    IconButton(onClick = { mapViewRef?.controller?.zoomIn() }) {
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.map_zoom_in_cd), modifier = Modifier.size(18.dp))
                     }
                 }
-                Surface(shape = CircleShape, shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
+                Surface(shape = CircleShape, shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(40.dp)) {
+                    IconButton(onClick = { mapViewRef?.controller?.zoomOut() }) {
+                        Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.map_zoom_out_cd), modifier = Modifier.size(18.dp))
+                    }
+                }
+                Surface(shape = CircleShape, shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(46.dp).padding(top = 2.dp)) {
                     IconButton(onClick = {
                         if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
                             android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -367,15 +404,27 @@ fun MapScreen(
             Surface(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 150.dp),
                 shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 4.dp,
             ) {
-                Text(
-                    pluralStringResource(R.plurals.spots_available, spots.size, spots.size, DEFAULT_RADIUS_M),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                ) {
+                    // A small live-status dot — the spot count is a live
+                    // reading of the map, not static copy, so it gets the same
+                    // visual language a status indicator would.
+                    Box(
+                        modifier = Modifier.size(7.dp)
+                            .background(if (spots.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary, CircleShape),
+                    )
+                    Text(
+                        pluralStringResource(R.plurals.spots_available, spots.size, spots.size, DEFAULT_RADIUS_M),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
             }
 
             // A circular floating "+" action (Waze's own report-button pattern,
