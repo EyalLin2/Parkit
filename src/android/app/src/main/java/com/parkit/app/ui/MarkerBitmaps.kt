@@ -5,29 +5,99 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Typeface
 import com.parkit.app.R
 import java.time.Duration
 import java.time.Instant
 import kotlin.math.min
 
-/** Small colored circular badges drawn at runtime — status color + a short
- * label (relative time for a single spot, a count for a cluster) — instead
- * of a static drawable, since the label content varies per marker. */
+/** Real teardrop map pins — a circular "head" (status color + a short
+ * label) with a tapered tail pointing at the exact coordinate, drawn at
+ * runtime so the label content can vary per marker. Flat colored circles
+ * read as "generic app markers"; this is the one shape everyone already
+ * reads as "a map pin" from Google Maps/Waze. */
 object MarkerBitmaps {
-    private const val DIAMETER_PX = 84
+    private const val HEAD_DIAMETER = 64f
+    private const val HEAD_RADIUS = HEAD_DIAMETER / 2f
+    private const val TAIL_LENGTH = 26f
+    private const val SIDE_PADDING = 8f
+    private const val BOTTOM_SHADOW_PADDING = 6f
 
-    // Padding around the circle so a soft drop-shadow has room to bleed into —
-    // without it, pins read as flat stickers pasted on the map instead of
-    // objects with depth (the "Google Maps pin" look).
-    private const val PADDING_PX = 12
-    private const val CANVAS_PX = DIAMETER_PX + PADDING_PX * 2
+    private const val CANVAS_WIDTH = HEAD_DIAMETER + SIDE_PADDING * 2
+    private const val HEAD_CENTER_Y = SIDE_PADDING + HEAD_RADIUS
+    private const val TIP_Y = HEAD_CENTER_Y + HEAD_RADIUS + TAIL_LENGTH
+    private const val CANVAS_HEIGHT = TIP_Y + BOTTOM_SHADOW_PADDING
+
+    /** The pin's tip — not its bounding-box center — is the actual
+     * coordinate, so callers must anchor the marker here, not at (0.5, 0.5). */
+    const val ANCHOR_X = 0.5f
+    val ANCHOR_Y = TIP_Y / CANVAS_HEIGHT
+
+    private fun pinPath(cx: Float): Path {
+        val head = Path().apply { addCircle(cx, HEAD_CENTER_Y, HEAD_RADIUS, Path.Direction.CW) }
+        val tailHalfWidth = HEAD_RADIUS * 0.52f
+        val tailTop = HEAD_CENTER_Y + HEAD_RADIUS * 0.45f
+        val tail = Path().apply {
+            moveTo(cx - tailHalfWidth, tailTop)
+            lineTo(cx, TIP_Y)
+            lineTo(cx + tailHalfWidth, tailTop)
+            close()
+        }
+        return Path().apply { op(head, tail, Path.Op.UNION) }
+    }
 
     fun badge(colorHex: String, label: String): Bitmap {
-        val bmp = Bitmap.createBitmap(CANVAS_PX, CANVAS_PX, Bitmap.Config.ARGB_8888)
+        val w = CANVAS_WIDTH.toInt()
+        val h = CANVAS_HEIGHT.toInt()
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        val center = CANVAS_PX / 2f
-        val radius = DIAMETER_PX / 2f - 4f
+        val cx = CANVAS_WIDTH / 2f
+        val pin = pinPath(cx)
+
+        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+            setShadowLayer(6f, 0f, 3f, Color.argb(110, 0, 0, 0))
+        }
+        canvas.drawPath(pin, shadowPaint)
+
+        val fillInset = 4f
+        val headFill = Path().apply { addCircle(cx, HEAD_CENTER_Y, HEAD_RADIUS - fillInset, Path.Direction.CW) }
+        val tailHalfWidth = (HEAD_RADIUS - fillInset) * 0.52f
+        val tailTop = HEAD_CENTER_Y + (HEAD_RADIUS - fillInset) * 0.45f
+        val tailFill = Path().apply {
+            moveTo(cx - tailHalfWidth, tailTop)
+            lineTo(cx, TIP_Y - fillInset * 1.4f)
+            lineTo(cx + tailHalfWidth, tailTop)
+            close()
+        }
+        val pinFill = Path().apply { op(headFill, tailFill, Path.Op.UNION) }
+        val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(colorHex); style = Paint.Style.FILL }
+        canvas.drawPath(pinFill, fillPaint)
+
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+            textSize = if (label.length > 2) 18f else 22f
+        }
+        val textY = HEAD_CENTER_Y - (text.descent() + text.ascent()) / 2f
+        canvas.drawText(label, cx, textY, text)
+        return bmp
+    }
+
+    /** Clusters represent an area/count, not one exact coordinate — a plain
+     * circle (center-anchored, not a tip-anchored pin) reads correctly for
+     * that, same as how Google Maps/Waze draw cluster badges. */
+    fun clusterBadge(count: Int): Bitmap {
+        val diameter = 72
+        val padding = 10
+        val size = diameter + padding * 2
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val center = size / 2f
+        val radius = diameter / 2f - 4f
 
         val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -36,21 +106,19 @@ object MarkerBitmaps {
         }
         canvas.drawCircle(center, center, radius + 4f, ring)
 
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(colorHex); style = Paint.Style.FILL }
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#1B4F91"); style = Paint.Style.FILL }
         canvas.drawCircle(center, center, radius, fill)
 
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
-            textSize = if (label.length > 2) 22f else 28f
+            textSize = 24f
         }
         val textY = center - (text.descent() + text.ascent()) / 2f
-        canvas.drawText(label, center, textY, text)
+        canvas.drawText(count.toString(), center, textY, text)
         return bmp
     }
-
-    fun clusterBadge(count: Int): Bitmap = badge("#1B4F91", count.toString())
 
     /** "2m" / "1h" / "3d" / "now" — compact enough to fit on a small pin. */
     fun relativeTimeShort(context: Context, iso: String): String = try {

@@ -123,4 +123,10 @@
     <string name="profile_share_title">שיתוף ParkIt</string>
     <string name="profile_share_button">הזמנת חבר/ה</string>
     <string name="profile_share_message">אני משתמש/ת ב-ParkIt כדי למצוא ולדווח על חניות חינם בקרבת מקום — נסו גם אתם!</string>
+
+    <!-- Theme -->
+    <string name="profile_theme_label">מצב תצוגה</string>
+    <string name="profile_theme_system">אוטומטי</string>
+    <string name="profile_theme_light">בהיר</string>
+    <string name="profile_theme_dark">כהה</string>
 </resources>

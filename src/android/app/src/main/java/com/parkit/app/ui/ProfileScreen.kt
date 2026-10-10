@@ -50,6 +50,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -62,6 +64,7 @@ import com.parkit.app.api.LeaderboardEntry
 import com.parkit.app.api.ProfileOut
 import com.parkit.app.api.isUnauthorized
 import com.parkit.app.locale.LocaleManager
+import com.parkit.app.ui.theme.ThemeManager
 
 private val Gold = Color(0xFFC9971C)
 private val Silver = Color(0xFF8C97A6)
@@ -101,6 +104,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onSessionExpired: () -> U
         ) {
             item { HeroHeader(profile = p, onBack = onBack) }
             item { LanguageCard() }
+            item { ThemeCard() }
             item { ShareCard() }
 
             error?.let { msg -> item { Text(msg, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) } }
@@ -189,16 +193,26 @@ private fun HeroHeader(profile: ProfileOut?, onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
             )
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
-                Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(26.dp))
-                Text(
-                    (profile?.points ?: 0).toString(),
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(start = 6.dp),
-                )
+            val points = profile?.points ?: 0
+            val totalPointsLabel = stringResource(R.string.profile_total_points)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                // Without this, a screen reader announces "20" and "total points"
+                // as two unrelated items (whatever else happens to be read next
+                // in between) instead of one coherent "20 total points".
+                modifier = Modifier.clearAndSetSemantics { contentDescription = "$points $totalPointsLabel" },
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
+                    Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(26.dp))
+                    Text(
+                        points.toString(),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+                Text(totalPointsLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
             }
-            Text(stringResource(R.string.profile_total_points), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
         }
     }
 }
@@ -237,6 +251,45 @@ private fun LanguageCard() {
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                     modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Explicit light/dark choice, same reasoning and same UI pattern as
+ * LanguageCard — the map/profile already adapt to the device's system
+ * theme, but there was no way to override that choice directly. */
+@Composable
+private fun ThemeCard() {
+    val context = LocalContext.current
+    val current by ThemeManager.getOverride()
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(stringResource(R.string.profile_theme_label), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            listOf(
+                null to stringResource(R.string.profile_theme_system),
+                "light" to stringResource(R.string.profile_theme_light),
+                "dark" to stringResource(R.string.profile_theme_dark),
+            ).forEach { (mode, label) ->
+                val selected = current == mode
+                FilterChip(
+                    selected = selected,
+                    onClick = { if (!selected) ThemeManager.setOverride(context, mode) },
+                    label = { Text(label) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    modifier = Modifier.padding(start = 6.dp),
                 )
             }
         }

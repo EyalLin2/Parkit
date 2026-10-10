@@ -117,4 +117,10 @@
     <string name="profile_share_title">Share ParkIt</string>
     <string name="profile_share_button">Invite a friend</string>
     <string name="profile_share_message">I\'m using ParkIt to find and report free parking spots nearby — give it a try!</string>
+
+    <!-- Theme -->
+    <string name="profile_theme_label">Theme</string>
+    <string name="profile_theme_system">System</string>
+    <string name="profile_theme_light">Light</string>
+    <string name="profile_theme_dark">Dark</string>
 </resources>

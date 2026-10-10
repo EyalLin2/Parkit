@@ -8,7 +8,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -124,7 +123,7 @@ fun MapScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = com.parkit.app.ui.theme.isDarkThemeActive()
     val tileSource = if (isDarkTheme) MapTiles.DARK_MATTER else MapTiles.VOYAGER
 
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
@@ -227,7 +226,7 @@ fun MapScreen(
                             val spot = group[0]
                             val marker = Marker(mapView)
                             marker.position = GeoPoint(spot.lat, spot.lng)
-                            marker.setAnchor(0.5f, 0.5f)
+                            marker.setAnchor(MarkerBitmaps.ANCHOR_X, MarkerBitmaps.ANCHOR_Y)
                             marker.icon = android.graphics.drawable.BitmapDrawable(
                                 mapView.context.resources,
                                 MarkerBitmaps.badge(statusColor(spot, sessionStore.userId.value), MarkerBitmaps.relativeTimeShort(context, spot.reportedAt)),
