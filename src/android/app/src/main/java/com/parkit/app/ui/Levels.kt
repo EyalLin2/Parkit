@@ -279,7 +279,7 @@ fun LevelLadder(points: Int, current: ParkItLevel) {
  * the rest, and — always — your own place pinned at the bottom, even when
  * you're outside the top ten or not ranked yet. */
 @Composable
-fun LeagueSection(entries: List<LeaderboardEntry>, me: ProfileOut) {
+fun LeagueSection(entries: List<LeaderboardEntry>, me: ProfileOut, myRank: Int?) {
     if (entries.isNotEmpty()) {
         val podium = listOf(entries.getOrNull(1), entries.getOrNull(0), entries.getOrNull(2))
         val medal = listOf(Color(0xFF9AA5B4), Color(0xFFD4A017), Color(0xFFB0703C))
@@ -328,8 +328,8 @@ fun LeagueSection(entries: List<LeaderboardEntry>, me: ProfileOut) {
             border = BorderStroke(1.dp, level.color.copy(alpha = 0.5f)),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         ) {
-            if (me.weeklyRank != null) {
-                LeagueRow(me.weeklyRank.toString(), me.displayName, level, me.weeklyPoints, isMe = true, highlight = false)
+            if (myRank != null) {
+                LeagueRow(myRank.toString(), me.displayName, level, me.weeklyPoints, isMe = true, highlight = false)
             } else {
                 Text(
                     stringResource(R.string.league_not_ranked),

@@ -85,3 +85,19 @@ async def test_profile_shows_my_place_in_the_weekly_league(client, make_user):
     assert (await client.get("/users/me", headers=headers_a)).json()["weekly_rank"] == 1  # 15 points
     assert (await client.get("/users/me", headers=headers_b)).json()["weekly_rank"] == 2  # 10 points
     assert (await client.get("/users/me", headers=headers_seeker)).json()["weekly_rank"] is None  # no points yet
+
+
+async def test_city_league_only_ranks_drivers_from_that_city(client, make_user):
+    _, tlv_a = await make_user("tlv-a")
+    _, tlv_b = await make_user("tlv-b")
+    _, haifa = await make_user("haifa")
+    for headers, city in ((tlv_a, "תל אביב–יפו"), (tlv_b, "תל אביב–יפו"), (haifa, "חיפה")):
+        await client.patch("/users/me/preferences", json={"home_city": city}, headers=headers)
+    haifa_spot = await _report(client, haifa, lat=32.80, lng=34.99)
+    await client.post(f"/spots/{haifa_spot.json()['id']}/feedback", json={"type": "confirmed_taken"}, headers=tlv_a)
+    await _report(client, tlv_b, lat=32.08, lng=34.78)  # 10 points vs Haifa's 15
+
+    board = (await client.get("/leaderboard", params={"city": "תל אביב–יפו"}, headers=tlv_a)).json()
+    assert [e["display_name"] for e in board] == ["tlv-b"]  # haifa has more points but isn't in this league
+    me = (await client.get("/users/me", headers=tlv_b)).json()
+    assert (me["weekly_rank"], me["weekly_city_rank"]) == (2, 1)

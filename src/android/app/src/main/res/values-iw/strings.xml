@@ -279,4 +279,8 @@
     <string name="profile_tab_league">ליגה</string>
     <string name="profile_tab_reports">הדיווחים שלי</string>
     <string name="league_not_ranked">עוד לא נכנסת לליגה השבוע — דווח על חניה כדי להופיע בטבלה.</string>
+    <string name="league_my_city">העיר שלי</string>
+    <string name="league_all_israel">כל הארץ</string>
+    <string name="league_pick_city_title">בחר עיר</string>
+    <string name="league_pick_city_body">כדי להתחרות מול נהגים מהעיר שלך בליגה שבועית</string>
 </resources>

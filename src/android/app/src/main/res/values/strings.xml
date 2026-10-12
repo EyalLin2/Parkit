@@ -271,4 +271,8 @@
     <string name="profile_tab_league">League</string>
     <string name="profile_tab_reports">My reports</string>
     <string name="league_not_ranked">You\'re not in this week\'s league yet — report a spot to get on the board.</string>
+    <string name="league_my_city">My city</string>
+    <string name="league_all_israel">All of Israel</string>
+    <string name="league_pick_city_title">Pick your city</string>
+    <string name="league_pick_city_body">Compete with drivers near you in a weekly city league</string>
 </resources>

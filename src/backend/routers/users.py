@@ -50,10 +50,13 @@ async def my_profile(
 
     # Same ordering as /leaderboard: only drivers with points this week are
     # ranked, so 0 points means "not in the league yet", not last place.
-    weekly_rank = None
+    weekly_rank = weekly_city_rank = None
     if user.weekly_points > 0:
-        ahead = (await db.execute(select(func.count()).where(User.weekly_points > user.weekly_points))).scalar_one()
-        weekly_rank = ahead + 1
+        ahead = select(func.count()).where(User.weekly_points > user.weekly_points)
+        weekly_rank = (await db.execute(ahead)).scalar_one() + 1
+        if user.home_city:
+            # The city league: drivers who picked the same preferred city.
+            weekly_city_rank = (await db.execute(ahead.where(User.home_city == user.home_city))).scalar_one() + 1
 
     level = level_for(user.points)
     upcoming = next_level(user.points)
@@ -63,6 +66,7 @@ async def my_profile(
         points=user.points,
         weekly_points=user.weekly_points,
         weekly_rank=weekly_rank,
+        weekly_city_rank=weekly_city_rank,
         successful_reports=successful_reports,
         badges=[t for t in BADGE_THRESHOLDS if successful_reports >= t],
         level=level.key,
@@ -88,16 +92,16 @@ async def my_profile(
 @router.get("/leaderboard", response_model=list[LeaderboardEntry])
 async def leaderboard(
     limit: int = Query(LEADERBOARD_LIMIT, gt=0, le=200),
+    city: str | None = Query(None, max_length=120, description="Only drivers whose preferred city is this"),
     _user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ) -> list[LeaderboardEntry]:
     await reconcile_weekly_points(db)
 
-    rows = (
-        (await db.execute(select(User).where(User.weekly_points > 0).order_by(User.weekly_points.desc()).limit(limit)))
-        .scalars()
-        .all()
-    )
+    stmt = select(User).where(User.weekly_points > 0)
+    if city:
+        stmt = stmt.where(User.home_city == city)
+    rows = (await db.execute(stmt.order_by(User.weekly_points.desc()).limit(limit))).scalars().all()
 
     return [
         LeaderboardEntry(

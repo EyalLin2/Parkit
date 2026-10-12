@@ -60,5 +60,5 @@ interface ApiService {
     suspend fun cities(): List<CityOut>
 
     @GET("leaderboard")
-    suspend fun leaderboard(@Query("limit") limit: Int = 10): List<LeaderboardEntry>
+    suspend fun leaderboard(@Query("limit") limit: Int = 10, @Query("city") city: String? = null): List<LeaderboardEntry>
 }

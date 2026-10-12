@@ -57,6 +57,7 @@ class ProfileOut(BaseModel):
     points: int
     weekly_points: int
     weekly_rank: int | None = None  # place in this week's league; None = no points yet
+    weekly_city_rank: int | None = None  # same, among drivers with the same preferred city
     successful_reports: int
     badges: list[int]  # deprecated: replaced by levels, kept for older app builds
     level: str

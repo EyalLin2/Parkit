@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MilitaryTech
@@ -40,6 +41,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -93,6 +97,14 @@ fun ProfileScreen(
     val context = LocalContext.current
     var profile by remember { mutableStateOf<ProfileOut?>(null) }
     var leaderboard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }
+    var cityBoard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }
+    val homeCity = sessionStore.driver.value.preferences.homeCity
+    // League scope: your city first (a race you can actually win), or all of Israel.
+    var cityScope by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
+    // Keyed on the city: it can arrive (or change) with the profile sync.
+    LaunchedEffect(homeCity) {
+        cityBoard = homeCity?.let { city -> runCatching { api.leaderboard(10, city = city) }.getOrDefault(emptyList()) } ?: emptyList()
+    }
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -151,7 +163,20 @@ fun ProfileScreen(
                             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
                         )
                     }
-                    item { LeagueSection(leaderboard, me = p) }
+                    item {
+                        LeagueScopeToggle(
+                            cityLabel = homeCity ?: stringResource(R.string.league_my_city),
+                            cityScope = cityScope,
+                            onSelect = { cityScope = it },
+                        )
+                    }
+                    if (cityScope && homeCity == null) {
+                        item { PickCityCard(onOpenDriver) }
+                    } else if (cityScope) {
+                        item { LeagueSection(cityBoard, me = p, myRank = p.weeklyCityRank) }
+                    } else {
+                        item { LeagueSection(leaderboard, me = p, myRank = p.weeklyRank) }
+                    }
                 }
                 else -> {
                     item { Spacer(Modifier.height(16.dp)) }
@@ -160,6 +185,43 @@ fun ProfileScreen(
             }
         }
         item { Spacer(Modifier.navigationBarsPadding().height(24.dp)) }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun LeagueScopeToggle(cityLabel: String, cityScope: Boolean, onSelect: (Boolean) -> Unit) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 12.dp)) {
+        SegmentedButton(
+            selected = cityScope,
+            onClick = { onSelect(true) },
+            shape = SegmentedButtonDefaults.itemShape(0, 2),
+        ) { Text(cityLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        SegmentedButton(
+            selected = !cityScope,
+            onClick = { onSelect(false) },
+            shape = SegmentedButtonDefaults.itemShape(1, 2),
+        ) { Text(stringResource(R.string.league_all_israel)) }
+    }
+}
+
+/** No preferred city yet: the city league needs one — one tap to set it. */
+@Composable
+private fun PickCityCard(onOpenDriver: () -> Unit) {
+    SectionCard(modifier = Modifier.clickable(onClick = onOpenDriver)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
+            Box(
+                modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(androidx.compose.material.icons.Icons.Filled.LocationCity, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            }
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                Text(stringResource(R.string.league_pick_city_title), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.league_pick_city_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
