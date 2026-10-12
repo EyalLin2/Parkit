@@ -49,7 +49,7 @@
     <string name="spot_type_disabled">נכים</string>
     <string name="spot_type_regular">רגילה</string>
     <string name="spot_status">סטטוס: %1$s</string>
-    <string name="spot_fits">מתאימה ל: %1$s</string>
+    <string name="spot_fits">מתאים לרכב %1$s</string>
     <string name="spot_navigate">ניווט</string>
     <string name="spot_claim">אני בדרך</string>
     <string name="spot_i_took_it">חניתי כאן</string>

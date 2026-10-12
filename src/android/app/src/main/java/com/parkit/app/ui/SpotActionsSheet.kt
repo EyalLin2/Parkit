@@ -85,6 +85,7 @@ private val Hot = Color(0xFFE8480C)
  * the reporter's photo), then one primary action (Navigate) and the
  * crowd-feedback question asked plainly — "is it still free?" — instead of
  * a stack of five equally-loud full-width buttons. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun SpotActionsSheet(
     api: ApiService,
@@ -178,35 +179,33 @@ fun SpotActionsSheet(
                     }
                 }
             }
+            // Header: where it is, then one quiet line — type · distance ·
+            // freshness (a coloured dot carries how fresh, at a glance).
             Row(verticalAlignment = Alignment.Top) {
-                if (photoUrl == null) {
-                    Box(
-                        modifier = Modifier.padding(end = 14.dp).size(48.dp).background(accent.copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            if (isDisabledSpot) Icons.AutoMirrored.Filled.Accessible else Icons.Filled.LocalParking,
-                            contentDescription = null,
-                            tint = accent,
-                            modifier = Modifier.size(26.dp),
-                        )
-                    }
-                }
-                Column(modifier = Modifier.weight(1f).padding(end = 14.dp)) {
+                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                     Text(
                         address ?: stringResource(R.string.map_locating),
                         style = MaterialTheme.typography.titleLarge,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
-                        listOfNotNull(
-                            stringResource(if (isDisabledSpot) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
-                            distanceLabel,
-                        ).joinToString(" · "),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                        Text(
+                            listOfNotNull(
+                                stringResource(if (isDisabledSpot) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
+                                distanceLabel,
+                            ).joinToString(" · ") + " · ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Box(Modifier.size(8.dp).background(freshnessColor(spot.reportedAt), CircleShape))
+                        Text(
+                            MarkerBitmaps.relativeTimeLong(context, spot.reportedAt),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 5.dp),
+                        )
+                    }
                 }
                 IconButton(
                     onClick = onDismiss,
@@ -216,14 +215,12 @@ fun SpotActionsSheet(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 14.dp)) {
-                Tag(Icons.Filled.Schedule, MarkerBitmaps.relativeTimeLong(context, spot.reportedAt), freshnessColor(spot.reportedAt))
+            // Facts as plain icon + text (no coloured pills competing with the
+            // buttons); wraps to a second line instead of running off-screen.
+            val facts = buildList {
                 when {
-                    isClaimed -> Tag(Icons.Filled.DirectionsCar, stringResource(R.string.spot_someone_on_the_way), Claimed)
-                    isMine -> Tag(Icons.Filled.CheckCircle, stringResource(R.string.map_spot_yours), Mine)
-                }
-                ParkItLevel.of(spot.reporterLevel).takeIf { it != ParkItLevel.Newbie }?.let { level ->
-                    Tag(level.icon, stringResource(R.string.spot_reported_by_level, stringResource(level.nameRes)), level.color)
+                    isClaimed -> add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.spot_someone_on_the_way), Claimed))
+                    isMine -> add(Triple(Icons.Filled.CheckCircle, stringResource(R.string.map_spot_yours), Mine))
                 }
                 spot.vehicleSize?.let { size ->
                     val label = stringResource(
@@ -233,25 +230,23 @@ fun SpotActionsSheet(
                             else -> R.string.report_size_regular
                         },
                     )
-                    Tag(Icons.Filled.DirectionsCar, stringResource(R.string.spot_fits, label), MaterialTheme.colorScheme.onSurfaceVariant)
+                    add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.spot_fits, label.lowercase()), null))
+                }
+                ParkItLevel.of(spot.reporterLevel).takeIf { it != ParkItLevel.Newbie }?.let { level ->
+                    add(Triple(level.icon, stringResource(R.string.spot_reported_by_level, stringResource(level.nameRes)), level.color))
+                }
+            }
+            if (facts.isNotEmpty()) {
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 12.dp),
+                ) {
+                    facts.forEach { (icon, text, tint) -> Fact(icon, text, tint) }
                 }
             }
 
-            spot.hotMinutes?.let { minutes ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 14.dp).fillMaxWidth().background(Hot.copy(alpha = 0.1f), RoundedCornerShape(12.dp)).padding(12.dp),
-                ) {
-                    Icon(Icons.Filled.LocalFireDepartment, contentDescription = null, tint = Hot, modifier = Modifier.size(20.dp))
-                    Text(
-                        androidx.compose.ui.res.pluralStringResource(R.plurals.hot_long, minutes, minutes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = 10.dp),
-                    )
-                }
-            }
-            DriverNotices(fit)
+            DriverNotices(fit, spot.hotMinutes)
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 18.dp)) {
                 Button(
@@ -260,13 +255,13 @@ fun SpotActionsSheet(
                         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
                     },
                     shape = RoundedCornerShape(50),
-                    modifier = Modifier.weight(1f).height(52.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                 ) {
                     Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text(stringResource(R.string.spot_navigate), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
                 }
                 if (spot.status == "active" && !isMine) {
-                    OutlinedButton(
+                    androidx.compose.material3.FilledTonalButton(
                         onClick = {
                             busy = true
                             error = null
@@ -282,8 +277,7 @@ fun SpotActionsSheet(
                         },
                         enabled = !busy,
                         shape = RoundedCornerShape(50),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        modifier = Modifier.weight(1f).height(52.dp),
+                        modifier = Modifier.weight(1f).height(48.dp),
                     ) {
                         Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(stringResource(R.string.spot_claim), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
@@ -295,8 +289,9 @@ fun SpotActionsSheet(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), modifier = Modifier.padding(top = 20.dp))
                 Text(
                     stringResource(R.string.spot_still_free_question),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 10.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 14.dp, bottom = 10.dp),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     FeedbackOption(
@@ -416,40 +411,54 @@ private fun Tag(icon: ImageVector, text: String, color: Color) {
     }
 }
 
-/** What this spot means for *this* driver — disabled permit and car fit. Full sentences
- * here (the list row only has room for a word or two). */
+/** What this spot means for *this* driver — hot area, disabled permit,
+ * car fit — as full sentences with a coloured icon and no box, so the card
+ * stays calm and the buttons stay the loudest thing on it. */
 @Composable
-private fun DriverNotices(fit: DriverFit) {
+private fun DriverNotices(fit: DriverFit, hotMinutes: Int?) {
     val notices = buildList {
+        hotMinutes?.let { add(Triple(Icons.Filled.LocalFireDepartment, androidx.compose.ui.res.pluralStringResource(R.plurals.hot_long, it, it), Hot)) }
         if (fit.needsDisabledPermit) add(Triple(Icons.AutoMirrored.Filled.Accessible, stringResource(R.string.fit_needs_disabled_permit_long), MaterialTheme.colorScheme.error))
         if (fit.tooSmall) add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.fit_too_small_long), Claimed))
     }
     if (notices.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 14.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 14.dp)) {
         notices.forEach { (icon, text, color) ->
-            Row(
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.fillMaxWidth().background(color.copy(alpha = 0.08f), RoundedCornerShape(12.dp)).padding(12.dp),
-            ) {
+            Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
                 Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-                Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(start = 10.dp))
+                Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(start = 10.dp))
             }
         }
     }
 }
 
+/** Quiet secondary answer to "still free?": an outlined pill with a
+ * coloured icon — the big pastel blocks it replaces out-shouted Navigate. */
 @Composable
 private fun FeedbackOption(label: String, icon: ImageVector, color: Color, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
+    OutlinedButton(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(16.dp),
-        color = color.copy(alpha = 0.1f),
-        modifier = modifier.height(52.dp),
+        shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+        modifier = modifier.height(44.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge, color = color, modifier = Modifier.padding(start = 8.dp))
-        }
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+/** One fact in the card's fact line: small icon + text, no background. */
+@Composable
+private fun Fact(icon: ImageVector, text: String, tint: Color?) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 5.dp),
+        )
     }
 }

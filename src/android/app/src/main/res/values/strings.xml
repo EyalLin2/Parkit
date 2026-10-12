@@ -48,7 +48,7 @@
     <string name="spot_type_disabled">Disabled</string>
     <string name="spot_type_regular">Regular</string>
     <string name="spot_status">Status: %1$s</string>
-    <string name="spot_fits">Fits: %1$s</string>
+    <string name="spot_fits">Fits a %1$s car</string>
     <string name="spot_navigate">Navigate</string>
     <string name="spot_claim">I\'m heading there</string>
     <string name="spot_i_took_it">I parked here</string>
