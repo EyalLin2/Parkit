@@ -223,11 +223,11 @@ fun MapScreen(
             return@LaunchedEffect
         }
         addressLoading = true
-        delay(350) // let a quick follow-up drag cancel this before it costs a request
+        delay(250) // let a quick follow-up drag cancel this before it costs a request
         val result = com.parkit.app.api.Geocoder.reverse(target.latitude, target.longitude)
         resolvedAddress = result?.shortLabel()
         resolvedStreet = result?.streetLabel()
-        addressFailed = result == null
+        addressFailed = resolvedAddress == null
         addressLoading = false
     }
 

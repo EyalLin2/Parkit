@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
 from database import get_db
+from geocoder import reverse_cached
 from media import delete_photo, save_photo
 from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
 from points import award_points, reconcile_weekly_points
@@ -96,6 +97,11 @@ async def report_spot(
     if await redis.exists(f"same_spot_block:{user_id}:{bucket}"):
         raise HTTPException(429, "Too many reports at this location, try again shortly")
 
+    # The server is the source of truth for a spot's address: the client's
+    # label is only a fallback for areas our OSM tables don't cover.
+    address = (await reverse_cached(db, redis, payload.lat, payload.lng, "he")).street
+    address = address or (payload.address or "").strip() or None
+
     origin = ST_SetSRID(ST_MakePoint(payload.lng, payload.lat), 4326)
     existing = (
         await db.execute(
@@ -108,8 +114,8 @@ async def report_spot(
 
     if existing is not None:
         existing.reported_at = now
-        if existing.address is None and payload.address:
-            existing.address = payload.address.strip() or None
+        if existing.address is None and address:
+            existing.address = address
         if existing.reporter_id != user_id:
             award_points(user, POINTS_REFRESH_BONUS)
         spot = existing
@@ -122,7 +128,7 @@ async def report_spot(
             spot_type=payload.spot_type,
             payment=payload.payment,
             vehicle_size=payload.vehicle_size,
-            address=(payload.address or "").strip() or None,
+            address=address,
         )
         db.add(spot)
         award_points(user, POINTS_REPORT)

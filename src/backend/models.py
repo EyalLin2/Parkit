@@ -108,3 +108,55 @@ class SpotFeedback(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     type: Mapped[FeedbackType] = mapped_column(Enum(FeedbackType, name="feedback_type"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+# --- Self-hosted reverse geocoding (OpenStreetMap data, ODbL) ---------------
+# Loaded once by import_osm_geodata.py from the Geofabrik Israel extract, then
+# queried locally — replaces per-request calls to the public Nominatim server
+# (1 req/s for the whole app), so address lookups have no external rate limit.
+
+
+class OsmAddress(Base):
+    __tablename__ = "osm_addresses"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    geom: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326))
+    # NULL for buildings that carry only a house number; like Nominatim, the
+    # geocoder assigns those to the nearest street.
+    street: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    housenumber: Mapped[str] = mapped_column(String(40))
+    city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+
+class OsmStreet(Base):
+    __tablename__ = "osm_streets"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    geom: Mapped[str] = mapped_column(Geography(geometry_type="LINESTRING", srid=4326))
+    name: Mapped[str] = mapped_column(String(200))
+    name_he: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    name_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class OsmArea(Base):
+    """Named squares / pedestrian plazas (e.g. Rabin Square) — mapped in OSM
+    as polygons, not street lines, so a point inside one is "at the square"."""
+
+    __tablename__ = "osm_areas"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    geom: Mapped[str] = mapped_column(Geography(geometry_type="MULTIPOLYGON", srid=4326))
+    name: Mapped[str] = mapped_column(String(200))
+    name_he: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    name_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class OsmPlace(Base):
+    __tablename__ = "osm_places"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    geom: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326))
+    kind: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(200))
+    name_he: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    name_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
