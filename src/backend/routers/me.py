@@ -4,14 +4,14 @@ import uuid
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from redis.asyncio import Redis
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
 from database import get_db
-from models import PermitZone, User
+from models import User
 from redis_client import get_redis
-from schemas import CityOut, PermitZoneOut, Preferences, PreferencesUpdate, VehicleLookupOut
+from schemas import CityOut, Preferences, PreferencesUpdate, VehicleLookupOut
 from vehicles import lookup, normalise_plate
 
 router = APIRouter(tags=["driver profile"])
@@ -23,7 +23,6 @@ def preferences_of(user: User) -> Preferences:
         car_label=user.car_label,
         has_disabled_permit=user.has_disabled_permit,
         home_city=user.home_city,
-        resident_zone=user.resident_zone,
     )
 
 
@@ -37,10 +36,6 @@ async def update_preferences(
     if user is None:
         raise HTTPException(404, "Unknown user")
     changes = payload.model_dump(exclude_unset=True)
-    if "resident_zone" in changes and changes["resident_zone"]:
-        exists = (await db.execute(select(PermitZone.id).where(PermitZone.key == changes["resident_zone"]))).first()
-        if exists is None:
-            raise HTTPException(422, "Unknown permit zone")
     for field, value in changes.items():
         setattr(user, field, value)
     await db.commit()
@@ -67,42 +62,6 @@ async def vehicle_lookup(
     return VehicleLookupOut(
         make=info.make, model=info.model, year=info.year, body=info.body, size=info.size, label=info.label
     )
-
-
-@router.get("/permit-zones", response_model=list[PermitZoneOut])
-async def permit_zones(db: AsyncSession = Depends(get_db)) -> list[PermitZoneOut]:
-    rows = (await db.execute(select(PermitZone))).scalars().all()
-
-    def zone_number(z: PermitZone) -> int:
-        tail = z.key.rsplit(":", 1)[-1]
-        return int(tail) if tail.isdigit() else 0
-
-    rows = sorted(rows, key=lambda z: (z.city, zone_number(z)))
-    return [PermitZoneOut(key=z.key, city=z.city, label=z.label) for z in rows]
-
-
-@router.get("/permit-zones/geojson")
-async def permit_zones_geojson(db: AsyncSession = Depends(get_db)) -> dict:
-    """Zone outlines for the map — shown only to drivers who said they hold
-    a resident permit. Simplified to ~10 m: plenty for a city-scale overlay,
-    a fraction of the payload."""
-    rows = await db.execute(
-        text(
-            "SELECT key, city, label, "
-            "ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom::geometry, 0.0001), 6) AS g FROM permit_zones"
-        )
-    )
-    return {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "properties": {"key": r.key, "city": r.city, "number": r.key.rsplit(":", 1)[-1]},
-                "geometry": json.loads(r.g),
-            }
-            for r in rows
-        ],
-    }
 
 
 CBS_LOCALITIES = "5c78e9fa-c2e2-4771-93ff-7f400a12f7ba"  # official Israeli locality list (CBS), data.gov.il

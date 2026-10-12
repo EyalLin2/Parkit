@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ExpandMore
@@ -35,7 +34,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -63,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.CityOut
-import com.parkit.app.api.PermitZoneOut
 import com.parkit.app.api.Preferences
 import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
@@ -97,11 +94,8 @@ fun DriverProfileScreen(
     var disabledPermit by remember { mutableStateOf(cached.preferences.hasDisabledPermit) }
     var city by remember { mutableStateOf(cached.preferences.homeCity) }
     var cityCentre by remember { mutableStateOf(cached.homeLat?.let { lat -> cached.homeLng?.let { lng -> lat to lng } }) }
-    var zone by remember { mutableStateOf(cached.preferences.residentZone) }
-    var residentPermit by remember { mutableStateOf(zone != null) }
 
     var cities by remember { mutableStateOf<List<CityOut>>(emptyList()) }
-    var zones by remember { mutableStateOf<List<PermitZoneOut>>(emptyList()) }
 
     var plate by remember { mutableStateOf("") }
     var lookingUp by remember { mutableStateOf(false) }
@@ -109,12 +103,6 @@ fun DriverProfileScreen(
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var pickCity by remember { mutableStateOf(false) }
-    var pickZone by remember { mutableStateOf(false) }
-
-    fun toggleResident(on: Boolean) {
-        residentPermit = on
-        if (on && zone == null) pickZone = true // turning it on means "now pick my zone"
-    }
 
     fun finish() {
         sessionStore.onboardingSeen = true
@@ -136,10 +124,7 @@ fun DriverProfileScreen(
             disabledPermit = server.hasDisabledPermit
             if (server.homeCity != city) cityCentre = null
             city = server.homeCity
-            zone = server.residentZone
-            residentPermit = zone != null
             loading = false
-            zones = api.permitZones()
             cities = api.cities()
             city?.let { name -> cities.firstOrNull { it.name == name }?.let { cityCentre = it.lat to it.lng } }
         } catch (e: Exception) {
@@ -186,7 +171,6 @@ fun DriverProfileScreen(
                         carLabel = carLabel,
                         hasDisabledPermit = disabledPermit,
                         homeCity = city,
-                        residentZone = zone.takeIf { residentPermit },
                     ),
                 )
                 sessionStore.saveDriver(DriverPrefs(saved, cityCentre?.first, cityCentre?.second))
@@ -330,40 +314,6 @@ fun DriverProfileScreen(
                 }
             }
 
-            // --- Resident permit: opt-in, profile only ---------------------
-            // Most drivers in a city don't live there, so this isn't asked
-            // after login and stays off unless the driver turns it on.
-            if (!onboarding) {
-                SectionTitle(stringResource(R.string.driver_section_resident))
-                SectionCard {
-                    Column {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { toggleResident(!residentPermit) }) {
-                                IconBadge(Icons.Filled.Badge)
-                                Text(stringResource(R.string.driver_has_resident_permit), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
-                                Switch(checked = residentPermit, onCheckedChange = ::toggleResident)
-                            }
-                            Text(
-                                stringResource(R.string.driver_resident_permit_note),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 10.dp),
-                            )
-                        }
-                        if (residentPermit) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
-                            PickerRow(
-                                icon = Icons.Filled.LocationCity,
-                                title = stringResource(R.string.driver_resident_zone),
-                                value = zone?.let { key -> zoneDisplay(context, key, zones.firstOrNull { it.key == key }?.city) } ?: stringResource(R.string.driver_not_set),
-                                hint = stringResource(R.string.driver_resident_zone_hint),
-                                onClick = { pickZone = true },
-                            )
-                        }
-                    }
-                }
-            }
-
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(20.dp)) }
             Spacer(Modifier.height(16.dp))
         }
@@ -398,20 +348,7 @@ fun DriverProfileScreen(
             onDismiss = { pickCity = false },
         )
     }
-    if (pickZone) {
-        ChoiceDialog(
-            title = stringResource(R.string.driver_resident_zone),
-            searchable = false,
-            options = zones.map { Choice(it.key, zoneDisplay(context, it.key, it.city)) },
-            selected = zone,
-            footer = stringResource(R.string.driver_resident_zone_coverage),
-            onPick = { key ->
-                zone = key
-                pickZone = false
-            },
-            onDismiss = { pickZone = false },
-        )
-    }
+
 }
 
 private data class Choice(val value: String?, val label: String, val search: String = label)

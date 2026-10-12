@@ -72,7 +72,6 @@ class User(Base):
     car_label: Mapped[str | None] = mapped_column(String(120), nullable=True)
     has_disabled_permit: Mapped[bool] = mapped_column(default=False, server_default="false")
     home_city: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    resident_zone: Mapped[str | None] = mapped_column(String(60), nullable=True)  # e.g. "tel-aviv:9"
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
@@ -171,17 +170,3 @@ class OsmPlace(Base):
     name: Mapped[str] = mapped_column(String(200))
     name_he: Mapped[str | None] = mapped_column(String(200), nullable=True)
     name_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
-
-
-class PermitZone(Base):
-    """Resident parking-permit zones (e.g. Tel Aviv's "אזור 9"), loaded by
-    import_parking_zones.py from the city's open GIS. A spot inside a zone
-    may be residents-only during signed hours."""
-
-    __tablename__ = "permit_zones"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    key: Mapped[str] = mapped_column(String(60), unique=True)  # "tel-aviv:9"
-    city: Mapped[str] = mapped_column(String(120))
-    label: Mapped[str] = mapped_column(String(60))  # "אזור 9"
-    geom: Mapped[str] = mapped_column(Geography(geometry_type="MULTIPOLYGON", srid=4326))

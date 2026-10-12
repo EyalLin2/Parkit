@@ -42,7 +42,6 @@ class SessionStore(context: Context) {
             .putString(KEY_CAR_LABEL, p.carLabel)
             .putBoolean(KEY_DISABLED_PERMIT, p.hasDisabledPermit)
             .putString(KEY_HOME_CITY, p.homeCity)
-            .putString(KEY_RESIDENT_ZONE, p.residentZone)
             .putString(KEY_HOME_LAT, d.homeLat?.toString())
             .putString(KEY_HOME_LNG, d.homeLng?.toString())
             .apply()
@@ -63,7 +62,6 @@ class SessionStore(context: Context) {
             carLabel = prefs.getString(KEY_CAR_LABEL, null),
             hasDisabledPermit = prefs.getBoolean(KEY_DISABLED_PERMIT, false),
             homeCity = prefs.getString(KEY_HOME_CITY, null),
-            residentZone = prefs.getString(KEY_RESIDENT_ZONE, null),
         ),
         prefs.getString(KEY_HOME_LAT, null)?.toDoubleOrNull(),
         prefs.getString(KEY_HOME_LNG, null)?.toDoubleOrNull(),
@@ -97,7 +95,6 @@ class SessionStore(context: Context) {
         private const val KEY_CAR_LABEL = "car_label"
         private const val KEY_DISABLED_PERMIT = "has_disabled_permit"
         private const val KEY_HOME_CITY = "home_city"
-        private const val KEY_RESIDENT_ZONE = "resident_zone"
         private const val KEY_HOME_LAT = "home_lat"
         private const val KEY_HOME_LNG = "home_lng"
     }

@@ -13,7 +13,7 @@ from database import get_db
 from geocoder import reverse_cached
 from levels import level_for
 from media import delete_photo, save_photo
-from models import FeedbackType, Payment, PermitZone, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
+from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
 from points import award_points, reconcile_weekly_points
 from redis_client import get_redis
 from schemas import FeedbackCreate, SpotCreate, SpotOut
@@ -171,11 +171,9 @@ async def nearby_spots(
     await _reconcile_spot_states(db)
 
     origin = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
-    zone = PermitZone.__table__.alias("zone")
     stmt = (
-        select(Spot, User.points, zone.c.key, zone.c.label)
+        select(Spot, User.points)
         .join(User, User.id == Spot.reporter_id)
-        .outerjoin(zone, func.ST_Intersects(zone.c.geom, Spot.location))
         .where(Spot.status == SpotStatus.active)
         .where(ST_DWithin(Spot.location, origin, radius_m))
         .order_by(ST_Distance(Spot.location, origin))
@@ -185,9 +183,7 @@ async def nearby_spots(
     if payment:
         stmt = stmt.where(Spot.payment == payment)
     spots = []
-    for spot, reporter_points, zone_key, zone_label in (await db.execute(stmt)).all():
-        spot.permit_zone = zone_key
-        spot.permit_zone_label = zone_label
+    for spot, reporter_points in (await db.execute(stmt)).all():
         # Plain attribute, not a column: the reporter's level is derived from
         # their points at read time (badge + legend pin in the app).
         spot.reporter_level = level_for(reporter_points).key

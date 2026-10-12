@@ -214,7 +214,6 @@ private fun DriverSummaryCard(prefs: com.parkit.app.api.Preferences, onClick: ()
         prefs.carLabel ?: sizeRes?.let { stringResource(R.string.driver_summary_size, stringResource(it)) },
         stringResource(R.string.driver_disabled_permit).takeIf { prefs.hasDisabledPermit },
         prefs.homeCity,
-        prefs.residentZone?.let { stringResource(R.string.driver_summary_zone, it.substringAfter(':')) },
     )
     SectionCard(modifier = Modifier.clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {

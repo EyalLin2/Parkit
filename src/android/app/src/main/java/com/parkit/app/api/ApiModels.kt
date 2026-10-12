@@ -42,8 +42,6 @@ data class SpotOut(
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
     @Json(name = "reporter_level") val reporterLevel: String = "newbie",
-    @Json(name = "permit_zone") val permitZone: String? = null,
-    @Json(name = "permit_zone_label") val permitZoneLabel: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -91,10 +89,9 @@ data class Preferences(
     @Json(name = "car_label") val carLabel: String? = null,
     @Json(name = "has_disabled_permit") val hasDisabledPermit: Boolean = false,
     @Json(name = "home_city") val homeCity: String? = null,
-    @Json(name = "resident_zone") val residentZone: String? = null,
 ) {
     val isEmpty: Boolean
-        get() = vehicleSize == null && !hasDisabledPermit && homeCity == null && residentZone == null
+        get() = vehicleSize == null && !hasDisabledPermit && homeCity == null
 }
 
 @JsonClass(generateAdapter = true)
@@ -106,9 +103,6 @@ data class VehicleLookupOut(
     val size: String,
     val label: String,
 )
-
-@JsonClass(generateAdapter = true)
-data class PermitZoneOut(val key: String, val city: String, val label: String)
 
 @JsonClass(generateAdapter = true)
 data class CityOut(

@@ -5,19 +5,6 @@ import routers.me as me
 from database import engine
 from vehicles import VehicleInfo, classify_size, normalise_plate
 
-TLV = {"lat": 32.0809, "lng": 34.7806}
-ZONE = "MULTIPOLYGON(((34.77 32.07, 34.79 32.07, 34.79 32.09, 34.77 32.09, 34.77 32.07)))"
-
-
-async def _add_zone() -> None:
-    async with engine.begin() as conn:
-        await conn.execute(
-            text(
-                "INSERT INTO permit_zones (key, city, label, geom) "
-                f"VALUES ('tel-aviv:9', 'תל אביב-יפו', 'אזור 9', ST_GeogFromText('SRID=4326;{ZONE}'))"
-            )
-        )
-
 
 @pytest.mark.parametrize(
     ("body", "weight", "seats", "size"),
@@ -51,39 +38,7 @@ async def test_preferences_patch_only_changes_what_is_sent(client, make_user):
         "car_label": "Toyota RAV4 2021",
         "has_disabled_permit": True,
         "home_city": None,
-        "resident_zone": None,
     }
-
-
-async def test_resident_zone_must_exist(client, make_user):
-    _, headers = await make_user("resident")
-    assert (
-        await client.patch("/users/me/preferences", json={"resident_zone": "tel-aviv:9"}, headers=headers)
-    ).status_code == 422
-    await _add_zone()
-    assert (
-        await client.patch("/users/me/preferences", json={"resident_zone": "tel-aviv:9"}, headers=headers)
-    ).status_code == 200
-    zones = (await client.get("/permit-zones")).json()
-    assert zones == [{"key": "tel-aviv:9", "city": "תל אביב-יפו", "label": "אזור 9"}]
-    outline = (await client.get("/permit-zones/geojson")).json()["features"][0]
-    assert outline["properties"]["number"] == "9"
-    assert outline["geometry"]["type"] in ("Polygon", "MultiPolygon")
-
-
-async def test_spots_inside_a_zone_carry_it(client, make_user):
-    await _add_zone()
-    _, headers = await make_user("reporter")
-    await client.post("/spots", json={**TLV, "spot_type": "street", "payment": "free"}, headers=headers)
-    await client.post(
-        "/spots",
-        json={"lat": 32.2, "lng": 34.9, "spot_type": "street", "payment": "free"},
-        headers=(await make_user("other"))[1],
-    )
-    inside = (await client.get("/spots", params={**TLV, "radius_m": 500})).json()[0]
-    assert (inside["permit_zone"], inside["permit_zone_label"]) == ("tel-aviv:9", "אזור 9")
-    outside = (await client.get("/spots", params={"lat": 32.2, "lng": 34.9, "radius_m": 500})).json()[0]
-    assert outside["permit_zone"] is None
 
 
 async def test_vehicle_lookup(client, make_user, monkeypatch):

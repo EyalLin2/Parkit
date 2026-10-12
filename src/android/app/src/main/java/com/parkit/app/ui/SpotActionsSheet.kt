@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -395,17 +394,13 @@ private fun Tag(icon: ImageVector, text: String, color: Color) {
     }
 }
 
-/** What this spot means for *this* driver — permits and fit. Full sentences
+/** What this spot means for *this* driver — disabled permit and car fit. Full sentences
  * here (the list row only has room for a word or two). */
 @Composable
 private fun DriverNotices(fit: DriverFit) {
     val notices = buildList {
         if (fit.needsDisabledPermit) add(Triple(Icons.AutoMirrored.Filled.Accessible, stringResource(R.string.fit_needs_disabled_permit_long), MaterialTheme.colorScheme.error))
         if (fit.tooSmall) add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.fit_too_small_long), Claimed))
-        when {
-            fit.inMyZone -> add(Triple(Icons.Filled.CheckCircle, stringResource(R.string.fit_in_my_zone_long, fit.zoneLabel ?: ""), Free))
-            fit.zoneLabel != null -> add(Triple(Icons.Filled.Info, stringResource(R.string.fit_resident_zone_long, fit.zoneLabel), Claimed))
-        }
     }
     if (notices.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 14.dp)) {

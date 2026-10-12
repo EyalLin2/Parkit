@@ -195,11 +195,7 @@ private const val SOURCE_SPOTS = "spots"
 private const val LAYER_CLUSTERS = "spots-clusters"
 private const val LAYER_CLUSTER_COUNT = "spots-cluster-count"
 private const val LAYER_PINS = "spots-pins"
-private const val SOURCE_ZONES = "permit-zones"
-private const val LAYER_ZONE_MINE = "permit-zone-mine"
-private const val LAYER_ZONE_LINES = "permit-zone-lines"
-private const val LAYER_ZONE_LABELS = "permit-zone-labels"
-private const val COLOR_ZONE = "#7B3FE4"
+
 
 // Google-Maps-adjacent status colors: green = go, brand blue = yours,
 // amber = someone is already on their way.
@@ -505,24 +501,6 @@ fun MapScreen(
         }
     }
 
-    // Resident-permit zones: drawn only for drivers who hold a permit — for
-    // everyone else they'd be clutter. Own zone tinted, the rest outlined.
-    val residentZone = driverPrefs.preferences.residentZone
-    var zoneOutlines by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(residentZone) {
-        if (residentZone != null && zoneOutlines == null) {
-            zoneOutlines = try { api.permitZoneOutlines().string() } catch (_: Exception) { null }
-        }
-    }
-    LaunchedEffect(style, residentZone, zoneOutlines) {
-        val s = style ?: return@LaunchedEffect
-        val geojson = zoneOutlines
-        listOf(LAYER_ZONE_LABELS, LAYER_ZONE_LINES, LAYER_ZONE_MINE).forEach { s.removeLayer(it) }
-        s.removeSource(SOURCE_ZONES)
-        if (residentZone == null || geojson == null) return@LaunchedEffect
-        installZoneLayers(s, geojson, residentZone, context.getString(R.string.map_zone_label, "").trim())
-    }
-
     // Push spot data into the map whenever it, the filter, or the selection changes.
     LaunchedEffect(style, visibleSpots, selectedSpot?.id) {
         val s = style ?: return@LaunchedEffect
@@ -784,42 +762,6 @@ private fun installSpotLayers(style: Style, dark: Boolean) {
     )
 }
 
-/** Zone outlines under the pins: a light tint on the driver's own zone,
- * dashed borders and a "Zone N" label for every zone. */
-private fun installZoneLayers(style: Style, geojson: String, myZone: String, zoneWord: String) {
-    style.addSource(GeoJsonSource(SOURCE_ZONES, geojson))
-    val mine = Expression.eq(Expression.get("key"), Expression.literal(myZone))
-    style.addLayerBelow(
-        org.maplibre.android.style.layers.FillLayer(LAYER_ZONE_MINE, SOURCE_ZONES).withFilter(mine).withProperties(
-            PropertyFactory.fillColor(COLOR_ZONE),
-            PropertyFactory.fillOpacity(0.08f),
-        ),
-        LAYER_CLUSTERS,
-    )
-    style.addLayerBelow(
-        org.maplibre.android.style.layers.LineLayer(LAYER_ZONE_LINES, SOURCE_ZONES).withProperties(
-            PropertyFactory.lineColor(COLOR_ZONE),
-            PropertyFactory.lineWidth(Expression.switchCase(mine, Expression.literal(2.5f), Expression.literal(1.2f))),
-            PropertyFactory.lineOpacity(Expression.switchCase(mine, Expression.literal(0.9f), Expression.literal(0.5f))),
-            PropertyFactory.lineDasharray(arrayOf(3f, 2f)),
-        ),
-        LAYER_CLUSTERS,
-    )
-    // Word first, number after, as one label: "אזור 9" / "Zone 9".
-    style.addLayerBelow(
-        SymbolLayer(LAYER_ZONE_LABELS, SOURCE_ZONES).withProperties(
-            PropertyFactory.textField(Expression.concat(Expression.literal("$zoneWord "), Expression.get("number"))),
-            PropertyFactory.textFont(arrayOf("Noto Sans Bold")),
-            PropertyFactory.textSize(13f),
-            PropertyFactory.textColor(COLOR_ZONE),
-            PropertyFactory.textHaloColor("#FFFFFF"),
-            PropertyFactory.textHaloWidth(1.5f),
-            PropertyFactory.textOpacity(Expression.switchCase(mine, Expression.literal(1f), Expression.literal(0.7f))),
-        ),
-        LAYER_CLUSTERS,
-    )
-}
-
 /** Google-Maps-style floating search bar, repurposed as "where the pin
  * is" — the address you'd be reporting, plus your avatar (profile). */
 @Composable
@@ -1076,8 +1018,6 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
 private fun fitNote(fit: DriverFit): Pair<String, Color>? = when {
     fit.needsDisabledPermit -> stringResource(R.string.fit_needs_disabled_permit) to MaterialTheme.colorScheme.onSurfaceVariant
     fit.tooSmall -> stringResource(R.string.fit_too_small) to MaterialTheme.colorScheme.onSurfaceVariant
-    fit.inMyZone -> stringResource(R.string.fit_in_my_zone, fit.zoneLabel ?: "") to Color(0xFF188038)
-    fit.zoneLabel != null -> stringResource(R.string.fit_resident_zone, fit.zoneLabel) to Color(0xFFB06000)
     else -> null
 }
 

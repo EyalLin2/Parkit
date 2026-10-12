@@ -49,13 +49,6 @@ interface ApiService {
     @GET("vehicles/lookup")
     suspend fun lookupVehicle(@Query("plate") plate: String): VehicleLookupOut
 
-    @GET("permit-zones")
-    suspend fun permitZones(): List<PermitZoneOut>
-
-    /** Raw GeoJSON, handed straight to the map engine. */
-    @GET("permit-zones/geojson")
-    suspend fun permitZoneOutlines(): okhttp3.ResponseBody
-
     @GET("places/cities")
     suspend fun cities(): List<CityOut>
 
