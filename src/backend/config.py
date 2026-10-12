@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # the sending number (+1…) or a Messaging Service SID (MG…).
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
+    # Preferred over the Auth Token: an API key made just for ParkIt can be
+    # revoked on its own without touching the account's master credential.
+    twilio_api_key_sid: str = ""
+    twilio_api_key_secret: str = ""
     twilio_from: str = ""
 
 

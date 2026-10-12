@@ -30,11 +30,13 @@ class SmsError(Exception):
 
 
 class TwilioSmsSender:
-    def __init__(self, account_sid: str, auth_token: str, sender: str) -> None:
-        if not (account_sid and auth_token and sender):
-            raise RuntimeError("SMS_PROVIDER=twilio needs TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM")
+    def __init__(self, account_sid: str, auth_token: str, sender: str, api_key: tuple[str, str] | None = None) -> None:
+        if not (account_sid and sender and (api_key or auth_token)):
+            raise RuntimeError(
+                "SMS_PROVIDER=twilio needs TWILIO_ACCOUNT_SID, TWILIO_FROM and an API key (or TWILIO_AUTH_TOKEN)"
+            )
         self.url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
-        self.auth = (account_sid, auth_token)
+        self.auth = api_key or (account_sid, auth_token)
         self.sender = sender
 
     async def send(self, phone: str, text: str) -> None:
@@ -57,5 +59,11 @@ def get_sms_sender() -> SmsSender:
     if settings.sms_provider == "dev":
         return DevSmsSender()
     if settings.sms_provider == "twilio":
-        return TwilioSmsSender(settings.twilio_account_sid, settings.twilio_auth_token, settings.twilio_from)
+        key = settings.twilio_api_key_sid, settings.twilio_api_key_secret
+        return TwilioSmsSender(
+            settings.twilio_account_sid,
+            settings.twilio_auth_token,
+            settings.twilio_from,
+            api_key=key if all(key) else None,
+        )
     raise RuntimeError(f"Unknown SMS_PROVIDER {settings.sms_provider!r}")

@@ -149,3 +149,19 @@ async def test_failed_sms_frees_the_number_to_retry(client, monkeypatch):
         app.dependency_overrides.pop(sms.get_sms_sender)
     # No cooldown left behind: the next attempt goes through.
     assert (await client.post("/auth/otp/request", json={"phone": PHONE})).status_code == 200
+
+
+async def test_twilio_prefers_the_api_key(monkeypatch):
+    import httpx
+
+    import sms
+
+    seen = {}
+
+    async def fake_post(self, url, auth=None, data=None):
+        seen["auth"] = auth
+        return httpx.Response(201, json={"sid": "SM1"})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    await sms.TwilioSmsSender("AC1", "", "+15550001111", api_key=("SK1", "s3cret")).send(E164, "hi")
+    assert seen["auth"] == ("SK1", "s3cret")
