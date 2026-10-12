@@ -6,6 +6,14 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,6 +107,8 @@ fun SpotActionsSheet(
         isMine -> Mine
         else -> Free
     }
+    val photoUrl = spot.photoUrl?.let { ApiConfig.BASE_URL.trimEnd('/') + it }
+    var photoFullScreen by remember { mutableStateOf(false) }
 
     LaunchedEffect(spot.id) {
         if (address == null) address = SpotAddressCache.resolve(spot.id, spot.lat, spot.lng)
@@ -126,19 +136,58 @@ fun SpotActionsSheet(
         tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
+            // The reporter's own photo is the strongest proof the spot is
+            // real, so when there is one it leads the card (Google Maps'
+            // place-sheet pattern) instead of a generic parking icon.
+            if (photoUrl != null) {
                 Box(
-                    modifier = Modifier.size(48.dp).background(accent.copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth().height(220.dp).clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .clickable { photoFullScreen = true },
                 ) {
-                    Icon(
-                        if (isDisabledSpot) Icons.AutoMirrored.Filled.Accessible else Icons.Filled.LocalParking,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(26.dp),
+                    AsyncImage(
+                        model = photoUrl,
+                        contentDescription = stringResource(R.string.spot_photo_cd),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(10.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 5.dp),
+                    ) {
+                        Icon(Icons.Filled.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text(
+                            stringResource(R.string.spot_photo_taken, MarkerBitmaps.relativeTimeLong(context, spot.reportedAt)),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White,
+                            modifier = Modifier.padding(start = 6.dp),
+                        )
+                    }
+                    Box(
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp).size(32.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Filled.OpenInFull, contentDescription = stringResource(R.string.spot_photo_expand_cd), tint = Color.White, modifier = Modifier.size(16.dp))
+                    }
                 }
-                Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
+            }
+            Row(verticalAlignment = Alignment.Top) {
+                if (photoUrl == null) {
+                    Box(
+                        modifier = Modifier.padding(end = 14.dp).size(48.dp).background(accent.copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            if (isDisabledSpot) Icons.AutoMirrored.Filled.Accessible else Icons.Filled.LocalParking,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f).padding(end = 14.dp)) {
                     Text(
                         address ?: stringResource(R.string.map_locating),
                         style = MaterialTheme.typography.titleLarge,
@@ -178,16 +227,6 @@ fun SpotActionsSheet(
                     )
                     Tag(Icons.Filled.DirectionsCar, stringResource(R.string.spot_fits, label), MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
-
-            spot.photoUrl?.let { path ->
-                AsyncImage(
-                    model = ApiConfig.BASE_URL.trimEnd('/') + path,
-                    contentDescription = stringResource(R.string.spot_photo_cd),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.padding(top = 16.dp).fillMaxWidth().height(170.dp).clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 18.dp)) {
@@ -259,6 +298,52 @@ fun SpotActionsSheet(
                 ) {
                     Text(stringResource(R.string.spot_cancel_report), style = MaterialTheme.typography.labelLarge)
                 }
+            }
+        }
+    }
+
+    if (photoFullScreen && photoUrl != null) {
+        PhotoViewer(url = photoUrl, onDismiss = { photoFullScreen = false })
+    }
+}
+
+/** Full-screen look at the reporter's photo — pinch to zoom, tap or back
+ * to close. The card shows a crop; this is where you actually check the
+ * spot (curb paint, signs, whether a car fits). */
+@Composable
+private fun PhotoViewer(url: String, onDismiss: () -> Unit) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.Black)
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(1f, 5f)
+                        offset = if (scale == 1f) androidx.compose.ui.geometry.Offset.Zero else offset + pan
+                    }
+                },
+        ) {
+            AsyncImage(
+                model = url,
+                contentDescription = stringResource(R.string.spot_photo_cd),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize().graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                },
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp)
+                    .size(40.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape),
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.spot_close_cd), tint = Color.White)
             }
         }
     }

@@ -184,4 +184,6 @@
     <string name="map_nearby_searching_hint">Checking reports around the pin</string>
     <string name="map_address_unavailable">Couldn\'t get the address</string>
     <string name="map_report_here">Report a spot here</string>
+    <string name="spot_photo_taken">Photo from the reporter · %1$s</string>
+    <string name="spot_photo_expand_cd">Open photo full screen</string>
 </resources>

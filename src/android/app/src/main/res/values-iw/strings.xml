@@ -191,4 +191,6 @@
     <string name="map_nearby_searching_hint">בודק דיווחים סביב הנעץ</string>
     <string name="map_address_unavailable">לא הצלחנו לאתר כתובת</string>
     <string name="map_report_here">דווח על חניה כאן</string>
+    <string name="spot_photo_taken">צילום המדווח · %1$s</string>
+    <string name="spot_photo_expand_cd">פתיחת התמונה במסך מלא</string>
 </resources>

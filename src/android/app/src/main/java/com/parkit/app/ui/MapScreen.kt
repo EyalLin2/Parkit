@@ -72,6 +72,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -774,12 +775,26 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        Box(modifier = Modifier.size(40.dp).background(color.copy(alpha = 0.12f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-            Icon(
-                if (disabled) Icons.AutoMirrored.Filled.Accessible else Icons.Filled.LocalParking,
-                contentDescription = null,
-                tint = color,
-            )
+        Box(
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (spot.photoUrl != null) {
+                // The reporter's photo, when there is one — the quickest
+                // read of "is this spot real and will my car fit".
+                coil.compose.AsyncImage(
+                    model = com.parkit.app.ApiConfig.BASE_URL.trimEnd('/') + spot.photoUrl,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Icon(
+                    if (disabled) Icons.AutoMirrored.Filled.Accessible else Icons.Filled.LocalParking,
+                    contentDescription = null,
+                    tint = color,
+                )
+            }
         }
         Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
             // The address is the headline — it's what you'd actually drive
