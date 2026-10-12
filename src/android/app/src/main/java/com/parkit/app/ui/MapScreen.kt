@@ -847,7 +847,9 @@ private fun NearbySheet(
                     else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
                     style = MaterialTheme.typography.titleLarge,
                 )
-                val nearest = spots.firstOrNull()
+                // The list puts legend reports first, so "nearest" must be
+                // computed, not taken from the top of the list.
+                val nearest = spots.minByOrNull { LatLng(it.lat, it.lng).distanceTo(reference) }
                 Text(
                     if (!loaded) stringResource(R.string.map_nearby_searching_hint)
                     else if (nearest == null) stringResource(R.string.map_nearby_empty_hint)
