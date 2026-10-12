@@ -21,7 +21,7 @@
     <string name="map_my_location_cd">המיקום שלי</string>
     <string name="map_report_location_cd">מיקום לדיווח</string>
     <string name="map_report_fab_cd">דווח על חניה כאן</string>
-    <string name="map_locating">מאתר מיקום…</string>
+    <string name="map_locating">מאתר כתובת…</string>
     <string name="map_load_error">טעינת החניות נכשלה: %1$s</string>
     <string name="map_reported_snackbar">החניה דווחה</string>
     <plurals name="spots_available">
@@ -191,4 +191,5 @@
     <string name="map_report_fab">דווח על חניה</string>
     <string name="map_nearby_searching">מחפש חניות פנויות…</string>
     <string name="map_nearby_searching_hint">בודק דיווחים סביב הנעץ</string>
+    <string name="map_address_unavailable">לא הצלחנו לאתר כתובת</string>
 </resources>

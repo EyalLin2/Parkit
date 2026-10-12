@@ -87,7 +87,7 @@ fun ReportFlowSheet(
     api: ApiService,
     lat: Double,
     lng: Double,
-    addressLabel: String,
+    addressLabel: String?,
     streetAddress: String?,
     onDismiss: () -> Unit,
     onReported: () -> Unit,
@@ -185,7 +185,7 @@ fun ReportFlowSheet(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
                 Icon(Icons.Filled.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                 Text(
-                    addressLabel,
+                    addressLabel ?: stringResource(R.string.map_locating),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

@@ -181,6 +181,11 @@ fun MapScreen(
     var geocodeTarget by remember { mutableStateOf(TEL_AVIV) }
     var resolvedAddress by remember { mutableStateOf<String?>(null) }
     var resolvedStreet by remember { mutableStateOf<String?>(null) }
+    // True from the moment the map starts moving until the new pin address
+    // is known — the bar shows a loading state instead of a stale or
+    // raw-coordinate label.
+    var addressLoading by remember { mutableStateOf(true) }
+    var addressFailed by remember { mutableStateOf(false) }
 
     val visibleSpots = typeFilter?.let { f -> spots.filter { it.spotType == f } } ?: spots
     // "Nearby" means near *you* when we know where you are, otherwise near
@@ -207,15 +212,27 @@ fun MapScreen(
     }
 
     LaunchedEffect(geocodeTarget) {
-        delay(500)
-        try {
-            val result = GeocodingClient.service.reverse(geocodeTarget.latitude, geocodeTarget.longitude)
-            resolvedAddress = result.shortLabel()
-            resolvedStreet = result.streetLabel()
-        } catch (_: Exception) {
-            resolvedAddress = "%.5f, %.5f".format(geocodeTarget.latitude, geocodeTarget.longitude)
-            resolvedStreet = null
+        val target = geocodeTarget
+        com.parkit.app.api.Geocoder.cached(target.latitude, target.longitude)?.let { hit ->
+            resolvedAddress = hit.shortLabel()
+            resolvedStreet = hit.streetLabel()
+            addressLoading = false
+            addressFailed = false
+            return@LaunchedEffect
         }
+        addressLoading = true
+        delay(350) // let a quick follow-up drag cancel this before it costs a request
+        val result = com.parkit.app.api.Geocoder.reverse(target.latitude, target.longitude)
+        resolvedAddress = result?.shortLabel()
+        resolvedStreet = result?.streetLabel()
+        addressFailed = result == null
+        addressLoading = false
+    }
+
+    // Spots load independently of the address — a slow geocoder must never
+    // delay the thing people actually opened the app for.
+    LaunchedEffect(geocodeTarget) {
+        delay(300)
         try {
             spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
             spotsLoaded = true
@@ -322,7 +339,10 @@ fun MapScreen(
                 setCompassMargins(0, with(density) { 150.dp.roundToPx() }, with(density) { 16.dp.roundToPx() }, 0)
                 setAttributionMargins(with(density) { 12.dp.roundToPx() }, 0, 0, with(density) { (SHEET_PEEK + 56.dp).roundToPx() })
             }
-            m.addOnCameraMoveStartedListener { cameraMoving = true }
+            m.addOnCameraMoveStartedListener {
+                cameraMoving = true
+                addressLoading = true
+            }
             m.addOnCameraIdleListener {
                 cameraMoving = false
                 geocodeTarget = m.cameraPosition.target ?: geocodeTarget
@@ -433,6 +453,8 @@ fun MapScreen(
             ) {
                 LocationBar(
                     address = resolvedAddress,
+                    loading = addressLoading,
+                    failed = addressFailed,
                     displayName = sessionStore.displayName.value,
                     onOpenProfile = onOpenProfile,
                     modifier = Modifier.padding(horizontal = 12.dp),
@@ -491,7 +513,7 @@ fun MapScreen(
             api = api,
             lat = geocodeTarget.latitude,
             lng = geocodeTarget.longitude,
-            addressLabel = resolvedAddress ?: "%.5f, %.5f".format(geocodeTarget.latitude, geocodeTarget.longitude),
+            addressLabel = if (addressLoading) null else resolvedAddress,
             streetAddress = resolvedStreet,
             onDismiss = { showReportFlow = false },
             onReported = {
@@ -572,7 +594,7 @@ private fun installSpotLayers(style: Style, dark: Boolean) {
 /** Google-Maps-style floating search bar, repurposed as "where the pin
  * is" — the address you'd be reporting, plus your avatar (profile). */
 @Composable
-private fun LocationBar(address: String?, displayName: String?, onOpenProfile: () -> Unit, modifier: Modifier = Modifier) {
+private fun LocationBar(address: String?, loading: Boolean, failed: Boolean, displayName: String?, onOpenProfile: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -587,12 +609,18 @@ private fun LocationBar(address: String?, displayName: String?, onOpenProfile: (
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    address ?: stringResource(R.string.map_locating),
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                androidx.compose.animation.Crossfade(targetState = if (loading) null else address, label = "pinAddress") { shown ->
+                    when {
+                        shown != null -> Text(shown, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        failed && !loading -> Text(
+                            stringResource(R.string.map_address_unavailable),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                        else -> AddressSkeleton()
+                    }
+                }
             }
             Box(
                 modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primary, CircleShape).clickable(onClick = onOpenProfile),
@@ -605,6 +633,34 @@ private fun LocationBar(address: String?, displayName: String?, onOpenProfile: (
                 )
             }
         }
+    }
+}
+
+/** Pulsing placeholder bar where the address will appear (the skeleton
+ * pattern Google/Uber use) — honest "loading" without a spinner, and
+ * without ever flashing raw coordinates. */
+@Composable
+private fun AddressSkeleton() {
+    val alpha by androidx.compose.animation.core.rememberInfiniteTransition(label = "skeleton").animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.8f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(700),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "skeletonAlpha",
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(24.dp)) {
+        Box(
+            Modifier.width(150.dp).height(14.dp)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f * alpha), RoundedCornerShape(7.dp)),
+        )
+        Text(
+            stringResource(R.string.map_locating),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
 
