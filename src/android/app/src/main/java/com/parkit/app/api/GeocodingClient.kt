@@ -43,11 +43,24 @@ data class NominatimReverseResponse(
         }
         return displayName ?: "Unknown location"
     }
+
+    /** Just "Street Number" — for list rows, where the city is the same
+     * for every spot and would only push the useful part off-screen. */
+    fun streetLabel(): String? {
+        val street = address?.road ?: return null
+        return if (address.houseNumber != null) "$street ${address.houseNumber}" else street
+    }
 }
 
 interface GeocodingService {
     @GET("reverse?format=json&zoom=18")
-    suspend fun reverse(@Query("lat") lat: Double, @Query("lon") lon: Double): NominatimReverseResponse
+    suspend fun reverse(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        // Street names in the app's language (Hebrew UI → Hebrew streets),
+        // matching the map labels instead of whatever the server defaults to.
+        @Query("accept-language") language: String = java.util.Locale.getDefault().language.let { if (it == "iw") "he" else it },
+    ): NominatimReverseResponse
 }
 
 object GeocodingClient {
@@ -63,5 +76,26 @@ object GeocodingClient {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(GeocodingService::class.java)
+    }
+}
+
+/** Per-spot street addresses for the nearby list. Spots don't move, so a
+ * resolved label is cached for the life of the process; lookups run one at
+ * a time with a pause between them to respect Nominatim's ~1 req/sec policy
+ * (callers drive the pacing — see MapScreen). */
+object SpotAddressCache {
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun get(spotId: String): String? = cache[spotId]
+
+    suspend fun resolve(spotId: String, lat: Double, lng: Double): String? {
+        cache[spotId]?.let { return it }
+        val label = try {
+            GeocodingClient.service.reverse(lat, lng).streetLabel()
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        cache[spotId] = label
+        return label
     }
 }

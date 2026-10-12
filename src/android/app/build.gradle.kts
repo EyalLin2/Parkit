@@ -13,7 +13,12 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "0.1.0-demo"
+        versionName = "0.2.0-demo"
+
+        // MapLibre ships a native renderer per ABI (~13MB each). Real phones
+        // are arm64; x86_64 covers the emulator — the 32-bit ABIs only
+        // doubled the demo APK's download size.
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
 
     buildTypes {
@@ -108,7 +113,10 @@ dependencies {
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    implementation("org.osmdroid:osmdroid-android:6.1.20")
+    // Vector maps (same rendering model as Google Maps/Waze). 12.x is the
+    // newest line built against Kotlin 2.0 (13.x needs Kotlin 2.2) and still
+    // defaults to the OpenGL ES renderer, which every emulator supports.
+    implementation("org.maplibre.gl:android-sdk:12.3.1")
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")

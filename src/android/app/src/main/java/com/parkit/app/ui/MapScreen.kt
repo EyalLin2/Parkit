@@ -3,44 +3,63 @@
 package com.parkit.app.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -52,15 +71,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.GeocodingClient
@@ -69,61 +96,59 @@ import com.parkit.app.api.friendlyMessage
 import com.parkit.app.auth.SessionStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.osmdroid.events.MapListener
-import org.osmdroid.events.ScrollEvent
-import org.osmdroid.events.ZoomEvent
-import org.osmdroid.tileprovider.MapTileProviderBasic
-import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.TilesOverlay
-import kotlin.math.pow
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.modes.CameraMode
+import org.maplibre.android.location.modes.RenderMode
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
+import org.maplibre.android.style.sources.GeoJsonOptions
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.Point
 
-/** The transparent-PNG roads+labels layer that sits on top of the plain
- * color "base" tile — see MapTiles' doc comment for why the basemap is
- * split into two layers instead of one. */
-private fun referenceOverlay(ctx: android.content.Context, source: OnlineTileSourceBase): TilesOverlay =
-    TilesOverlay(MapTileProviderBasic(ctx, source), ctx).apply { loadingBackgroundColor = android.graphics.Color.TRANSPARENT }
-
-private val TEL_AVIV = GeoPoint(32.0809, 34.7806)
+private val TEL_AVIV = LatLng(32.0809, 34.7806)
 private const val DEFAULT_RADIUS_M = 1500
+// MapLibre zoom levels use 512px tiles — one level closer than osmdroid's
+// for the same number. 15 shows ~±400m across, matching the search radius feel.
+private const val STREET_LEVEL_ZOOM = 15.0
 
 // Guards against snapping to an out-of-country GPS fix (e.g. an
 // emulator/device defaulting to Mountain View, CA) — see useDeviceLocation().
 private val SERVICE_AREA_CENTER = TEL_AVIV
-private const val SERVICE_AREA_RADIUS_KM = 350.0
+private const val SERVICE_AREA_RADIUS_M = 350_000.0
 
-private fun distanceKm(a: GeoPoint, b: GeoPoint): Double {
-    val earthRadiusKm = 6371.0
-    val dLat = Math.toRadians(b.latitude - a.latitude)
-    val dLon = Math.toRadians(b.longitude - a.longitude)
-    val lat1 = Math.toRadians(a.latitude)
-    val lat2 = Math.toRadians(b.latitude)
-    val sinDLat = Math.sin(dLat / 2)
-    val sinDLon = Math.sin(dLon / 2)
-    val h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon
-    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+private const val SOURCE_SPOTS = "spots"
+private const val LAYER_CLUSTERS = "spots-clusters"
+private const val LAYER_CLUSTER_COUNT = "spots-cluster-count"
+private const val LAYER_PINS = "spots-pins"
+
+// Google-Maps-adjacent status colors: green = go, brand blue = yours,
+// amber = someone is already on their way.
+private const val COLOR_FREE = "#188038"
+private const val COLOR_MINE = "#1B4F91"
+private const val COLOR_CLAIMED = "#E8710A"
+
+private val SHEET_PEEK = 114.dp
+
+private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
+    spot.status == "claimed" -> COLOR_CLAIMED
+    spot.reporterId == myUserId -> COLOR_MINE
+    else -> COLOR_FREE
 }
 
-private fun statusColor(spot: SpotOut, myUserId: String?): String = when {
-    spot.status == "claimed" -> "#B8631A"
-    spot.reporterId == myUserId -> "#1B4F91"
-    else -> "#2C7A4B"
-}
-
-/** Simple grid-bucket clustering: cells shrink as you zoom in, so nearby
- * pins collapse into a single "N spots" badge at low zoom and separate
- * out again as you zoom in — no extra clustering library needed. */
-private fun clusterSpots(spots: List<SpotOut>, zoom: Double): List<List<SpotOut>> {
-    if (spots.isEmpty()) return emptyList()
-    val cellSize = 0.4 / 2.0.pow((zoom - 8).coerceAtLeast(0.0))
-    val buckets = LinkedHashMap<Pair<Int, Int>, MutableList<SpotOut>>()
-    for (spot in spots) {
-        val key = (spot.lat / cellSize).toInt() to (spot.lng / cellSize).toInt()
-        buckets.getOrPut(key) { mutableListOf() }.add(spot)
-    }
-    return buckets.values.toList()
+private fun ageMinutes(iso: String): Long = try {
+    java.time.Duration.between(java.time.Instant.parse(iso), java.time.Instant.now()).toMinutes()
+} catch (_: Exception) {
+    0
 }
 
 @Composable
@@ -134,35 +159,50 @@ fun MapScreen(
     onLoggedOut: () -> Unit,
 ) {
     val context = LocalContext.current
+    val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = com.parkit.app.ui.theme.isDarkThemeActive()
-    val layers = if (isDarkTheme) MapTiles.DARK else MapTiles.LIGHT
+    val language = context.resources.configuration.locales[0].language
+    val myUserId = sessionStore.userId.value
 
-    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+    var map by remember { mutableStateOf<MapLibreMap?>(null) }
+    var style by remember { mutableStateOf<Style?>(null) }
     var spots by remember { mutableStateOf<List<SpotOut>>(emptyList()) }
     var selectedSpot by remember { mutableStateOf<SpotOut?>(null) }
     var showReportFlow by remember { mutableStateOf(false) }
     var typeFilter by remember { mutableStateOf<String?>(null) } // null = All
+    var cameraMoving by remember { mutableStateOf(false) }
+    var mapRendered by remember { mutableStateOf(false) }
+    var deviceLocation by remember { mutableStateOf<LatLng?>(null) }
 
     var geocodeTarget by remember { mutableStateOf(TEL_AVIV) }
     var resolvedAddress by remember { mutableStateOf<String?>(null) }
 
-    // osmdroid draws tiles straight onto its own Canvas, outside Compose, so
-    // there's no clean per-tile "loaded" callback to hook into — a blank/gray
-    // map with zero feedback was the exact "can't load maps" complaint this
-    // answers. A brief spinner over the cold-start window (tiles are either
-    // already cached and this never gets noticed, or they're genuinely still
-    // loading and now there's visible proof something is happening) is the
-    // same tradeoff most map apps make rather than wiring a precise signal.
-    var showMapLoading by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        delay(1400)
-        showMapLoading = false
+    val visibleSpots = typeFilter?.let { f -> spots.filter { it.spotType == f } } ?: spots
+    // "Nearby" means near *you* when we know where you are, otherwise near
+    // the pin — the same reference point the search radius uses.
+    val reference = deviceLocation ?: geocodeTarget
+    val sortedSpots = visibleSpots.sortedBy { LatLng(it.lat, it.lng).distanceTo(reference) }
+
+    // Street + number for each listed spot, resolved nearest-first so the
+    // rows you actually see fill in first.
+    val spotAddresses = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+    LaunchedEffect(sortedSpots.map { it.id }) {
+        for (spot in sortedSpots) {
+            if (spotAddresses.containsKey(spot.id)) continue
+            val cached = com.parkit.app.api.SpotAddressCache.get(spot.id)
+            if (cached != null) {
+                spotAddresses[spot.id] = cached
+                continue
+            }
+            com.parkit.app.api.SpotAddressCache.resolve(spot.id, spot.lat, spot.lng)?.let { spotAddresses[spot.id] = it }
+            delay(1100)
+        }
     }
 
     LaunchedEffect(geocodeTarget) {
-        delay(600)
+        delay(500)
         try {
             resolvedAddress = GeocodingClient.service.reverse(geocodeTarget.latitude, geocodeTarget.longitude).shortLabel()
         } catch (_: Exception) {
@@ -175,6 +215,32 @@ fun MapScreen(
         }
     }
 
+    fun flyTo(target: LatLng, zoom: Double = STREET_LEVEL_ZOOM) {
+        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(target, zoom), 650)
+    }
+
+    fun hasLocationPermission() =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    @SuppressLint("MissingPermission")
+    fun enableLocationPuck() {
+        val m = map ?: return
+        val s = style ?: return
+        if (!hasLocationPermission()) return
+        try {
+            m.locationComponent.apply {
+                if (!isLocationComponentActivated) {
+                    activateLocationComponent(LocationComponentActivationOptions.builder(context, s).useDefaultLocationEngine(true).build())
+                }
+                isLocationComponentEnabled = true
+                cameraMode = CameraMode.NONE
+                renderMode = RenderMode.COMPASS
+            }
+        } catch (_: Exception) {
+            // The blue dot is a nicety — never let it take the map down.
+        }
+    }
+
     fun useDeviceLocation() {
         val lm = context.getSystemService(LocationManager::class.java)
         val loc = try {
@@ -183,311 +249,216 @@ fun MapScreen(
             null
         }
         if (loc != null) {
-            val here = GeoPoint(loc.latitude, loc.longitude)
+            val here = LatLng(loc.latitude, loc.longitude)
             // ParkIt only operates in Israel. A device/emulator with a stale or
             // default GPS fix (classically Mountain View, CA on emulators) would
             // otherwise yank a first-time user — or every demo — away from the
-            // service area onto an irrelevant map. Silently ignore anything
-            // outside it and keep the Tel Aviv default instead.
-            if (distanceKm(SERVICE_AREA_CENTER, here) <= SERVICE_AREA_RADIUS_KM) {
-                mapViewRef?.controller?.animateTo(here)
+            // service area onto an irrelevant map.
+            if (here.distanceTo(SERVICE_AREA_CENTER) <= SERVICE_AREA_RADIUS_M) {
+                deviceLocation = here
+                flyTo(here)
                 geocodeTarget = here
             }
         }
+        enableLocationPuck()
     }
 
     val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) useDeviceLocation()
     }
-
-    LaunchedEffect(Unit) {
-        locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-    }
+    LaunchedEffect(Unit) { locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
 
     fun refreshSpotsNow() {
         scope.launch {
             try {
                 spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
             } catch (_: Exception) {
-                // next debounced pass will retry
+                // next camera-idle pass will retry
             }
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
-                    MapView(ctx).apply {
-                        setTileSource(layers.base)
-                        overlays.add(referenceOverlay(ctx, layers.reference))
-                        setMultiTouchControls(true)
-                        setBuiltInZoomControls(false)
-                        controller.setZoom(16.0)
-                        controller.setCenter(geocodeTarget)
-                        addMapListener(object : MapListener {
-                            override fun onScroll(event: ScrollEvent?): Boolean {
-                                geocodeTarget = mapCenter as GeoPoint
-                                return true
-                            }
-                            override fun onZoom(event: ZoomEvent?): Boolean {
-                                geocodeTarget = mapCenter as GeoPoint
-                                return true
-                            }
-                        })
-                        mapViewRef = this
-                    }
-                },
-                update = { mapView ->
-                    if (mapView.tileProvider.tileSource.name() != layers.base.name()) {
-                        mapView.setTileSource(layers.base)
-                        mapView.overlays.filterIsInstance<TilesOverlay>().let { mapView.overlays.removeAll(it) }
-                        mapView.overlays.add(0, referenceOverlay(mapView.context, layers.reference))
-                    }
-                    mapView.overlays.filterIsInstance<Marker>().let { mapView.overlays.removeAll(it) }
+    // --- MapLibre view + lifecycle ------------------------------------
+    val mapView = remember {
+        MapView(context).apply { onCreate(null) }
+    }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> mapView.onStart()
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_STOP -> mapView.onStop()
+                else -> Unit
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) mapView.onPause()
+            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) mapView.onStop()
+            mapView.onDestroy()
+        }
+    }
 
-                    val visible = typeFilter?.let { f -> spots.filter { it.spotType == f } } ?: spots
-                    val clusters = clusterSpots(visible, mapView.zoomLevelDouble)
+    LaunchedEffect(Unit) {
+        mapView.getMapAsync { m ->
+            m.cameraPosition = CameraPosition.Builder().target(geocodeTarget).zoom(STREET_LEVEL_ZOOM).build()
+            m.uiSettings.apply {
+                isLogoEnabled = false
+                isCompassEnabled = true
+                isRotateGesturesEnabled = true
+                isTiltGesturesEnabled = false
+                setCompassMargins(0, with(density) { 150.dp.roundToPx() }, with(density) { 16.dp.roundToPx() }, 0)
+                setAttributionMargins(with(density) { 12.dp.roundToPx() }, 0, 0, with(density) { (SHEET_PEEK + 56.dp).roundToPx() })
+            }
+            m.addOnCameraMoveStartedListener { cameraMoving = true }
+            m.addOnCameraIdleListener {
+                cameraMoving = false
+                geocodeTarget = m.cameraPosition.target ?: geocodeTarget
+            }
+            m.addOnMapClickListener { latLng ->
+                val point = m.projection.toScreenLocation(latLng)
+                val hit = m.queryRenderedFeatures(point, LAYER_PINS, LAYER_CLUSTERS).firstOrNull()
+                    ?: return@addOnMapClickListener false
+                if (hit.hasProperty("point_count")) {
+                    val source = m.style?.getSourceAs<GeoJsonSource>(SOURCE_SPOTS)
+                    val zoom = source?.getClusterExpansionZoom(hit)?.toDouble() ?: (m.cameraPosition.zoom + 2)
+                    val p = hit.geometry() as Point
+                    m.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(p.latitude(), p.longitude()), zoom), 500)
+                } else {
+                    val id = hit.getStringProperty("id")
+                    selectedSpot = spots.firstOrNull { it.id == id }
+                }
+                true
+            }
+            mapView.addOnDidFinishRenderingMapListener { fully -> if (fully) mapRendered = true }
+            map = m
+        }
+    }
 
-                    clusters.forEach { group ->
-                        if (group.size == 1) {
-                            val spot = group[0]
-                            val marker = Marker(mapView)
-                            marker.position = GeoPoint(spot.lat, spot.lng)
-                            marker.setAnchor(MarkerBitmaps.ANCHOR_X, MarkerBitmaps.ANCHOR_Y)
-                            marker.icon = android.graphics.drawable.BitmapDrawable(
-                                mapView.context.resources,
-                                MarkerBitmaps.badge(statusColor(spot, sessionStore.userId.value), MarkerBitmaps.relativeTimeShort(context, spot.reportedAt)),
-                            )
-                            marker.title = "${spot.spotType} · ${spot.payment} · ${spot.status}"
-                            marker.setOnMarkerClickListener { _, _ -> selectedSpot = spot; true }
-                            mapView.overlays.add(marker)
-                        } else {
-                            val centerLat = group.map { it.lat }.average()
-                            val centerLng = group.map { it.lng }.average()
-                            val marker = Marker(mapView)
-                            marker.position = GeoPoint(centerLat, centerLng)
-                            marker.setAnchor(0.5f, 0.5f)
-                            marker.icon = android.graphics.drawable.BitmapDrawable(
-                                mapView.context.resources,
-                                MarkerBitmaps.clusterBadge(group.size),
-                            )
-                            marker.title = "${group.size} spots"
-                            marker.setOnMarkerClickListener { _, _ ->
-                                mapView.controller.animateTo(GeoPoint(centerLat, centerLng))
-                                mapView.controller.zoomIn()
-                                true
-                            }
-                            mapView.overlays.add(marker)
-                        }
-                    }
-                    mapView.invalidate()
+    // Style is (re)applied whenever the theme or language changes; the spot
+    // layers are rebuilt on top of each fresh style.
+    LaunchedEffect(map, isDarkTheme, language) {
+        val m = map ?: return@LaunchedEffect
+        style = null
+        m.setStyle(Style.Builder().fromJson(MapStyle.json(context, isDarkTheme, language))) { s ->
+            installSpotLayers(s, isDarkTheme)
+            style = s
+            enableLocationPuck()
+        }
+    }
+
+    // Push spot data into the map whenever it, the filter, or the selection changes.
+    LaunchedEffect(style, visibleSpots, selectedSpot?.id) {
+        val s = style ?: return@LaunchedEffect
+        val features = visibleSpots.map { spot ->
+            val color = pinColor(spot, myUserId)
+            val tag = MarkerBitmaps.relativeTimeShort(context, spot.reportedAt)
+            val iconId = "pin-$color-$tag"
+            if (s.getImage(iconId) == null) s.addImage(iconId, MarkerBitmaps.pin(context, color, tag))
+            Feature.fromGeometry(Point.fromLngLat(spot.lng, spot.lat)).apply {
+                addStringProperty("id", spot.id)
+                addStringProperty("icon", iconId)
+                addNumberProperty("age", ageMinutes(spot.reportedAt))
+            }
+        }
+        s.getSourceAs<GeoJsonSource>(SOURCE_SPOTS)?.setGeoJson(FeatureCollection.fromFeatures(features))
+        s.getLayerAs<SymbolLayer>(LAYER_PINS)?.setProperties(
+            PropertyFactory.iconSize(
+                Expression.switchCase(
+                    Expression.eq(Expression.get("id"), Expression.literal(selectedSpot?.id ?: "")),
+                    Expression.literal(1.25f),
+                    Expression.literal(1f),
+                ),
+            ),
+        )
+    }
+
+    // --- Layout ---------------------------------------------------------
+    val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded)
+    val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
+    val sheetTopPx = runCatching { sheetState.requireOffset() }.getOrNull()
+
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        sheetPeekHeight = SHEET_PEEK + with(density) { WindowInsets.navigationBars.getBottom(density).toDp() },
+        sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        sheetContainerColor = MaterialTheme.colorScheme.surface,
+        sheetTonalElevation = 0.dp,
+        sheetShadowElevation = 12.dp,
+        sheetDragHandle = { BottomSheetDefaults.DragHandle(width = 36.dp, height = 4.dp) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        sheetContent = {
+            NearbySheet(
+                spots = sortedSpots,
+                addresses = spotAddresses,
+                reference = reference,
+                myUserId = myUserId,
+                onReport = { showReportFlow = true },
+                onSpotClick = { spot ->
+                    flyTo(LatLng(spot.lat, spot.lng), 16.5)
+                    selectedSpot = spot
+                    scope.launch { sheetState.partialExpand() }
                 },
             )
+        },
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
 
-            Image(
-                painter = painterResource(R.drawable.ic_center_reticle),
-                contentDescription = stringResource(R.string.map_report_location_cd),
-                modifier = Modifier.align(Alignment.Center).size(40.dp),
-            )
+            CenterPin(lifted = cameraMoving, modifier = Modifier.align(Alignment.Center))
 
             androidx.compose.animation.AnimatedVisibility(
-                visible = showMapLoading,
+                visible = !mapRendered,
                 enter = androidx.compose.animation.fadeIn(),
                 exit = androidx.compose.animation.fadeOut(),
                 modifier = Modifier.align(Alignment.Center),
             ) {
-                Surface(shape = CircleShape, shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.padding(16.dp).size(28.dp),
-                        strokeWidth = 3.dp,
-                    )
-                }
+                BrandedMapLoader()
             }
 
-            // Floating translucent header — logo/profile/logout + a type filter row underneath.
             Column(
-                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth()
-                    .padding(horizontal = 16.dp).padding(top = 8.dp),
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth().padding(top = 8.dp),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier.size(34.dp)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Image(
-                                painter = painterResource(R.drawable.ic_logo),
-                                contentDescription = stringResource(R.string.logo_cd),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        Text(
-                            "ParkIt",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f).padding(start = 10.dp),
-                        )
-                        // One profile entry point, not a profile+logout pair —
-                        // logout is an account action and now lives in Profile
-                        // itself, decluttering the map's primary chrome down to
-                        // what you actually need while looking for parking.
-                        Box(
-                            modifier = Modifier.size(38.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = rememberRipple(bounded = true, radius = 19.dp),
-                                    onClick = onOpenProfile,
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Filled.Person,
-                                contentDescription = stringResource(R.string.map_profile_cd),
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-                }
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.padding(top = 8.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp).horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        listOf(
-                            null to stringResource(R.string.map_filter_all),
-                            "street" to stringResource(R.string.map_filter_regular),
-                            "disabled" to stringResource(R.string.map_filter_disabled),
-                        ).forEach { (value, label) ->
-                            val selected = typeFilter == value
-                            FilterChip(
-                                selected = selected,
-                                onClick = { typeFilter = value },
-                                label = { Text(label) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
-                                border = if (selected) null else FilterChipDefaults.filterChipBorder(enabled = true, selected = false),
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Pinch-to-zoom alone isn't reliably discoverable (and doesn't work at
-            // all via a mouse on an emulator), so explicit zoom controls sit above
-            // the My Location button rather than replacing it. Sized and shaped
-            // to match the locate button below them (small circles, own shadow
-            // each) instead of one tall joined pill — the previous version read
-            // as a dated widget bolted onto the map rather than part of the UI.
-            Column(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 150.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Surface(shape = CircleShape, shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(40.dp)) {
-                    IconButton(onClick = { mapViewRef?.controller?.zoomIn() }) {
-                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.map_zoom_in_cd), modifier = Modifier.size(18.dp))
-                    }
-                }
-                Surface(shape = CircleShape, shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(40.dp)) {
-                    IconButton(onClick = { mapViewRef?.controller?.zoomOut() }) {
-                        Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.map_zoom_out_cd), modifier = Modifier.size(18.dp))
-                    }
-                }
-                Surface(shape = CircleShape, shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(46.dp).padding(top = 2.dp)) {
-                    IconButton(onClick = {
-                        if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                            android.content.pm.PackageManager.PERMISSION_GRANTED
-                        ) {
-                            useDeviceLocation()
-                        } else {
-                            locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                        }
-                    }) {
-                        Icon(Icons.Filled.MyLocation, contentDescription = stringResource(R.string.map_my_location_cd), tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-
-            Surface(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 150.dp),
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 4.dp,
-            ) {
+                LocationBar(
+                    address = resolvedAddress,
+                    displayName = sessionStore.displayName.value,
+                    onOpenProfile = onOpenProfile,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // A small live-status dot — the spot count is a live
-                    // reading of the map, not static copy, so it gets the same
-                    // visual language a status indicator would.
-                    Box(
-                        modifier = Modifier.size(7.dp)
-                            .background(if (spots.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary, CircleShape),
-                    )
-                    Text(
-                        pluralStringResource(R.plurals.spots_available, spots.size, spots.size, DEFAULT_RADIUS_M),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
+                    MapChip(stringResource(R.string.map_filter_all), Icons.Filled.LocalParking, typeFilter == null) { typeFilter = null }
+                    MapChip(stringResource(R.string.map_filter_regular), Icons.Filled.DirectionsCar, typeFilter == "street") { typeFilter = "street" }
+                    MapChip(stringResource(R.string.map_filter_disabled), Icons.AutoMirrored.Filled.Accessible, typeFilter == "disabled") { typeFilter = "disabled" }
                 }
             }
 
-            // A circular floating "+" action (Waze's own report-button pattern,
-            // also how Spent's add-expense FAB reads) instead of a full-width
-            // bar — leaves far more of the map visible, and reads as a single
-            // deliberate action rather than a form bar docked to the screen.
-            Column(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 4.dp,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            resolvedAddress ?: stringResource(R.string.map_locating),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
+            // Rides on top of the sheet's edge (like Google Maps' locate
+            // button), so it's always reachable and never covered.
+            val buttonSize = 48.dp
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset {
+                        val top = sheetTopPx?.toInt() ?: 0
+                        IntOffset(-16.dp.roundToPx(), top - buttonSize.roundToPx() - 16.dp.roundToPx())
                     }
+                    .size(buttonSize)
+                    .clickable {
+                        if (hasLocationPermission()) useDeviceLocation() else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.MyLocation, contentDescription = stringResource(R.string.map_my_location_cd), tint = MaterialTheme.colorScheme.primary)
                 }
-                ReportFab(onClick = { showReportFlow = true })
             }
         }
     }
@@ -512,7 +483,7 @@ fun MapScreen(
         SpotActionsSheet(
             api = api,
             spot = spot,
-            myUserId = sessionStore.userId.value,
+            myUserId = myUserId,
             onDismiss = { selectedSpot = null },
             onChanged = {
                 selectedSpot = null
@@ -521,49 +492,286 @@ fun MapScreen(
             onSessionExpired = onLoggedOut,
         )
     }
+}
 
-    DisposableEffect(Unit) {
-        onDispose { mapViewRef?.onDetach() }
+/** Native GeoJSON clustering + symbol layers — the map engine itself
+ * groups, positions, and hit-tests pins (on the GPU, smoothly through
+ * zoom), instead of Kotlin re-bucketing bitmaps on every recomposition. */
+private fun installSpotLayers(style: Style, dark: Boolean) {
+    style.addSource(
+        GeoJsonSource(
+            SOURCE_SPOTS,
+            FeatureCollection.fromFeatures(emptyList()),
+            GeoJsonOptions().withCluster(true).withClusterRadius(48).withClusterMaxZoom(14),
+        ),
+    )
+    val pointCount = Expression.get("point_count")
+    style.addLayer(
+        CircleLayer(LAYER_CLUSTERS, SOURCE_SPOTS).withFilter(Expression.has("point_count")).withProperties(
+            PropertyFactory.circleColor(COLOR_FREE),
+            PropertyFactory.circleRadius(Expression.step(pointCount, Expression.literal(18f), Expression.stop(10, 22f), Expression.stop(30, 27f))),
+            PropertyFactory.circleStrokeColor(if (dark) "#1D222B" else "#FFFFFF"),
+            PropertyFactory.circleStrokeWidth(3f),
+        ),
+    )
+    style.addLayer(
+        SymbolLayer(LAYER_CLUSTER_COUNT, SOURCE_SPOTS).withFilter(Expression.has("point_count")).withProperties(
+            PropertyFactory.textField(Expression.toString(pointCount)),
+            PropertyFactory.textFont(arrayOf("Noto Sans Bold")),
+            PropertyFactory.textSize(14f),
+            PropertyFactory.textColor("#FFFFFF"),
+            PropertyFactory.textAllowOverlap(true),
+            PropertyFactory.textIgnorePlacement(true),
+        ),
+    )
+    style.addLayer(
+        SymbolLayer(LAYER_PINS, SOURCE_SPOTS).withFilter(Expression.not(Expression.has("point_count"))).withProperties(
+            PropertyFactory.iconImage(Expression.get("icon")),
+            PropertyFactory.iconAnchor("bottom"),
+            PropertyFactory.iconOffset(arrayOf(0f, MarkerBitmaps.TIP_PADDING_DP)),
+            PropertyFactory.iconAllowOverlap(true),
+            PropertyFactory.iconIgnorePlacement(true),
+            // Crowdsourced data goes stale — older reports literally fade,
+            // so a fresh spot visibly outranks a 40-minute-old one.
+            PropertyFactory.iconOpacity(
+                Expression.interpolate(Expression.linear(), Expression.get("age"), Expression.stop(10, 1f), Expression.stop(60, 0.55f)),
+            ),
+            PropertyFactory.symbolSortKey(Expression.get("age")),
+        ),
+    )
+}
+
+/** Google-Maps-style floating search bar, repurposed as "where the pin
+ * is" — the address you'd be reporting, plus your avatar (profile). */
+@Composable
+private fun LocationBar(address: String?, displayName: String?, onOpenProfile: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        modifier = modifier.fillMaxWidth().height(56.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp, end = 8.dp)) {
+            Image(painter = painterResource(R.drawable.ic_logo), contentDescription = stringResource(R.string.logo_cd), modifier = Modifier.size(24.dp))
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(
+                    stringResource(R.string.map_pin_label),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    address ?: stringResource(R.string.map_locating),
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Box(
+                modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primary, CircleShape).clickable(onClick = onOpenProfile),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    initialOf(displayName),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        }
     }
 }
 
-/** The single most important action on the whole screen deserved more
- * than a flat Material default FAB — a gloss-gradient fill (not flat
- * color) for real depth, a deeper shadow, and a spring-overshoot
- * entrance so it arrives with some life instead of just being present
- * from frame one. */
+internal fun initialOf(name: String?): String = name?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+
 @Composable
-private fun ReportFab(onClick: () -> Unit) {
-    var entered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered = true }
-    val scale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (entered) 1f else 0f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-        ),
-        label = "fabEntrance",
-    )
-
-    val primary = MaterialTheme.colorScheme.primary
-    val gradient = androidx.compose.ui.graphics.Brush.linearGradient(
-        colors = listOf(androidx.compose.ui.graphics.lerp(primary, Color.White, 0.22f), primary),
-    )
-
-    Box(
-        modifier = Modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = scale }
-            .size(64.dp)
-            .shadow(elevation = 14.dp, shape = CircleShape, ambientColor = primary, spotColor = primary)
-            .background(gradient, CircleShape)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = rememberRipple(bounded = true, radius = 32.dp), onClick = onClick),
-        contentAlignment = Alignment.Center,
+private fun MapChip(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    val container = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val content = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = container,
+        shadowElevation = 3.dp,
+        modifier = Modifier.height(36.dp).clickable(onClick = onClick),
     ) {
-        Icon(
-            Icons.Filled.Add,
-            contentDescription = stringResource(R.string.map_report_fab_cd),
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(32.dp),
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp)) {
+            Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge, color = content, modifier = Modifier.padding(start = 6.dp))
+        }
+    }
+}
+
+/** Uber/Google-style drop pin: lifts while the map moves and settles with a
+ * small bounce when it stops — so it's obvious the pin marks "here, where
+ * the map stopped", not a fixed decoration. The needle tip is the exact
+ * screen center. */
+@Composable
+private fun CenterPin(lifted: Boolean, modifier: Modifier = Modifier) {
+    val lift by animateDpAsState(
+        targetValue = if (lifted) 12.dp else 0.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "pinLift",
+    )
+    val shadowScale by animateFloatAsState(if (lifted) 0.6f else 1f, label = "pinShadow")
+    val primary = MaterialTheme.colorScheme.primary
+    val headSize = 30.dp
+    val needle = 16.dp
+    Box(modifier = modifier.size(width = headSize, height = (headSize + needle) * 2)) {
+        Canvas(modifier = Modifier.align(Alignment.Center).size(10.dp, 4.dp).graphicsLayer { scaleX = shadowScale; scaleY = shadowScale }) {
+            drawOval(Color.Black.copy(alpha = 0.25f))
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.align(Alignment.TopCenter).offset(y = -lift),
+        ) {
+            Box(
+                modifier = Modifier.size(headSize).shadow(6.dp, CircleShape).background(primary, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(Modifier.size(10.dp).background(Color.White, CircleShape))
+            }
+            Canvas(modifier = Modifier.size(width = 3.dp, height = needle)) {
+                drawLine(primary, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), strokeWidth = size.width)
+            }
+        }
+    }
+}
+
+@Composable
+private fun NearbySheet(
+    spots: List<SpotOut>,
+    addresses: Map<String, String>,
+    reference: LatLng,
+    myUserId: String?,
+    onReport: () -> Unit,
+    onSpotClick: (SpotOut) -> Unit,
+) {
+    val context = LocalContext.current
+    Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, bottom = 16.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    if (spots.isEmpty()) stringResource(R.string.map_nearby_none)
+                    else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                val nearest = spots.firstOrNull()
+                Text(
+                    if (nearest == null) stringResource(R.string.map_nearby_empty_hint)
+                    else stringResource(
+                        R.string.map_nearest,
+                        formatDistance(context, LatLng(nearest.lat, nearest.lng).distanceTo(reference)),
+                        MarkerBitmaps.relativeTimeLong(context, nearest.reportedAt),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Button(
+                onClick = onReport,
+                shape = RoundedCornerShape(50),
+                contentPadding = PaddingValues(start = 16.dp, end = 20.dp),
+                modifier = Modifier.height(48.dp),
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                Text(stringResource(R.string.map_report_button), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 6.dp))
+            }
+        }
+        if (spots.isNotEmpty()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            LazyColumn(modifier = Modifier.fillMaxWidth().height(360.dp)) {
+                items(spots, key = { it.id }) { spot ->
+                    SpotRow(spot, addresses[spot.id], reference, myUserId, onClick = { onSpotClick(spot) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId: String?, onClick: () -> Unit) {
+    val context = LocalContext.current
+    val color = Color(android.graphics.Color.parseColor(pinColor(spot, myUserId)))
+    val disabled = spot.spotType == "disabled"
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        Box(modifier = Modifier.size(40.dp).background(color.copy(alpha = 0.12f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+            Icon(
+                if (disabled) Icons.AutoMirrored.Filled.Accessible else Icons.Filled.LocalParking,
+                contentDescription = null,
+                tint = color,
+            )
+        }
+        Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+            // The address is the headline — it's what you'd actually drive
+            // to. Type, freshness and status read as one quiet detail line.
+            Text(
+                address ?: stringResource(R.string.map_locating),
+                style = MaterialTheme.typography.titleSmall,
+                color = if (address == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                listOfNotNull(
+                    stringResource(if (disabled) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
+                    MarkerBitmaps.relativeTimeLong(context, spot.reportedAt),
+                    when {
+                        spot.status == "claimed" -> stringResource(R.string.report_status_claimed)
+                        spot.reporterId == myUserId -> stringResource(R.string.map_spot_yours)
+                        else -> null
+                    },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            formatDistance(context, LatLng(spot.lat, spot.lng).distanceTo(reference)),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
         )
+    }
+}
+
+private fun formatDistance(context: android.content.Context, meters: Double): String =
+    if (meters < 1000) context.getString(R.string.distance_m, (Math.round(meters / 10.0) * 10).toInt())
+    else context.getString(R.string.distance_km, meters / 1000.0)
+
+/** Branded loader shown only until the first fully-rendered map frame —
+ * a real signal from the engine now, not a fixed timer. */
+@Composable
+private fun BrandedMapLoader() {
+    val rotation by androidx.compose.animation.core.rememberInfiniteTransition(label = "mapLoaderRotation").animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(1000, easing = androidx.compose.animation.core.LinearEasing),
+        ),
+        label = "mapLoaderAngle",
+    )
+    val primary = MaterialTheme.colorScheme.primary
+
+    Surface(shape = CircleShape, shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
+        Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.fillMaxSize().padding(7.dp).graphicsLayer { rotationZ = rotation }) {
+                drawArc(
+                    brush = androidx.compose.ui.graphics.Brush.sweepGradient(listOf(primary.copy(alpha = 0f), primary.copy(alpha = 0.25f), primary)),
+                    startAngle = 0f,
+                    sweepAngle = 300f,
+                    useCenter = false,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                )
+            }
+            Image(painter = painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.size(26.dp))
+        }
     }
 }

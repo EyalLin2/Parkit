@@ -71,7 +71,9 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: () -> U
         }
         Text(
             "ParkIt",
-            style = MaterialTheme.typography.headlineLarge,
+            // The brand wordmark keeps its display face; everything else
+            // in the app is Heebo.
+            style = MaterialTheme.typography.headlineLarge.copy(fontFamily = com.parkit.app.ui.theme.SuezOne),
             modifier = Modifier.padding(top = 16.dp),
         )
         Text(

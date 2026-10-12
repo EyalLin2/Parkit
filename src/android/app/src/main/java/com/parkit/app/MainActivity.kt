@@ -25,7 +25,8 @@ import com.parkit.app.ui.MapScreen
 import com.parkit.app.ui.ProfileScreen
 import com.parkit.app.ui.theme.ParkItTheme
 import com.parkit.app.ui.theme.ThemeManager
-import org.osmdroid.config.Configuration
+import com.parkit.app.ui.SettingsScreen
+import org.maplibre.android.MapLibre
 
 class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
@@ -37,10 +38,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // osmdroid requires a user agent (tile servers ban the default) and
-        // a writable cache dir — both set once here per osmdroid's own setup docs.
-        Configuration.getInstance().userAgentValue = packageName
-        Configuration.getInstance().osmdroidTileCache = cacheDir
+        // Must run before any MapView is inflated. OpenFreeMap needs no API
+        // key, so there's nothing to pass beyond the context.
+        MapLibre.getInstance(this)
 
         ThemeManager.init(this)
         val sessionStore = SessionStore(this)
@@ -104,9 +104,23 @@ fun ParkItApp(sessionStore: SessionStore) {
         composable(
             "profile",
             enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
             popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
         ) {
-            ProfileScreen(api = api, onBack = { navController.popBackStack() }, onSessionExpired = goToLogin, onLogout = goToLogin)
+            ProfileScreen(
+                api = api,
+                onBack = { navController.popBackStack() },
+                onOpenSettings = { navController.navigate("settings") },
+                onSessionExpired = goToLogin,
+            )
+        }
+        composable(
+            "settings",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
+        ) {
+            SettingsScreen(onBack = { navController.popBackStack() }, onLogout = goToLogin)
         }
     }
 }

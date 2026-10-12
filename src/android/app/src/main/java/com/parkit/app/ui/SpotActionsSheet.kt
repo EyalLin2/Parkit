@@ -145,7 +145,13 @@ fun SpotActionsSheet(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusTag(stringResource(R.string.spot_status, spot.status), statusColor)
+                StatusTag(
+                    stringResource(
+                        R.string.spot_status,
+                        stringResource(if (spot.status == "claimed") R.string.report_status_claimed else R.string.report_status_active),
+                    ),
+                    statusColor,
+                )
                 spot.vehicleSize?.let {
                     StatusTag(stringResource(R.string.spot_fits, it.replaceFirstChar(Char::uppercase)), MaterialTheme.colorScheme.onSurfaceVariant)
                 }

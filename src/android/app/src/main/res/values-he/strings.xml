@@ -69,9 +69,9 @@
 
     <!-- Relative time (marker badges + spot detail) -->
     <string name="time_now_short">כעת</string>
-    <string name="time_minutes_short">%1$dד\'</string>
-    <string name="time_hours_short">%1$dש\'</string>
-    <string name="time_days_short">%1$dי\'</string>
+    <string name="time_minutes_short">‏%1$d דק׳</string>
+    <string name="time_hours_short">‏%1$d שע׳</string>
+    <string name="time_days_short">‏%1$d ימ׳</string>
     <string name="time_now_long">הרגע</string>
     <plurals name="time_minutes_long">
         <item quantity="one">לפני דקה</item>
@@ -134,4 +134,47 @@
     <string name="profile_theme_system">אוטומטי</string>
     <string name="profile_theme_light">בהיר</string>
     <string name="profile_theme_dark">כהה</string>
+
+    <!-- Map v2 (vector map + nearby sheet) -->
+    <string name="map_pin_label">מיקום החניה</string>
+    <plurals name="map_nearby_count">
+        <item quantity="one">חניה פנויה אחת בסביבה</item>
+        <item quantity="two">%1$d חניות פנויות בסביבה</item>
+        <item quantity="other">%1$d חניות פנויות בסביבה</item>
+    </plurals>
+    <string name="map_nearby_none">אין עדיין חניות פנויות בסביבה</string>
+    <string name="map_nearby_empty_hint">ראית חניה? דווח וצבור נקודות.</string>
+    <string name="map_nearest">הקרובה ביותר: %1$s · %2$s</string>
+    <string name="map_report_button">דיווח</string>
+    <string name="map_spot_yours">הדיווח שלך</string>
+    <string name="distance_m">%1$d מ׳</string>
+    <string name="distance_km">%1$.1f ק״מ</string>
+
+    <!-- Profile v2 -->
+    <string name="profile_settings_cd">הגדרות</string>
+    <string name="profile_level_progress">עוד %1$d דיווחים מוצלחים לדרגת %2$s</string>
+    <string name="profile_max_level">הגעת לדרגה הגבוהה ביותר — אגדה</string>
+    <string name="profile_level_none">חבר חדש</string>
+    <string name="profile_total_reports">דיווחים</string>
+    <string name="profile_achievements">הישגים</string>
+    <string name="profile_see_all">הצג הכל</string>
+    <string name="profile_show_less">הצג פחות</string>
+    <string name="profile_you">את/ה</string>
+    <string name="profile_week_delta">+%1$d השבוע</string>
+
+    <!-- Settings -->
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_section_preferences">העדפות</string>
+    <string name="settings_section_community">קהילה</string>
+    <string name="settings_section_about">אודות</string>
+    <string name="settings_appearance">מראה</string>
+    <string name="settings_invite_subtitle">יותר נהגים, יותר חניות פנויות לכולם</string>
+    <string name="settings_version">גרסה</string>
+    <string name="settings_map_data">נתוני מפה</string>
+    <string name="settings_map_data_value">© OpenStreetMap</string>
+    <string name="settings_logout_confirm_title">להתנתק?</string>
+    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם השם שלך.</string>
+    <string name="settings_cancel">ביטול</string>
+    <string name="map_spot_kind_regular">חניה רגילה</string>
+    <string name="map_spot_kind_disabled">חניית נכים</string>
 </resources>

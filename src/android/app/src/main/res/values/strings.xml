@@ -88,7 +88,7 @@
     <string name="profile_title">Profile</string>
     <string name="profile_back_cd">Back</string>
     <string name="profile_member">ParkIt member</string>
-    <string name="profile_total_points">total points</string>
+    <string name="profile_total_points">Total points</string>
     <string name="profile_this_week">This week</string>
     <string name="profile_successful_reports">Successful reports</string>
     <string name="profile_badges_title">Badges &amp; Achievements</string>
@@ -128,4 +128,46 @@
     <string name="profile_theme_system">System</string>
     <string name="profile_theme_light">Light</string>
     <string name="profile_theme_dark">Dark</string>
+
+    <!-- Map v2 (vector map + nearby sheet) -->
+    <string name="map_pin_label">Parking location</string>
+    <plurals name="map_nearby_count">
+        <item quantity="one">1 free spot nearby</item>
+        <item quantity="other">%1$d free spots nearby</item>
+    </plurals>
+    <string name="map_nearby_none">No free spots nearby yet</string>
+    <string name="map_nearby_empty_hint">Spotted one? Report it and earn points.</string>
+    <string name="map_nearest">Nearest %1$s away · %2$s</string>
+    <string name="map_report_button">Report</string>
+    <string name="map_spot_yours">Your report</string>
+    <string name="distance_m">%1$d m</string>
+    <string name="distance_km">%1$.1f km</string>
+
+    <!-- Profile v2 -->
+    <string name="profile_settings_cd">Settings</string>
+    <string name="profile_level_progress">%1$d more successful reports to %2$s</string>
+    <string name="profile_max_level">Top tier reached — you\'re a legend</string>
+    <string name="profile_level_none">New member</string>
+    <string name="profile_total_reports">Reports</string>
+    <string name="profile_achievements">Achievements</string>
+    <string name="profile_see_all">Show all</string>
+    <string name="profile_show_less">Show less</string>
+    <string name="profile_you">You</string>
+    <string name="profile_week_delta">+%1$d this week</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_preferences">Preferences</string>
+    <string name="settings_section_community">Community</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_invite_subtitle">More drivers, more free spots for everyone</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_map_data">Map data</string>
+    <string name="settings_map_data_value">© OpenStreetMap</string>
+    <string name="settings_logout_confirm_title">Log out?</string>
+    <string name="settings_logout_confirm_body">You can log back in anytime with your name.</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="map_spot_kind_regular">Regular spot</string>
+    <string name="map_spot_kind_disabled">Disabled parking</string>
 </resources>
