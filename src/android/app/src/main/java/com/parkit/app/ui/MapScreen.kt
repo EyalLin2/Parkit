@@ -125,9 +125,67 @@ private const val DEFAULT_RADIUS_M = 1500
 private const val STREET_LEVEL_ZOOM = 15.0
 
 // Guards against snapping to an out-of-country GPS fix (e.g. an
-// emulator/device defaulting to Mountain View, CA) — see useDeviceLocation().
+// emulator/device defaulting to Mountain View, CA) — see locate().
 private val SERVICE_AREA_CENTER = TEL_AVIV
 private const val SERVICE_AREA_RADIUS_M = 350_000.0
+
+// While the first GPS fix is on its way (and there's no recent last-known
+// location to start from), show the whole country rather than pretending
+// the user is in Tel Aviv.
+private val ISRAEL_OVERVIEW = LatLng(31.6, 34.95)
+private const val OVERVIEW_ZOOM = 6.6
+private const val FIX_TIMEOUT_MS = 10_000L
+private const val LAST_KNOWN_MAX_AGE_MS = 30 * 60_000L
+
+private fun inServiceArea(p: LatLng) = p.distanceTo(SERVICE_AREA_CENTER) <= SERVICE_AREA_RADIUS_M
+
+private fun hasFineLocation(context: android.content.Context) =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+/** The freshest cached fix any provider has, if it's recent and in Israel —
+ * lets the map open where the user actually is with zero wait. On a real
+ * phone this is often empty (nothing used GPS lately), which is exactly why
+ * it can't be the only source, as it used to be. */
+@SuppressLint("MissingPermission")
+private fun recentLastKnown(context: android.content.Context): LatLng? {
+    if (!hasFineLocation(context)) return null
+    val lm = context.getSystemService(LocationManager::class.java) ?: return null
+    val best = lm.getProviders(true)
+        .mapNotNull { runCatching { lm.getLastKnownLocation(it) }.getOrNull() }
+        .maxByOrNull { it.time } ?: return null
+    if (System.currentTimeMillis() - best.time > LAST_KNOWN_MAX_AGE_MS) return null
+    return LatLng(best.latitude, best.longitude).takeIf { inServiceArea(it) }
+}
+
+/** Asks every enabled provider (GPS, network, fused) for a FRESH fix and
+ * returns the first one that arrives, or null after [FIX_TIMEOUT_MS]. */
+@SuppressLint("MissingPermission")
+private suspend fun freshFix(context: android.content.Context): LatLng? {
+    if (!hasFineLocation(context)) return null
+    val lm = context.getSystemService(LocationManager::class.java) ?: return null
+    val providers = listOf(LocationManager.FUSED_PROVIDER, LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+        .filter { runCatching { lm.isProviderEnabled(it) }.getOrDefault(false) }
+    if (providers.isEmpty()) return null
+    return kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) {
+        kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+            val signal = android.os.CancellationSignal()
+            cont.invokeOnCancellation { signal.cancel() }
+            providers.forEach { provider ->
+                androidx.core.location.LocationManagerCompat.getCurrentLocation(
+                    lm,
+                    provider,
+                    signal,
+                    ContextCompat.getMainExecutor(context),
+                ) { loc ->
+                    if (loc != null && cont.isActive) {
+                        signal.cancel()
+                        cont.resume(LatLng(loc.latitude, loc.longitude)) { }
+                    }
+                }
+            }
+        }
+    }
+}
 
 private const val SOURCE_SPOTS = "spots"
 private const val LAYER_CLUSTERS = "spots-clusters"
@@ -179,9 +237,14 @@ fun MapScreen(
     var typeFilter by remember { mutableStateOf<String?>(null) } // null = All
     var cameraMoving by remember { mutableStateOf(false) }
     var mapRendered by remember { mutableStateOf(false) }
-    var deviceLocation by remember { mutableStateOf<LatLng?>(null) }
+    // Where to open the map: a recent cached fix if there is one; otherwise
+    // the country overview until a fresh fix arrives (see locate()).
+    val startFix = remember { recentLastKnown(context) }
+    var deviceLocation by remember { mutableStateOf(startFix) }
+    var locating by remember { mutableStateOf(true) }
+    var userTookOver by remember { mutableStateOf(false) }
 
-    var geocodeTarget by remember { mutableStateOf(TEL_AVIV) }
+    var geocodeTarget by remember { mutableStateOf(startFix ?: TEL_AVIV) }
     var resolvedAddress by remember { mutableStateOf<String?>(null) }
     var resolvedStreet by remember { mutableStateOf<String?>(null) }
     // True from the moment the map starts moving until the new pin address
@@ -270,32 +333,50 @@ fun MapScreen(
         }
     }
 
-    fun useDeviceLocation() {
-        val lm = context.getSystemService(LocationManager::class.java)
-        val loc = try {
-            lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER) ?: lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-        } catch (_: SecurityException) {
-            null
+    fun showTelAvivFallback(message: Int?) {
+        if (deviceLocation == null && !userTookOver) {
+            geocodeTarget = TEL_AVIV
+            flyTo(TEL_AVIV)
         }
-        if (loc != null) {
-            val here = LatLng(loc.latitude, loc.longitude)
-            // ParkIt only operates in Israel. A device/emulator with a stale or
-            // default GPS fix (classically Mountain View, CA on emulators) would
-            // otherwise yank a first-time user — or every demo — away from the
-            // service area onto an irrelevant map.
-            if (here.distanceTo(SERVICE_AREA_CENTER) <= SERVICE_AREA_RADIUS_M) {
-                deviceLocation = here
-                flyTo(here)
-                geocodeTarget = here
+        message?.let { scope.launch { snackbarHostState.showSnackbar(context.getString(it)) } }
+    }
+
+    /** Find the user and fly there. On launch it doesn't override a user who
+     * already started panning; from the locate button it always flies. */
+    fun locate(fromButton: Boolean = false) {
+        enableLocationPuck()
+        scope.launch {
+            locating = true
+            val fix = freshFix(context)
+            locating = false
+            when {
+                fix != null && inServiceArea(fix) -> {
+                    deviceLocation = fix
+                    if (fromButton || !userTookOver) {
+                        geocodeTarget = fix
+                        flyTo(fix)
+                    }
+                }
+                // ParkIt only operates in Israel; an out-of-country fix (or the
+                // emulator's default Mountain View) must not move the map away.
+                fix != null -> showTelAvivFallback(R.string.map_outside_service_area)
+                deviceLocation != null && fromButton -> flyTo(deviceLocation!!)
+                else -> showTelAvivFallback(R.string.map_location_unavailable)
             }
         }
-        enableLocationPuck()
     }
 
     val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) useDeviceLocation()
+        if (granted) {
+            locate()
+        } else {
+            locating = false
+            showTelAvivFallback(null)
+        }
     }
-    LaunchedEffect(Unit) { locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
+    LaunchedEffect(Unit) {
+        if (hasFineLocation(context)) locate() else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
     fun refreshSpotsNow() {
         scope.launch {
@@ -333,7 +414,11 @@ fun MapScreen(
 
     LaunchedEffect(Unit) {
         mapView.getMapAsync { m ->
-            m.cameraPosition = CameraPosition.Builder().target(geocodeTarget).zoom(STREET_LEVEL_ZOOM).build()
+            m.cameraPosition = if (startFix != null) {
+                CameraPosition.Builder().target(startFix).zoom(STREET_LEVEL_ZOOM).build()
+            } else {
+                CameraPosition.Builder().target(ISRAEL_OVERVIEW).zoom(OVERVIEW_ZOOM).build()
+            }
             m.uiSettings.apply {
                 isLogoEnabled = false
                 isCompassEnabled = true
@@ -342,13 +427,16 @@ fun MapScreen(
                 setCompassMargins(0, with(density) { 150.dp.roundToPx() }, with(density) { 16.dp.roundToPx() }, 0)
                 setAttributionMargins(with(density) { 12.dp.roundToPx() }, 0, 0, with(density) { (SHEET_PEEK + 56.dp).roundToPx() })
             }
-            m.addOnCameraMoveStartedListener {
+            m.addOnCameraMoveStartedListener { reason ->
+                if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE && locating) userTookOver = true
                 cameraMoving = true
                 addressLoading = true
             }
             m.addOnCameraIdleListener {
                 cameraMoving = false
-                geocodeTarget = m.cameraPosition.target ?: geocodeTarget
+                // While we're still finding the user, the overview camera is
+                // not a place anyone wants spots or an address for.
+                if (!locating || userTookOver) geocodeTarget = m.cameraPosition.target ?: geocodeTarget
             }
             m.addOnMapClickListener { latLng ->
                 val point = m.projection.toScreenLocation(latLng)
@@ -445,7 +533,7 @@ fun MapScreen(
             // pattern): the pin IS the spot being reported. Hidden while the
             // map moves, and when the nearby list is pulled up over the pin.
             ReportHereBubble(
-                visible = !cameraMoving && mapRendered && !showReportFlow &&
+                visible = !cameraMoving && mapRendered && !showReportFlow && !(locating && deviceLocation == null) &&
                     sheetState.targetValue != SheetValue.Expanded,
                 onClick = { showReportFlow = true },
                 modifier = Modifier.align(Alignment.Center),
@@ -481,6 +569,20 @@ fun MapScreen(
                 }
             }
 
+            androidx.compose.animation.AnimatedVisibility(
+                visible = locating && deviceLocation == null && !userTookOver,
+                enter = androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.fadeOut(),
+                modifier = Modifier.align(Alignment.Center),
+            ) {
+                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface, shadowElevation = 6.dp) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
+                        androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(stringResource(R.string.map_locating_you), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 10.dp))
+                    }
+                }
+            }
+
             // Rides the sheet's top edge (Google Maps' locate-button pattern)
             // so it moves with it and is never covered.
             val buttonSize = 48.dp
@@ -496,7 +598,7 @@ fun MapScreen(
                     }
                     .size(buttonSize)
                     .clickable {
-                        if (hasLocationPermission()) useDeviceLocation() else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        if (hasLocationPermission()) locate(fromButton = true) else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                     },
             ) {
                 Box(contentAlignment = Alignment.Center) {

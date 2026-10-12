@@ -193,4 +193,7 @@
     <string name="map_report_here">דווח על חניה כאן</string>
     <string name="spot_photo_taken">צילום המדווח · %1$s</string>
     <string name="spot_photo_expand_cd">פתיחת התמונה במסך מלא</string>
+    <string name="map_locating_you">מאתר את מיקומך…</string>
+    <string name="map_location_unavailable">לא הצלחנו לאתר את המיקום — מוצגת תל אביב</string>
+    <string name="map_outside_service_area">ParkIt פועלת כרגע רק בישראל</string>
 </resources>

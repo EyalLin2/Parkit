@@ -186,4 +186,7 @@
     <string name="map_report_here">Report a spot here</string>
     <string name="spot_photo_taken">Photo from the reporter · %1$s</string>
     <string name="spot_photo_expand_cd">Open photo full screen</string>
+    <string name="map_locating_you">Finding your location…</string>
+    <string name="map_location_unavailable">Couldn\'t get your location — showing Tel Aviv</string>
+    <string name="map_outside_service_area">ParkIt currently works in Israel only</string>
 </resources>
