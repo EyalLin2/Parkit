@@ -100,6 +100,9 @@ class Spot(Base):
     # when the spot is created (silver and up get longer — see levels.py).
     ttl_minutes: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
     reported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    # Set when the spot is in a hot area (see hotspots.py): the median
+    # minutes nearby spots lasted. None = not hot / not enough history.
+    hot_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     claimed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

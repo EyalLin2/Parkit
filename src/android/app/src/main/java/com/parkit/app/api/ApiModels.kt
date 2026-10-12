@@ -42,6 +42,8 @@ data class SpotOut(
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
     @Json(name = "reporter_level") val reporterLevel: String = "newbie",
+    /** Set in hot areas: the median minutes nearby spots lasted. */
+    @Json(name = "hot_minutes") val hotMinutes: Int? = null,
 )
 
 @JsonClass(generateAdapter = true)

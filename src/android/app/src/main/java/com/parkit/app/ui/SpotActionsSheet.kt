@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -77,6 +78,7 @@ import kotlinx.coroutines.launch
 private val Free = Color(0xFF188038)
 private val Claimed = Color(0xFFE8710A)
 private val Mine = Color(0xFF1B4F91)
+private val Hot = Color(0xFFE8480C)
 
 /** The tapped-spot card, rebuilt on Google Maps' place-sheet pattern:
  * where it is (address as the title), how trustworthy it is (freshness +
@@ -234,6 +236,20 @@ fun SpotActionsSheet(
                 }
             }
 
+            spot.hotMinutes?.let { minutes ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 14.dp).fillMaxWidth().background(Hot.copy(alpha = 0.1f), RoundedCornerShape(12.dp)).padding(12.dp),
+                ) {
+                    Icon(Icons.Filled.LocalFireDepartment, contentDescription = null, tint = Hot, modifier = Modifier.size(20.dp))
+                    Text(
+                        androidx.compose.ui.res.pluralStringResource(R.plurals.hot_long, minutes, minutes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = 10.dp),
+                    )
+                }
+            }
             DriverNotices(fit)
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 18.dp)) {

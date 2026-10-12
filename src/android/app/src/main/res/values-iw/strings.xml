@@ -257,4 +257,10 @@
     <string name="fit_too_small">ייתכן שקטנה לרכב שלך</string>
     <string name="fit_needs_disabled_permit_long">חניית נכים — לרכב עם תג נכה בתוקף בלבד.</string>
     <string name="fit_too_small_long">המדווח ציין שהחניה מתאימה לרכב קטן יותר משלך.</string>
+    <string name="hot_short">🔥 אזור לוהט</string>
+    <plurals name="hot_long">
+        <item quantity="one">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך דקה. אם אתה רוצה אותה, צא עכשיו.</item>
+        <item quantity="two">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות. אם אתה רוצה אותה, צא עכשיו.</item>
+        <item quantity="other">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות. אם אתה רוצה אותה, צא עכשיו.</item>
+    </plurals>
 </resources>

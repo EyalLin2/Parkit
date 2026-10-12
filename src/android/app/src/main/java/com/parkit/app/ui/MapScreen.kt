@@ -212,7 +212,19 @@ private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
     spot.reporterId == myUserId -> COLOR_MINE
     // Legend-level perk: a distinct purple pin (see levels.py on the backend).
     spot.reporterLevel == "legend" -> COLOR_LEGEND
-    else -> COLOR_FREE
+    else -> freshnessGreen(ageMinutes(spot.reportedAt))
+}
+
+/** A free spot starts deep green and pales as it waits, so the map itself
+ * shows how long each spot has been free — no need to read the tags. Steps
+ * rather than a smooth blend: five shades the eye can actually tell apart
+ * (and five cached bitmaps per tag, not one per minute). */
+private fun freshnessGreen(minutes: Long): String = when {
+    minutes < 5 -> "#0B5E2B"
+    minutes < 15 -> COLOR_FREE
+    minutes < 30 -> "#2E9E4F"
+    minutes < 45 -> "#55B56E"
+    else -> "#7EC791"
 }
 
 private fun ageMinutes(iso: String): Long = try {
@@ -508,8 +520,9 @@ fun MapScreen(
             val color = pinColor(spot, myUserId)
             val tag = MarkerBitmaps.relativeTimeShort(context, spot.reportedAt)
             val disabled = spot.spotType == "disabled"
-            val iconId = "pin-$color-$tag-${if (disabled) "d" else "p"}"
-            if (s.getImage(iconId) == null) s.addImage(iconId, MarkerBitmaps.pin(context, color, tag, disabled))
+            val hot = spot.hotMinutes != null && spot.status == "active"
+            val iconId = "pin-$color-$tag-${if (disabled) "d" else "p"}${if (hot) "-hot" else ""}"
+            if (s.getImage(iconId) == null) s.addImage(iconId, MarkerBitmaps.pin(context, color, tag, disabled, hot))
             Feature.fromGeometry(Point.fromLngLat(spot.lng, spot.lat)).apply {
                 addStringProperty("id", spot.id)
                 addStringProperty("icon", iconId)
@@ -752,11 +765,8 @@ private fun installSpotLayers(style: Style, dark: Boolean) {
             PropertyFactory.iconOffset(arrayOf(0f, MarkerBitmaps.TIP_PADDING_DP)),
             PropertyFactory.iconAllowOverlap(true),
             PropertyFactory.iconIgnorePlacement(true),
-            // Crowdsourced data goes stale — older reports literally fade,
-            // so a fresh spot visibly outranks a 40-minute-old one.
-            PropertyFactory.iconOpacity(
-                Expression.interpolate(Expression.linear(), Expression.get("age"), Expression.stop(10, 1f), Expression.stop(60, 0.55f)),
-            ),
+            // Age is shown by the pin's shade of green (see freshnessGreen),
+            // so pins stay fully opaque and readable.
             PropertyFactory.symbolSortKey(Expression.get("age")),
         ),
     )
@@ -989,6 +999,7 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
                 listOfNotNull(
                     stringResource(if (disabled) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
                     MarkerBitmaps.relativeTimeLong(context, spot.reportedAt),
+                    spot.hotMinutes?.let { stringResource(R.string.hot_short) },
                     when {
                         spot.status == "claimed" -> stringResource(R.string.report_status_claimed)
                         spot.reporterId == myUserId -> stringResource(R.string.map_spot_yours)

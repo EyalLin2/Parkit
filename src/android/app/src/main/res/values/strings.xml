@@ -250,4 +250,9 @@
     <string name="fit_too_small">May be too small for your car</string>
     <string name="fit_needs_disabled_permit_long">Disabled bay — for vehicles with a disabled parking permit only.</string>
     <string name="fit_too_small_long">The reporter said this spot fits a smaller car than yours.</string>
+    <string name="hot_short">🔥 Hot area</string>
+    <plurals name="hot_long">
+        <item quantity="one">Hot area — spots here usually go within a minute. If you want it, go now.</item>
+        <item quantity="other">Hot area — spots here usually go within ~%d minutes. If you want it, go now.</item>
+    </plurals>
 </resources>

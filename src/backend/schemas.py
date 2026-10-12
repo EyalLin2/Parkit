@@ -30,6 +30,7 @@ class SpotOut(BaseModel):
     reported_at: datetime
     claimed_by: uuid.UUID | None
     reporter_level: str = "newbie"
+    hot_minutes: int | None = None
 
     model_config = {"from_attributes": True}
 

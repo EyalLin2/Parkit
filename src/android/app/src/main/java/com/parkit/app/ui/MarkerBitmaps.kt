@@ -33,12 +33,15 @@ object MarkerBitmaps {
      * this so the tip (not the padded bitmap edge) sits on the coordinate. */
     const val TIP_PADDING_DP = PAD_DP
 
-    fun pin(context: Context, colorHex: String, tag: String, disabled: Boolean = false): Bitmap {
+    fun pin(context: Context, colorHex: String, tag: String, disabled: Boolean = false, hot: Boolean = false): Bitmap {
         val d = context.resources.displayMetrics.density
         val head = HEAD_DP * d
         val r = head / 2f
         val pad = PAD_DP * d
         val tagH = TAG_H_DP * d
+        // Flames rise this far above the head (and lick out to the sides).
+        val flame = if (hot) r * 0.75f else 0f
+        val above = maxOf(tagH * 0.35f, flame)
 
         val tagPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#202124")
@@ -50,15 +53,16 @@ object MarkerBitmaps {
 
         // Symmetric width so the head (and its tip) stay on the horizontal
         // center even though the tag hangs off one side.
-        val w = (2 * (pad + maxOf(r, r * 0.35f + tagW))).toInt()
-        val h = (pad + tagH * 0.35f + head + TAIL_DP * d + pad).toInt()
+        val halfW = maxOf(if (hot) r * 1.6f else r, r * 0.35f + tagW)
+        val w = (2 * (pad + halfW)).toInt()
+        val h = (pad + above + head + TAIL_DP * d + pad).toInt()
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
 
         // Head centered horizontally so the tip lands on the bitmap's
         // horizontal center (icon-anchor "bottom" relies on that).
         val cx = w / 2f
-        val cy = pad + tagH * 0.35f + r
+        val cy = pad + above + r
         val tipY = cy + r + TAIL_DP * d
 
         val outline = Path().apply {
@@ -71,6 +75,8 @@ object MarkerBitmaps {
             }
             op(tail, Path.Op.UNION)
         }
+        if (hot) drawFlames(canvas, cx, cy, r, flame)
+
         canvas.drawPath(outline, Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             setShadowLayer(3f * d, 0f, 1.5f * d, Color.argb(90, 0, 0, 0))
@@ -105,7 +111,7 @@ object MarkerBitmaps {
 
         if (tag.isNotEmpty()) {
             val left = cx + r * 0.35f
-            val top = pad
+            val top = cy - r - tagH * 0.35f
             val rect = android.graphics.RectF(left, top, left + tagW, top + tagH)
             canvas.drawRoundRect(rect, tagH / 2f, tagH / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.WHITE
@@ -114,6 +120,48 @@ object MarkerBitmaps {
             canvas.drawText(tag, rect.centerX(), rect.centerY() - (tagPaint.descent() + tagPaint.ascent()) / 2f, tagPaint)
         }
         return bmp
+    }
+
+    /** Fire around the top of the head, drawn *behind* the pin so the pin
+     * sits in it: a warm glow, then uneven tongues (fire is never
+     * symmetric) whose tips curl, each orange with a yellow core. */
+    private fun drawFlames(canvas: Canvas, cx: Float, cy: Float, r: Float, height: Float) {
+        canvas.drawCircle(cx, cy - r * 0.15f, r * 1.55f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = android.graphics.RadialGradient(
+                cx, cy - r * 0.15f, r * 1.55f,
+                intArrayOf(Color.argb(150, 255, 122, 0), Color.argb(0, 255, 122, 0)),
+                floatArrayOf(0.55f, 1f), android.graphics.Shader.TileMode.CLAMP,
+            )
+        })
+        val outer = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FF4D12") }
+        val middle = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FF8A1C") }
+        val core = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FFD23F") }
+        // (angle from straight up, relative height, tip curl as a share of width)
+        val tongues = listOf(
+            Triple(-8f, 1f, 0.55f),
+            Triple(28f, 0.78f, 0.7f),
+            Triple(-42f, 0.66f, -0.75f),
+            Triple(60f, 0.46f, 0.8f),
+            Triple(-72f, 0.4f, -0.8f),
+        )
+        for ((paint, scale) in listOf(outer to 1f, middle to 0.72f, core to 0.45f)) {
+            for ((angle, length, curl) in tongues) {
+                val baseY = cy - r * 0.55f
+                val len = (r * 0.45f + height * length) * scale
+                val half = r * 0.3f * (0.7f + 0.3f * length) * (0.55f + 0.45f * scale)
+                val tipX = cx + half * curl
+                val tipY = baseY - len
+                canvas.save()
+                canvas.rotate(angle, cx, cy)
+                canvas.drawPath(Path().apply {
+                    moveTo(cx - half, baseY)
+                    cubicTo(cx - half * 1.35f, baseY - len * 0.45f, cx - half * 0.15f + (tipX - cx) * 0.4f, baseY - len * 0.72f, tipX, tipY)
+                    cubicTo(cx + half * 0.55f + (tipX - cx) * 0.3f, baseY - len * 0.62f, cx + half * 1.35f, baseY - len * 0.35f, cx + half, baseY)
+                    close()
+                }, paint)
+                canvas.restore()
+            }
+        }
     }
 
     /** "2m" / "1h" / "3d" / "now" — compact enough to fit on a small pin. */

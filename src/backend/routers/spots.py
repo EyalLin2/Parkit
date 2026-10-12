@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth import get_current_user_id
 from database import get_db
 from geocoder import reverse_cached
+from hotspots import hot_minutes
 from levels import level_for
 from media import delete_photo, save_photo
 from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
@@ -115,8 +116,10 @@ async def report_spot(
         )
     ).scalar_one_or_none()
 
+    hot = await hot_minutes(db, payload.lat, payload.lng, now)
     if existing is not None:
         existing.reported_at = now
+        existing.hot_minutes = hot
         if existing.address is None and address:
             existing.address = address
         if existing.reporter_id != user_id:
@@ -133,6 +136,7 @@ async def report_spot(
             vehicle_size=payload.vehicle_size,
             address=address,
             ttl_minutes=level.spot_ttl_minutes,
+            hot_minutes=hot,
         )
         db.add(spot)
         award_points(user, POINTS_REPORT)
