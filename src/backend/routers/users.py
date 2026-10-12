@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
 from database import get_db
+from levels import level_for, next_level
 from models import RemovedReason, Spot, User
 from points import reconcile_weekly_points
 from schemas import ActivityItem, LeaderboardEntry, ProfileOut
@@ -46,6 +47,8 @@ async def my_profile(
         .all()
     )
 
+    level = level_for(user.points)
+    upcoming = next_level(user.points)
     return ProfileOut(
         user_id=user.id,
         display_name=user.display_name,
@@ -53,6 +56,10 @@ async def my_profile(
         weekly_points=user.weekly_points,
         successful_reports=successful_reports,
         badges=[t for t in BADGE_THRESHOLDS if successful_reports >= t],
+        level=level.key,
+        level_min_points=level.min_points,
+        next_level=upcoming.key if upcoming else None,
+        next_level_points=upcoming.min_points if upcoming else None,
         activity=[
             ActivityItem(
                 spot_id=s.id,
@@ -83,6 +90,12 @@ async def leaderboard(
     )
 
     return [
-        LeaderboardEntry(rank=i, user_id=u.id, display_name=u.display_name, weekly_points=u.weekly_points)
+        LeaderboardEntry(
+            rank=i,
+            user_id=u.id,
+            display_name=u.display_name,
+            weekly_points=u.weekly_points,
+            level=level_for(u.points).key,
+        )
         for i, u in enumerate(rows, start=1)
     ]

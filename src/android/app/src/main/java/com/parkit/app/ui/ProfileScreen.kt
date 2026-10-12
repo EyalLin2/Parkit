@@ -3,6 +3,8 @@ package com.parkit.app.ui
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -69,13 +71,7 @@ private val Silver = Color(0xFF8C97A6)
 private val Bronze = Color(0xFFB8703C)
 private val Positive = Color(0xFF188038)
 
-private data class BadgeTier(val threshold: Int, val labelRes: Int, val icon: ImageVector, val color: Color)
 
-private val BADGE_TIERS = listOf(
-    BadgeTier(10, R.string.profile_badge_rookie, Icons.Filled.MilitaryTech, Bronze),
-    BadgeTier(50, R.string.profile_badge_pro, Icons.Filled.WorkspacePremium, Silver),
-    BadgeTier(200, R.string.profile_badge_legend, Icons.Filled.EmojiEvents, Gold),
-)
 
 private const val REPORTS_PREVIEW = 4
 
@@ -123,14 +119,22 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onOpenSettings: () -> Uni
             }
         } else {
             item { IdentityHeader(p) }
-            item { PointsCard(p) }
+            item { LevelHeroCard(p, dark = com.parkit.app.ui.theme.isDarkThemeActive()) }
             item { StatsCard(p) }
-            item { SectionTitle(stringResource(R.string.profile_achievements)) }
-            item { AchievementsCard(p) }
+            item { SectionTitle(stringResource(R.string.levels_title)) }
+            item { LevelLadder(points = p.points, current = ParkItLevel.of(p.level)) }
+            item { SectionTitle(stringResource(R.string.profile_leaderboard_title)) }
+            item {
+                Text(
+                    stringResource(R.string.league_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp).offset(y = (-6).dp),
+                )
+            }
+            item { LeagueSection(leaderboard, myUserId = p.userId) }
             item { SectionTitle(stringResource(R.string.profile_my_reports_title)) }
             item { MyReportsCard(p.activity) }
-            item { SectionTitle(stringResource(R.string.profile_leaderboard_title)) }
-            item { LeaderboardCard(leaderboard, myUserId = p.userId) }
         }
         item { Spacer(Modifier.navigationBarsPadding().height(24.dp)) }
     }
@@ -172,88 +176,6 @@ internal fun SectionCard(modifier: Modifier = Modifier, content: @Composable () 
     ) { content() }
 }
 
-private fun currentTier(p: ProfileOut): BadgeTier? = BADGE_TIERS.lastOrNull { p.successfulReports >= it.threshold }
-private fun nextTier(p: ProfileOut): BadgeTier? = BADGE_TIERS.firstOrNull { p.successfulReports < it.threshold }
-
-@Composable
-private fun IdentityHeader(p: ProfileOut) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-        Avatar(p.displayName, MaterialTheme.colorScheme.primary, size = 64.dp, textColor = MaterialTheme.colorScheme.onPrimary)
-        Column(modifier = Modifier.padding(start = 16.dp)) {
-            Text(p.displayName, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val tier = currentTier(p)
-            val tierColor = tier?.color ?: MaterialTheme.colorScheme.primary
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp).background(tierColor.copy(alpha = 0.14f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 3.dp),
-            ) {
-                Icon(tier?.icon ?: Icons.Filled.LocalParking, contentDescription = null, tint = tierColor, modifier = Modifier.size(14.dp))
-                Text(
-                    tier?.let { stringResource(it.labelRes) } ?: stringResource(R.string.profile_level_none),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = tierColor,
-                    modifier = Modifier.padding(start = 4.dp),
-                )
-            }
-        }
-    }
-}
-
-/** The one number that matters (points), what you earned this week, and —
- * the part that actually drives behaviour — exactly how far the next tier
- * is. Same idea as Waze's "x points to next level". */
-@Composable
-private fun PointsCard(p: ProfileOut) {
-    val totalPointsLabel = stringResource(R.string.profile_total_points)
-    // In dark mode the light-blue accent as a full card fill glares; a deep
-    // navy keeps it the hero without being the brightest thing on screen.
-    val dark = com.parkit.app.ui.theme.isDarkThemeActive()
-    val cardColor = if (dark) Color(0xFF1E3A5F) else MaterialTheme.colorScheme.primary
-    val onCard = Color.White
-    Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = cardColor,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(
-                    modifier = Modifier.weight(1f).clearAndSetSemantics { contentDescription = "${p.points} $totalPointsLabel" },
-                ) {
-                    Text(totalPointsLabel, style = MaterialTheme.typography.labelLarge, color = onCard.copy(alpha = 0.8f))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(p.points.toString(), style = MaterialTheme.typography.displaySmall, color = onCard)
-                        Icon(Icons.Filled.Star, contentDescription = null, tint = Gold, modifier = Modifier.padding(start = 6.dp).size(26.dp))
-                    }
-                }
-                if (p.weeklyPoints > 0) {
-                    Text(
-                        stringResource(R.string.profile_week_delta, p.weeklyPoints),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = onCard,
-                        modifier = Modifier.background(onCard.copy(alpha = 0.16f), RoundedCornerShape(50)).padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
-                }
-            }
-            val next = nextTier(p)
-            val from = currentTier(p)?.threshold ?: 0
-            Text(
-                next?.let { stringResource(R.string.profile_level_progress, it.threshold - p.successfulReports, stringResource(it.labelRes)) }
-                    ?: stringResource(R.string.profile_max_level),
-                style = MaterialTheme.typography.bodyMedium,
-                color = onCard.copy(alpha = 0.9f),
-                modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
-            )
-            LinearProgressIndicator(
-                progress = { next?.let { (p.successfulReports - from).toFloat() / (it.threshold - from) } ?: 1f },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                color = Gold,
-                trackColor = onCard.copy(alpha = 0.2f),
-                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
-            )
-        }
-    }
-}
 
 @Composable
 private fun StatsCard(p: ProfileOut) {
@@ -273,40 +195,6 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.padding(vertical = 16.dp, horizontal = 4.dp)) {
         Text(value, style = MaterialTheme.typography.titleLarge)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-@Composable
-private fun AchievementsCard(p: ProfileOut) {
-    SectionCard {
-        Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp)) {
-            BADGE_TIERS.forEach { tier ->
-                val unlocked = p.successfulReports >= tier.threshold || p.badges.contains(tier.threshold)
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(88.dp)) {
-                    Box(
-                        modifier = Modifier.size(52.dp).background(
-                            if (unlocked) tier.color.copy(alpha = 0.16f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                            CircleShape,
-                        ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            if (unlocked) tier.icon else Icons.Filled.Lock,
-                            contentDescription = null,
-                            tint = if (unlocked) tier.color else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.size(if (unlocked) 28.dp else 20.dp),
-                        )
-                    }
-                    Text(stringResource(tier.labelRes), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
-                    Text(
-                        if (unlocked) stringResource(R.string.profile_unlocked)
-                        else "${p.successfulReports.coerceAtMost(tier.threshold)}/${tier.threshold}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (unlocked) tier.color else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -380,6 +268,23 @@ private fun MyReportRow(item: ActivityItem) {
 }
 
 @Composable
+private fun IdentityHeader(p: ProfileOut) {
+    val level = ParkItLevel.of(p.level)
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Box(
+            modifier = Modifier.size(72.dp).border(3.dp, level.color, CircleShape).padding(5.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Avatar(p.displayName, MaterialTheme.colorScheme.primary, size = 62.dp, textColor = MaterialTheme.colorScheme.onPrimary)
+        }
+        Column(modifier = Modifier.padding(start = 16.dp)) {
+            Text(p.displayName, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            LevelChip(level, modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
+
+@Composable
 internal fun Avatar(name: String?, background: Color, size: Dp = 40.dp, textColor: Color = Color.White) {
     Box(modifier = Modifier.size(size).background(background, CircleShape), contentAlignment = Alignment.Center) {
         Text(
@@ -390,58 +295,3 @@ internal fun Avatar(name: String?, background: Color, size: Dp = 40.dp, textColo
     }
 }
 
-/** A clean ranked list (Waze's own weekly-ranking pattern) with medal
- * colors for the top three and your own row highlighted — a podium looked
- * playful, but the question people actually ask is "where am I?". */
-@Composable
-private fun LeaderboardCard(entries: List<LeaderboardEntry>, myUserId: String) {
-    SectionCard {
-        if (entries.isEmpty()) {
-            Text(
-                stringResource(R.string.profile_leaderboard_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(20.dp),
-            )
-            return@SectionCard
-        }
-        Column {
-            entries.forEachIndexed { index, entry ->
-                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
-                val isMe = entry.userId == myUserId
-                val medal = when (entry.rank) { 1 -> Gold; 2 -> Silver; 3 -> Bronze; else -> null }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                        .background(if (isMe) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                ) {
-                    Box(
-                        modifier = Modifier.size(28.dp).background(medal?.copy(alpha = 0.18f) ?: Color.Transparent, CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            entry.rank.toString(),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = medal ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Avatar(entry.displayName, medal ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.85f), size = 36.dp)
-                    Text(
-                        if (isMe) "${entry.displayName} · ${stringResource(R.string.profile_you)}" else entry.displayName,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).padding(start = 12.dp),
-                    )
-                    Text(
-                        stringResource(R.string.profile_points_suffix, entry.weeklyPoints),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-        }
-    }
-}

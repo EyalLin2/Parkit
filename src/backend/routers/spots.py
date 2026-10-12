@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth import get_current_user_id
 from database import get_db
 from geocoder import reverse_cached
+from levels import level_for
 from media import delete_photo, save_photo
 from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
 from points import award_points, reconcile_weekly_points
@@ -20,10 +21,8 @@ from schemas import FeedbackCreate, SpotCreate, SpotOut
 router = APIRouter(prefix="/spots", tags=["spots"])
 
 CLAIM_TTL_SECONDS = 120
-REPORT_COOLDOWN_SECONDS = 120
 CANCEL_WINDOW_MINUTES = 2
 DEDUP_RADIUS_M = 15
-EXPIRY_MINUTES = 30
 SAME_SPOT_WINDOW_SECONDS = 600
 SAME_SPOT_THRESHOLD = 2
 SAME_SPOT_BLOCK_SECONDS = 60
@@ -53,7 +52,7 @@ async def _reconcile_spot_states(db: AsyncSession) -> None:
             await db.execute(
                 select(Spot.photo_url).where(
                     Spot.status == SpotStatus.active,
-                    Spot.reported_at < now - timedelta(minutes=EXPIRY_MINUTES),
+                    Spot.reported_at + func.make_interval(0, 0, 0, 0, 0, Spot.ttl_minutes) < now,
                     Spot.photo_url.is_not(None),
                 )
             )
@@ -66,7 +65,10 @@ async def _reconcile_spot_states(db: AsyncSession) -> None:
 
     await db.execute(
         update(Spot)
-        .where(Spot.status == SpotStatus.active, Spot.reported_at < now - timedelta(minutes=EXPIRY_MINUTES))
+        .where(
+            Spot.status == SpotStatus.active,
+            Spot.reported_at + func.make_interval(0, 0, 0, 0, 0, Spot.ttl_minutes) < now,
+        )
         .values(status=SpotStatus.expired, removed_reason=RemovedReason.expired, removed_at=now)
     )
     await db.commit()
@@ -87,6 +89,7 @@ async def report_spot(
         raise HTTPException(404, "Unknown user")
 
     now = datetime.now(timezone.utc)
+    level = level_for(user.points)
     if user.reporting_blocked_until and user.reporting_blocked_until > now:
         raise HTTPException(403, "Reporting temporarily blocked")
 
@@ -129,6 +132,7 @@ async def report_spot(
             payment=payload.payment,
             vehicle_size=payload.vehicle_size,
             address=address,
+            ttl_minutes=level.spot_ttl_minutes,
         )
         db.add(spot)
         award_points(user, POINTS_REPORT)
@@ -141,7 +145,7 @@ async def report_spot(
         await redis.delete(f"photo_staging:{payload.photo_staging_id}")
         spot.photo_url = save_photo(spot.id, base64.b64decode(staged))
 
-    await redis.set(f"report_cooldown:{user_id}", "1", ex=REPORT_COOLDOWN_SECONDS)
+    await redis.set(f"report_cooldown:{user_id}", "1", ex=level.report_cooldown_seconds)
     same_spot_key = f"same_spot_count:{user_id}:{bucket}"
     count = await redis.incr(same_spot_key)
     if count == 1:
@@ -151,6 +155,7 @@ async def report_spot(
 
     await db.commit()
     await db.refresh(spot)
+    spot.reporter_level = level_for(user.points).key if spot.reporter_id == user_id else "newbie"
     return spot
 
 
@@ -167,7 +172,8 @@ async def nearby_spots(
 
     origin = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
     stmt = (
-        select(Spot)
+        select(Spot, User.points)
+        .join(User, User.id == Spot.reporter_id)
         .where(Spot.status == SpotStatus.active)
         .where(ST_DWithin(Spot.location, origin, radius_m))
         .order_by(ST_Distance(Spot.location, origin))
@@ -176,8 +182,13 @@ async def nearby_spots(
         stmt = stmt.where(Spot.spot_type.in_(spot_type))
     if payment:
         stmt = stmt.where(Spot.payment == payment)
-    result = await db.execute(stmt)
-    return list(result.scalars().all())
+    spots = []
+    for spot, reporter_points in (await db.execute(stmt)).all():
+        # Plain attribute, not a column: the reporter's level is derived from
+        # their points at read time (badge + legend pin in the app).
+        spot.reporter_level = level_for(reporter_points).key
+        spots.append(spot)
+    return spots
 
 
 @router.post("/{spot_id}/claim", response_model=SpotOut)

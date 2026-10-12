@@ -197,12 +197,15 @@ private const val LAYER_PINS = "spots-pins"
 private const val COLOR_FREE = "#188038"
 private const val COLOR_MINE = "#1B4F91"
 private const val COLOR_CLAIMED = "#E8710A"
+private const val COLOR_LEGEND = "#7B3FE4"
 
 private val SHEET_PEEK = 114.dp
 
 private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
     spot.status == "claimed" -> COLOR_CLAIMED
     spot.reporterId == myUserId -> COLOR_MINE
+    // Legend-level perk: a distinct purple pin (see levels.py on the backend).
+    spot.reporterLevel == "legend" -> COLOR_LEGEND
     else -> COLOR_FREE
 }
 
@@ -257,7 +260,10 @@ fun MapScreen(
     // "Nearby" means near *you* when we know where you are, otherwise near
     // the pin — the same reference point the search radius uses.
     val reference = deviceLocation ?: geocodeTarget
-    val sortedSpots = visibleSpots.sortedBy { LatLng(it.lat, it.lng).distanceTo(reference) }
+    // Legend-level reports are listed first (a level perk), then by distance.
+    val sortedSpots = visibleSpots.sortedWith(
+        compareBy<SpotOut>({ it.reporterLevel != "legend" }, { LatLng(it.lat, it.lng).distanceTo(reference) }),
+    )
 
     // Street + number for each listed spot, resolved nearest-first so the
     // rows you actually see fill in first.

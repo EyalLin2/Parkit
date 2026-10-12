@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from geoalchemy2 import Geography
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -89,6 +89,9 @@ class Spot(Base):
     address: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     status: Mapped[SpotStatus] = mapped_column(Enum(SpotStatus, name="spot_status"), default=SpotStatus.active)
+    # How long the report stays on the map; set from the reporter's level
+    # when the spot is created (silver and up get longer — see levels.py).
+    ttl_minutes: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
     reported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     claimed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)

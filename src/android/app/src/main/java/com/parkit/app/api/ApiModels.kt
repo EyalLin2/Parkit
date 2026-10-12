@@ -41,6 +41,7 @@ data class SpotOut(
     val status: String,
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
+    @Json(name = "reporter_level") val reporterLevel: String = "newbie",
 )
 
 @JsonClass(generateAdapter = true)
@@ -72,6 +73,10 @@ data class ProfileOut(
     @Json(name = "weekly_points") val weeklyPoints: Int,
     @Json(name = "successful_reports") val successfulReports: Int,
     val badges: List<Int>,
+    val level: String = "newbie",
+    @Json(name = "level_min_points") val levelMinPoints: Int = 0,
+    @Json(name = "next_level") val nextLevel: String? = null,
+    @Json(name = "next_level_points") val nextLevelPoints: Int? = null,
     val activity: List<ActivityItem>,
 )
 
@@ -81,6 +86,7 @@ data class LeaderboardEntry(
     @Json(name = "user_id") val userId: String,
     @Json(name = "display_name") val displayName: String,
     @Json(name = "weekly_points") val weeklyPoints: Int,
+    val level: String = "newbie",
 )
 
 @JsonClass(generateAdapter = true)

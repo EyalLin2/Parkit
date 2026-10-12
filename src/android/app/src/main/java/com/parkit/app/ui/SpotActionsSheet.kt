@@ -217,6 +217,9 @@ fun SpotActionsSheet(
                     isClaimed -> Tag(Icons.Filled.DirectionsCar, stringResource(R.string.spot_someone_on_the_way), Claimed)
                     isMine -> Tag(Icons.Filled.CheckCircle, stringResource(R.string.map_spot_yours), Mine)
                 }
+                ParkItLevel.of(spot.reporterLevel).takeIf { it != ParkItLevel.Newbie }?.let { level ->
+                    Tag(level.icon, stringResource(R.string.spot_reported_by_level, stringResource(level.nameRes)), level.color)
+                }
                 spot.vehicleSize?.let { size ->
                     val label = stringResource(
                         when (size) {

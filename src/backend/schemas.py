@@ -29,6 +29,7 @@ class SpotOut(BaseModel):
     status: SpotStatus
     reported_at: datetime
     claimed_by: uuid.UUID | None
+    reporter_level: str = "newbie"
 
     model_config = {"from_attributes": True}
 
@@ -55,7 +56,11 @@ class ProfileOut(BaseModel):
     points: int
     weekly_points: int
     successful_reports: int
-    badges: list[int]
+    badges: list[int]  # deprecated: replaced by levels, kept for older app builds
+    level: str
+    level_min_points: int
+    next_level: str | None
+    next_level_points: int | None
     activity: list[ActivityItem]
 
 
@@ -64,6 +69,7 @@ class LeaderboardEntry(BaseModel):
     user_id: uuid.UUID
     display_name: str
     weekly_points: int
+    level: str
 
 
 class ReverseGeocodeOut(BaseModel):

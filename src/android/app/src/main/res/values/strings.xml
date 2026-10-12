@@ -189,4 +189,25 @@
     <string name="map_locating_you">Finding your location…</string>
     <string name="map_location_unavailable">Couldn\'t get your location — showing Tel Aviv</string>
     <string name="map_outside_service_area">ParkIt currently works in Israel only</string>
+    <string name="level_newbie">Newbie</string>
+    <string name="level_bronze">Bronze</string>
+    <string name="level_silver">Silver</string>
+    <string name="level_gold">Gold</string>
+    <string name="level_legend">Legend</string>
+    <string name="perk_newbie">Report, navigate, weekly league</string>
+    <string name="perk_bronze">A bronze badge by your name and on your reports</string>
+    <string name="perk_silver">Your reports stay on the map 45 min instead of 30</string>
+    <string name="perk_gold">1 minute between reports instead of 2</string>
+    <string name="perk_legend">A special purple pin, and your reports listed first</string>
+    <string name="level_title">%1$s level</string>
+    <string name="level_points_total">%1$d points</string>
+    <string name="level_to_next">%1$d pts to %2$s</string>
+    <string name="level_next_perk">%1$s unlocks: %2$s</string>
+    <string name="level_max">Top level reached — you\'re a legend</string>
+    <string name="levels_title">Levels &amp; perks</string>
+    <string name="level_threshold">%1$d pts</string>
+    <string name="level_yours">You</string>
+    <string name="level_earn_hint">Report = +10 · someone parks in your spot = +5 · false report = −5</string>
+    <string name="league_subtitle">Points this week · resets every week</string>
+    <string name="spot_reported_by_level">Reported by a %1$s driver</string>
 </resources>

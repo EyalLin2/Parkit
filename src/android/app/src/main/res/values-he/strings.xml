@@ -196,4 +196,25 @@
     <string name="map_locating_you">מאתר את מיקומך…</string>
     <string name="map_location_unavailable">לא הצלחנו לאתר את המיקום — מוצגת תל אביב</string>
     <string name="map_outside_service_area">ParkIt פועלת כרגע רק בישראל</string>
+    <string name="level_newbie">חדש</string>
+    <string name="level_bronze">ארד</string>
+    <string name="level_silver">כסף</string>
+    <string name="level_gold">זהב</string>
+    <string name="level_legend">אגדה</string>
+    <string name="perk_newbie">דיווח, ניווט וליגה שבועית</string>
+    <string name="perk_bronze">תג ארד ליד השם שלך ועל הדיווחים שלך</string>
+    <string name="perk_silver">הדיווחים שלך נשארים על המפה 45 דק׳ במקום 30</string>
+    <string name="perk_gold">דקה בין דיווחים במקום 2</string>
+    <string name="perk_legend">פין סגול מיוחד, והדיווחים שלך ראשונים ברשימה</string>
+    <string name="level_title">רמת %1$s</string>
+    <string name="level_points_total">%1$d נקודות</string>
+    <string name="level_to_next">עוד %1$d נק׳ לרמת %2$s</string>
+    <string name="level_next_perk">רמת %1$s פותחת: %2$s</string>
+    <string name="level_max">הגעת לרמה הגבוהה ביותר — אגדה</string>
+    <string name="levels_title">הרמות וההטבות</string>
+    <string name="level_threshold">%1$d נק׳</string>
+    <string name="level_yours">את/ה כאן</string>
+    <string name="level_earn_hint">דיווח = ‎+10 · מישהו חנה בדיווח שלך = ‎+5 · דיווח שווא = ‎−5</string>
+    <string name="league_subtitle">נקודות השבוע · מתאפס בכל שבוע</string>
+    <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
 </resources>
