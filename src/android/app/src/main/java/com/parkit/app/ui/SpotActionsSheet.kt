@@ -95,6 +95,7 @@ fun SpotActionsSheet(
     onDismiss: () -> Unit,
     onChanged: () -> Unit,
     onClaimed: (SpotOut) -> Unit,
+    onParked: () -> Unit,
     onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -303,7 +304,12 @@ fun SpotActionsSheet(
                         icon = Icons.Filled.CheckCircle,
                         color = Free,
                         enabled = !busy,
-                        onClick = { run { api.submitFeedback(spot.id, FeedbackCreate("confirmed_taken")) } },
+                        onClick = {
+                            run {
+                                api.submitFeedback(spot.id, FeedbackCreate("confirmed_taken"))
+                                onParked()
+                            }
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     FeedbackOption(

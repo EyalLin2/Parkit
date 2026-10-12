@@ -208,7 +208,6 @@
     <string name="spot_reported_by_level">Reported by a %1$s driver</string>
     <string name="claim_trip_title">You\'re on your way</string>
     <string name="claim_held_for_you">held for you</string>
-    <string name="claim_parked_thanks">Thanks! The reporter got points for a good spot</string>
     <string name="claim_taken_thanks">Thanks — we warned other drivers</string>
     <string name="claim_expired">Time\'s up — the spot is back on the map</string>
     <!-- Driver profile: car, permits, preferred area -->
@@ -264,4 +263,6 @@
     <string name="lot_kind_surface">Open-air</string>
     <string name="lot_capacity">%1$d spaces</string>
     <string name="lot_source_note">Lot data from OpenStreetMap — check the entrance for hours and prices.</string>
+    <string name="parked_pango_prompt">Parked! Blue-white? Start parking in Pango</string>
+    <string name="parked_pango_action">Pango</string>
 </resources>

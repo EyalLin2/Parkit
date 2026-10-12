@@ -214,7 +214,6 @@
     <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
     <string name="claim_trip_title">בדרך לחניה</string>
     <string name="claim_held_for_you">שמורה לך</string>
-    <string name="claim_parked_thanks">תודה! המדווח קיבל נקודות על חניה טובה</string>
     <string name="claim_taken_thanks">תודה — עדכנו את שאר הנהגים</string>
     <string name="claim_expired">הזמן נגמר — החניה חזרה למפה</string>
     <!-- פרופיל נהג: רכב, תגים, אזור מועדף -->
@@ -272,4 +271,6 @@
     <string name="lot_kind_surface">פתוח</string>
     <string name="lot_capacity">%1$d מקומות</string>
     <string name="lot_source_note">נתוני החניונים מ-OpenStreetMap — שעות ומחירים בכניסה לחניון.</string>
+    <string name="parked_pango_prompt">חנית! כחול-לבן? אפשר להפעיל חניה בפנגו</string>
+    <string name="parked_pango_action">פנגו</string>
 </resources>

@@ -385,6 +385,19 @@ fun MapScreen(
         }
     }
 
+    /** Right after "I parked": thanks + a one-tap hand-off to Pango in case
+     * it's blue-white. A snackbar, not a dialog — it goes away by itself
+     * and never blocks the map. */
+    suspend fun offerPango() {
+        val result = snackbarHostState.showSnackbar(
+            message = context.getString(R.string.parked_pango_prompt),
+            actionLabel = context.getString(R.string.parked_pango_action),
+            withDismissAction = true,
+            duration = androidx.compose.material3.SnackbarDuration.Long,
+        )
+        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) PangoLink.open(context)
+    }
+
     /** No usable GPS: open on the driver's preferred city, else Tel Aviv. */
     fun showTelAvivFallback(message: Int?) {
         if (deviceLocation == null && !userTookOver) {
@@ -667,10 +680,8 @@ fun MapScreen(
                                 try {
                                     api.submitFeedback(claim.id, com.parkit.app.api.FeedbackCreate(type))
                                     activeClaim = null
-                                    snackbarHostState.showSnackbar(
-                                        context.getString(if (type == "confirmed_taken") R.string.claim_parked_thanks else R.string.claim_taken_thanks),
-                                    )
                                     refreshSpotsNow()
+                                    if (type == "confirmed_taken") offerPango() else snackbarHostState.showSnackbar(context.getString(R.string.claim_taken_thanks))
                                 } catch (e: Exception) {
                                     snackbarHostState.showSnackbar(e.friendlyMessage(context))
                                 }
@@ -762,6 +773,7 @@ fun MapScreen(
                 selectedSpot = null
                 refreshSpotsNow()
             },
+            onParked = { scope.launch { offerPango() } },
             onClaimed = { claimed ->
                 selectedSpot = null
                 activeClaim = claimed
