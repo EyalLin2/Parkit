@@ -1,0 +1,26 @@
+name: Bug
+description: Something works incorrectly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Steps, screen, device/emulator, app language.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Android app, Backend / API, Infrastructure, Not sure]
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options: [Blocks launch, Hurts users, Minor]
