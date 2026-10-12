@@ -145,7 +145,6 @@
     <string name="map_nearby_none">אין עדיין חניות פנויות בסביבה</string>
     <string name="map_nearby_empty_hint">ראית חניה? דווח וצבור נקודות.</string>
     <string name="map_nearest">הקרובה ביותר: %1$s · %2$s</string>
-    <string name="map_report_button">דיווח</string>
     <string name="map_spot_yours">הדיווח שלך</string>
     <string name="distance_m">%1$d מ׳</string>
     <string name="distance_km">%1$.1f ק״מ</string>
@@ -188,8 +187,8 @@
     <string name="spot_photo_cd">תמונת החניה</string>
     <string name="spot_still_free_question">החניה עדיין פנויה?</string>
     <string name="spot_distance_away">במרחק %1$s</string>
-    <string name="map_report_fab">דווח על חניה</string>
     <string name="map_nearby_searching">מחפש חניות פנויות…</string>
     <string name="map_nearby_searching_hint">בודק דיווחים סביב הנעץ</string>
     <string name="map_address_unavailable">לא הצלחנו לאתר כתובת</string>
+    <string name="map_report_here">דווח על חניה כאן</string>
 </resources>

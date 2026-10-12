@@ -43,6 +43,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.MyLocation
@@ -70,6 +71,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -438,6 +440,15 @@ fun MapScreen(
             AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
 
             CenterPin(lifted = cameraMoving, modifier = Modifier.align(Alignment.Center))
+            // The report action lives on the pin itself (Uber's "set pickup"
+            // pattern): the pin IS the spot being reported. Hidden while the
+            // map moves, and when the nearby list is pulled up over the pin.
+            ReportHereBubble(
+                visible = !cameraMoving && mapRendered && !showReportFlow &&
+                    sheetState.targetValue != SheetValue.Expanded,
+                onClick = { showReportFlow = true },
+                modifier = Modifier.align(Alignment.Center),
+            )
 
             androidx.compose.animation.AnimatedVisibility(
                 visible = !mapRendered,
@@ -469,22 +480,8 @@ fun MapScreen(
                 }
             }
 
-            // Both floating actions ride the sheet's top edge (Google Maps'
-            // locate-button pattern) so they move with it and are never
-            // covered. Report is its own one-tap button on the map — Waze's
-            // model — not an action buried inside the nearby-spots sheet.
-            val fabHeight = 60.dp
-            ReportFab(
-                onClick = { showReportFlow = true },
-                height = fabHeight,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset {
-                        val top = sheetTopPx?.toInt() ?: 0
-                        IntOffset(-16.dp.roundToPx(), top - fabHeight.roundToPx() - 16.dp.roundToPx())
-                    },
-            )
-
+            // Rides the sheet's top edge (Google Maps' locate-button pattern)
+            // so it moves with it and is never covered.
             val buttonSize = 48.dp
             Surface(
                 shape = CircleShape,
@@ -494,7 +491,7 @@ fun MapScreen(
                     .align(Alignment.TopEnd)
                     .offset {
                         val top = sheetTopPx?.toInt() ?: 0
-                        IntOffset(-22.dp.roundToPx(), top - fabHeight.roundToPx() - buttonSize.roundToPx() - 28.dp.roundToPx())
+                        IntOffset(-20.dp.roundToPx(), top - buttonSize.roundToPx() - 16.dp.roundToPx())
                     }
                     .size(buttonSize)
                     .clickable {
@@ -823,38 +820,99 @@ private fun formatDistance(context: android.content.Context, meters: Double): St
     if (meters < 1000) context.getString(R.string.distance_m, (Math.round(meters / 10.0) * 10).toInt())
     else context.getString(R.string.distance_km, meters / 1000.0)
 
-/** The app's single most important action, as one big tap target on the
- * map itself: brand-colored pill, icon + label (an icon alone was easy to
- * miss), bouncing in once on entry so the eye finds it immediately. */
-@Composable
-private fun ReportFab(onClick: () -> Unit, height: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
-    var entered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered = true }
-    val scale by animateFloatAsState(
-        targetValue = if (entered) 1f else 0.4f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "reportFabEntrance",
-    )
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        shadowElevation = 10.dp,
-        modifier = modifier.height(height).graphicsLayer { scaleX = scale; scaleY = scale },
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 18.dp, end = 24.dp)) {
-            Box(
-                modifier = Modifier.size(34.dp).background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(24.dp))
-            }
-            Text(
-                stringResource(R.string.map_report_fab),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 10.dp),
+/** Speech-bubble outline: rounded body plus a centered tail, as ONE path,
+ * so a single shadow follows the whole silhouette (two separate shapes
+ * left a visible seam where the tail met the pill). */
+private class BubbleShape(private val cornerPx: Float, private val tailWidthPx: Float, private val tailHeightPx: Float) : androidx.compose.ui.graphics.Shape {
+    override fun createOutline(
+        size: androidx.compose.ui.geometry.Size,
+        layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+        density: androidx.compose.ui.unit.Density,
+    ): androidx.compose.ui.graphics.Outline {
+        val bodyBottom = size.height - tailHeightPx
+        val path = androidx.compose.ui.graphics.Path().apply {
+            addRoundRect(
+                androidx.compose.ui.geometry.RoundRect(
+                    0f, 0f, size.width, bodyBottom,
+                    androidx.compose.ui.geometry.CornerRadius(cornerPx, cornerPx),
+                ),
             )
+            val cx = size.width / 2f
+            moveTo(cx - tailWidthPx / 2f, bodyBottom - 1f)
+            quadraticBezierTo(cx - tailWidthPx / 6f, bodyBottom + tailHeightPx * 0.2f, cx, size.height)
+            quadraticBezierTo(cx + tailWidthPx / 6f, bodyBottom + tailHeightPx * 0.2f, cx + tailWidthPx / 2f, bodyBottom - 1f)
+            close()
+        }
+        return androidx.compose.ui.graphics.Outline.Generic(path)
+    }
+}
+
+/** "Report a spot here" — anchored to the center pin, because the pin is
+ * exactly the spot being reported. Springs in once the map settles, gives
+ * press feedback, and its arrow (auto-mirrored for Hebrew) reads as
+ * "tap to continue" rather than as a label. */
+@Composable
+private fun ReportHereBubble(visible: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    val shape = remember(density) {
+        with(density) { BubbleShape(cornerPx = 22.dp.toPx(), tailWidthPx = 18.dp.toPx(), tailHeightPx = 8.dp.toPx()) }
+    }
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (pressed) 0.95f else 1f, label = "bubblePress")
+    val bodyHeight = 44.dp
+    val tail = 8.dp
+
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(160)) +
+            androidx.compose.animation.scaleIn(
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
+                initialScale = 0.6f,
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f),
+            ),
+        exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)) +
+            androidx.compose.animation.scaleOut(
+                targetScale = 0.6f,
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f),
+            ),
+        // Pin head top sits 46dp above center; the tail tip lands 6dp above it.
+        modifier = modifier.offset(y = -(46.dp + 6.dp + (bodyHeight + tail) / 2)),
+    ) {
+        Surface(
+            onClick = onClick,
+            interactionSource = interaction,
+            shape = shape,
+            color = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shadowElevation = 8.dp,
+            modifier = Modifier.height(bodyHeight + tail).graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+            },
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = tail).height(bodyHeight).padding(start = 6.dp, end = 10.dp),
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(MaterialTheme.colorScheme.onPrimary, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                }
+                Text(
+                    stringResource(R.string.map_report_here),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                    modifier = Modifier.padding(start = 10.dp, end = 2.dp),
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }

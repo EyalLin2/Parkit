@@ -138,7 +138,6 @@
     <string name="map_nearby_none">No free spots nearby yet</string>
     <string name="map_nearby_empty_hint">Spotted one? Report it and earn points.</string>
     <string name="map_nearest">Nearest %1$s away · %2$s</string>
-    <string name="map_report_button">Report</string>
     <string name="map_spot_yours">Your report</string>
     <string name="distance_m">%1$d m</string>
     <string name="distance_km">%1$.1f km</string>
@@ -181,8 +180,8 @@
     <string name="spot_photo_cd">Photo of the spot</string>
     <string name="spot_still_free_question">Is the spot still free?</string>
     <string name="spot_distance_away">%1$s away</string>
-    <string name="map_report_fab">Report a spot</string>
     <string name="map_nearby_searching">Looking for free spots…</string>
     <string name="map_nearby_searching_hint">Checking reports around the pin</string>
     <string name="map_address_unavailable">Couldn\'t get the address</string>
+    <string name="map_report_here">Report a spot here</string>
 </resources>
