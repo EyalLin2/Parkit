@@ -9,6 +9,7 @@ from database import get_db
 from levels import level_for, next_level
 from models import RemovedReason, Spot, User
 from points import reconcile_weekly_points
+from routers.me import preferences_of
 from schemas import ActivityItem, LeaderboardEntry, ProfileOut
 
 router = APIRouter(tags=["users"])
@@ -60,6 +61,7 @@ async def my_profile(
         level_min_points=level.min_points,
         next_level=upcoming.key if upcoming else None,
         next_level_points=upcoming.min_points if upcoming else None,
+        preferences=preferences_of(user),
         activity=[
             ActivityItem(
                 spot_id=s.id,

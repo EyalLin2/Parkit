@@ -89,6 +89,7 @@ fun ReportFlowSheet(
     lng: Double,
     addressLabel: String?,
     streetAddress: String?,
+    defaultVehicleSize: String?,
     onDismiss: () -> Unit,
     onReported: () -> Unit,
     onSessionExpired: () -> Unit,
@@ -102,7 +103,7 @@ fun ReportFlowSheet(
     var facesBlurred by remember { mutableStateOf<Int?>(null) }
     var uploading by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf("street") }
-    var selectedVehicleSize by remember { mutableStateOf("regular") }
+    var selectedVehicleSize by remember { mutableStateOf(defaultVehicleSize ?: "regular") }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 

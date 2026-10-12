@@ -30,6 +30,8 @@ class SpotOut(BaseModel):
     reported_at: datetime
     claimed_by: uuid.UUID | None
     reporter_level: str = "newbie"
+    permit_zone: str | None = None  # "tel-aviv:9" when inside a resident zone
+    permit_zone_label: str | None = None  # "אזור 9"
 
     model_config = {"from_attributes": True}
 
@@ -61,6 +63,7 @@ class ProfileOut(BaseModel):
     level_min_points: int
     next_level: str | None
     next_level_points: int | None
+    preferences: "Preferences"
     activity: list[ActivityItem]
 
 
@@ -75,3 +78,46 @@ class LeaderboardEntry(BaseModel):
 class ReverseGeocodeOut(BaseModel):
     label: str | None
     street: str | None
+
+
+class Preferences(BaseModel):
+    vehicle_size: VehicleSize | None = None
+    car_label: str | None = Field(default=None, max_length=120)
+    has_disabled_permit: bool = False
+    home_city: str | None = Field(default=None, max_length=120)
+    resident_zone: str | None = Field(default=None, max_length=60)
+
+
+class PreferencesUpdate(BaseModel):
+    """PATCH semantics: only fields present in the request are changed."""
+
+    vehicle_size: VehicleSize | None = None
+    car_label: str | None = Field(default=None, max_length=120)
+    has_disabled_permit: bool | None = None
+    home_city: str | None = Field(default=None, max_length=120)
+    resident_zone: str | None = Field(default=None, max_length=60)
+
+
+class CityOut(BaseModel):
+    name: str
+    name_en: str | None = None
+    lat: float
+    lng: float
+
+
+class VehicleLookupOut(BaseModel):
+    make: str
+    model: str
+    year: int | None
+    body: str | None
+    size: VehicleSize
+    label: str
+
+
+class PermitZoneOut(BaseModel):
+    key: str
+    city: str
+    label: str
+
+
+ProfileOut.model_rebuild()

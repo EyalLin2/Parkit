@@ -75,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -194,6 +195,11 @@ private const val SOURCE_SPOTS = "spots"
 private const val LAYER_CLUSTERS = "spots-clusters"
 private const val LAYER_CLUSTER_COUNT = "spots-cluster-count"
 private const val LAYER_PINS = "spots-pins"
+private const val SOURCE_ZONES = "permit-zones"
+private const val LAYER_ZONE_MINE = "permit-zone-mine"
+private const val LAYER_ZONE_LINES = "permit-zone-lines"
+private const val LAYER_ZONE_LABELS = "permit-zone-labels"
+private const val COLOR_ZONE = "#7B3FE4"
 
 // Google-Maps-adjacent status colors: green = go, brand blue = yours,
 // amber = someone is already on their way.
@@ -233,6 +239,8 @@ fun MapScreen(
     val isDarkTheme = com.parkit.app.ui.theme.isDarkThemeActive()
     val language = context.resources.configuration.locales[0].language
     val myUserId = sessionStore.userId.value
+    val driverPrefs = sessionStore.driver.value
+    val homeCentre = driverPrefs.homeLat?.let { lat -> driverPrefs.homeLng?.let { lng -> LatLng(lat, lng) } }
 
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var style by remember { mutableStateOf<Style?>(null) }
@@ -257,7 +265,7 @@ fun MapScreen(
     var locating by remember { mutableStateOf(true) }
     var userTookOver by remember { mutableStateOf(false) }
 
-    var geocodeTarget by remember { mutableStateOf(startFix ?: TEL_AVIV) }
+    var geocodeTarget by remember { mutableStateOf(startFix ?: homeCentre ?: TEL_AVIV) }
     var resolvedAddress by remember { mutableStateOf<String?>(null) }
     var resolvedStreet by remember { mutableStateOf<String?>(null) }
     // True from the moment the map starts moving until the new pin address
@@ -273,9 +281,15 @@ fun MapScreen(
     // "Nearby" means near *you* when we know where you are, otherwise near
     // the pin — the same reference point the search radius uses.
     val reference = deviceLocation ?: geocodeTarget
-    // Legend-level reports are listed first (a level perk), then by distance.
+    // Spots this driver can't use (disabled bay without a permit, too small
+    // for their car) go last; then legend-level reports (a level perk); then
+    // distance.
     val sortedSpots = visibleSpots.sortedWith(
-        compareBy<SpotOut>({ it.reporterLevel != "legend" }, { LatLng(it.lat, it.lng).distanceTo(reference) }),
+        compareBy<SpotOut>(
+            { fitOf(it, driverPrefs.preferences).unusable },
+            { it.reporterLevel != "legend" },
+            { LatLng(it.lat, it.lng).distanceTo(reference) },
+        ),
     )
 
     // Street + number for each listed spot, resolved nearest-first so the
@@ -352,10 +366,12 @@ fun MapScreen(
         }
     }
 
+    /** No usable GPS: open on the driver's preferred city, else Tel Aviv. */
     fun showTelAvivFallback(message: Int?) {
         if (deviceLocation == null && !userTookOver) {
-            geocodeTarget = TEL_AVIV
-            flyTo(TEL_AVIV)
+            val target = homeCentre ?: TEL_AVIV
+            geocodeTarget = target
+            flyTo(target)
         }
         message?.let { scope.launch { snackbarHostState.showSnackbar(context.getString(it)) } }
     }
@@ -489,6 +505,24 @@ fun MapScreen(
         }
     }
 
+    // Resident-permit zones: drawn only for drivers who hold a permit — for
+    // everyone else they'd be clutter. Own zone tinted, the rest outlined.
+    val residentZone = driverPrefs.preferences.residentZone
+    var zoneOutlines by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(residentZone) {
+        if (residentZone != null && zoneOutlines == null) {
+            zoneOutlines = try { api.permitZoneOutlines().string() } catch (_: Exception) { null }
+        }
+    }
+    LaunchedEffect(style, residentZone, zoneOutlines) {
+        val s = style ?: return@LaunchedEffect
+        val geojson = zoneOutlines
+        listOf(LAYER_ZONE_LABELS, LAYER_ZONE_LINES, LAYER_ZONE_MINE).forEach { s.removeLayer(it) }
+        s.removeSource(SOURCE_ZONES)
+        if (residentZone == null || geojson == null) return@LaunchedEffect
+        installZoneLayers(s, geojson, residentZone, context.getString(R.string.map_zone_label, "").trim())
+    }
+
     // Push spot data into the map whenever it, the filter, or the selection changes.
     LaunchedEffect(style, visibleSpots, selectedSpot?.id) {
         val s = style ?: return@LaunchedEffect
@@ -537,6 +571,7 @@ fun MapScreen(
                 addresses = spotAddresses,
                 reference = reference,
                 myUserId = myUserId,
+                prefs = driverPrefs.preferences,
                 onSpotClick = { spot ->
                     flyTo(LatLng(spot.lat, spot.lng), 16.5)
                     selectedSpot = spot
@@ -665,6 +700,7 @@ fun MapScreen(
             lng = geocodeTarget.longitude,
             addressLabel = if (addressLoading) null else resolvedAddress,
             streetAddress = resolvedStreet,
+            defaultVehicleSize = driverPrefs.preferences.vehicleSize,
             onDismiss = { showReportFlow = false },
             onReported = {
                 showReportFlow = false
@@ -680,6 +716,7 @@ fun MapScreen(
             api = api,
             spot = spot,
             myUserId = myUserId,
+            fit = fitOf(spot, driverPrefs.preferences),
             distanceLabel = context.getString(
                 R.string.spot_distance_away,
                 formatDistance(context, LatLng(spot.lat, spot.lng).distanceTo(reference)),
@@ -744,6 +781,42 @@ private fun installSpotLayers(style: Style, dark: Boolean) {
             ),
             PropertyFactory.symbolSortKey(Expression.get("age")),
         ),
+    )
+}
+
+/** Zone outlines under the pins: a light tint on the driver's own zone,
+ * dashed borders and a "Zone N" label for every zone. */
+private fun installZoneLayers(style: Style, geojson: String, myZone: String, zoneWord: String) {
+    style.addSource(GeoJsonSource(SOURCE_ZONES, geojson))
+    val mine = Expression.eq(Expression.get("key"), Expression.literal(myZone))
+    style.addLayerBelow(
+        org.maplibre.android.style.layers.FillLayer(LAYER_ZONE_MINE, SOURCE_ZONES).withFilter(mine).withProperties(
+            PropertyFactory.fillColor(COLOR_ZONE),
+            PropertyFactory.fillOpacity(0.08f),
+        ),
+        LAYER_CLUSTERS,
+    )
+    style.addLayerBelow(
+        org.maplibre.android.style.layers.LineLayer(LAYER_ZONE_LINES, SOURCE_ZONES).withProperties(
+            PropertyFactory.lineColor(COLOR_ZONE),
+            PropertyFactory.lineWidth(Expression.switchCase(mine, Expression.literal(2.5f), Expression.literal(1.2f))),
+            PropertyFactory.lineOpacity(Expression.switchCase(mine, Expression.literal(0.9f), Expression.literal(0.5f))),
+            PropertyFactory.lineDasharray(arrayOf(3f, 2f)),
+        ),
+        LAYER_CLUSTERS,
+    )
+    // Word first, number after, as one label: "אזור 9" / "Zone 9".
+    style.addLayerBelow(
+        SymbolLayer(LAYER_ZONE_LABELS, SOURCE_ZONES).withProperties(
+            PropertyFactory.textField(Expression.concat(Expression.literal("$zoneWord "), Expression.get("number"))),
+            PropertyFactory.textFont(arrayOf("Noto Sans Bold")),
+            PropertyFactory.textSize(13f),
+            PropertyFactory.textColor(COLOR_ZONE),
+            PropertyFactory.textHaloColor("#FFFFFF"),
+            PropertyFactory.textHaloWidth(1.5f),
+            PropertyFactory.textOpacity(Expression.switchCase(mine, Expression.literal(1f), Expression.literal(0.7f))),
+        ),
+        LAYER_CLUSTERS,
     )
 }
 
@@ -882,6 +955,7 @@ private fun NearbySheet(
     addresses: Map<String, String>,
     reference: LatLng,
     myUserId: String?,
+    prefs: com.parkit.app.api.Preferences,
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -897,9 +971,10 @@ private fun NearbySheet(
                     else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
                     style = MaterialTheme.typography.titleLarge,
                 )
-                // The list puts legend reports first, so "nearest" must be
-                // computed, not taken from the top of the list.
-                val nearest = spots.minByOrNull { LatLng(it.lat, it.lng).distanceTo(reference) }
+                // The list isn't purely by distance, so "nearest" is computed —
+                // and it's the nearest one this driver can actually use.
+                val nearest = (spots.filterNot { fitOf(it, prefs).unusable }.ifEmpty { spots })
+                    .minByOrNull { LatLng(it.lat, it.lng).distanceTo(reference) }
                 Text(
                     if (!loaded) stringResource(R.string.map_nearby_searching_hint)
                     else if (nearest == null) stringResource(R.string.map_nearby_empty_hint)
@@ -919,7 +994,7 @@ private fun NearbySheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             LazyColumn(modifier = Modifier.fillMaxWidth().height(360.dp)) {
                 items(spots, key = { it.id }) { spot ->
-                    SpotRow(spot, spot.address ?: addresses[spot.id], reference, myUserId, onClick = { onSpotClick(spot) })
+                    SpotRow(spot, spot.address ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
                 }
             }
         }
@@ -927,13 +1002,15 @@ private fun NearbySheet(
 }
 
 @Composable
-private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId: String?, onClick: () -> Unit) {
+private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId: String?, fit: DriverFit, onClick: () -> Unit) {
     val context = LocalContext.current
     val color = Color(android.graphics.Color.parseColor(pinColor(spot, myUserId)))
     val disabled = spot.spotType == "disabled"
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp)
+            // Still listed (the driver may know better), just visibly secondary.
+            .alpha(if (fit.unusable) 0.55f else 1f),
     ) {
         Box(
             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.12f)),
@@ -981,6 +1058,9 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            fitNote(fit)?.let { (text, color) ->
+                Text(text, style = MaterialTheme.typography.labelMedium, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
         Spacer(Modifier.width(8.dp))
         Text(
@@ -989,6 +1069,16 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+/** The one line a list row has room for, most important first. */
+@Composable
+private fun fitNote(fit: DriverFit): Pair<String, Color>? = when {
+    fit.needsDisabledPermit -> stringResource(R.string.fit_needs_disabled_permit) to MaterialTheme.colorScheme.onSurfaceVariant
+    fit.tooSmall -> stringResource(R.string.fit_too_small) to MaterialTheme.colorScheme.onSurfaceVariant
+    fit.inMyZone -> stringResource(R.string.fit_in_my_zone, fit.zoneLabel ?: "") to Color(0xFF188038)
+    fit.zoneLabel != null -> stringResource(R.string.fit_resident_zone, fit.zoneLabel) to Color(0xFFB06000)
+    else -> null
 }
 
 private fun formatDistance(context: android.content.Context, meters: Double): String =

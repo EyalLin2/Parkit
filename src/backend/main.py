@@ -9,6 +9,7 @@ from media import MEDIA_DIR
 from redis_client import check_redis
 from routers.auth import router as auth_router
 from routers.geocode import router as geocode_router
+from routers.me import router as me_router
 from routers.photos import router as photos_router
 from routers.spots import router as spots_router
 from routers.users import router as users_router
@@ -28,6 +29,7 @@ app.include_router(spots_router)
 app.include_router(users_router)
 app.include_router(photos_router)
 app.include_router(geocode_router)
+app.include_router(me_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 

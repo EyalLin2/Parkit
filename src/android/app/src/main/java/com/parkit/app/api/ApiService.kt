@@ -4,6 +4,7 @@ import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -39,6 +40,24 @@ interface ApiService {
 
     @GET("users/me")
     suspend fun myProfile(): ProfileOut
+
+    /** Sends the whole set: the screen edits all of it, and an explicit null
+     * clears a value (the client serializes nulls for exactly this). */
+    @PATCH("users/me/preferences")
+    suspend fun updatePreferences(@Body body: Preferences): Preferences
+
+    @GET("vehicles/lookup")
+    suspend fun lookupVehicle(@Query("plate") plate: String): VehicleLookupOut
+
+    @GET("permit-zones")
+    suspend fun permitZones(): List<PermitZoneOut>
+
+    /** Raw GeoJSON, handed straight to the map engine. */
+    @GET("permit-zones/geojson")
+    suspend fun permitZoneOutlines(): okhttp3.ResponseBody
+
+    @GET("places/cities")
+    suspend fun cities(): List<CityOut>
 
     @GET("leaderboard")
     suspend fun leaderboard(@Query("limit") limit: Int = 10): List<LeaderboardEntry>

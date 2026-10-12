@@ -42,6 +42,8 @@ data class SpotOut(
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
     @Json(name = "reporter_level") val reporterLevel: String = "newbie",
+    @Json(name = "permit_zone") val permitZone: String? = null,
+    @Json(name = "permit_zone_label") val permitZoneLabel: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -78,6 +80,42 @@ data class ProfileOut(
     @Json(name = "next_level") val nextLevel: String? = null,
     @Json(name = "next_level_points") val nextLevelPoints: Int? = null,
     val activity: List<ActivityItem>,
+    val preferences: Preferences = Preferences(),
+)
+
+/** The driver's car and parking preferences. The plate itself is never
+ * sent here — only what was looked up from it. */
+@JsonClass(generateAdapter = true)
+data class Preferences(
+    @Json(name = "vehicle_size") val vehicleSize: String? = null,
+    @Json(name = "car_label") val carLabel: String? = null,
+    @Json(name = "has_disabled_permit") val hasDisabledPermit: Boolean = false,
+    @Json(name = "home_city") val homeCity: String? = null,
+    @Json(name = "resident_zone") val residentZone: String? = null,
+) {
+    val isEmpty: Boolean
+        get() = vehicleSize == null && !hasDisabledPermit && homeCity == null && residentZone == null
+}
+
+@JsonClass(generateAdapter = true)
+data class VehicleLookupOut(
+    val make: String,
+    val model: String,
+    val year: Int?,
+    val body: String?,
+    val size: String,
+    val label: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class PermitZoneOut(val key: String, val city: String, val label: String)
+
+@JsonClass(generateAdapter = true)
+data class CityOut(
+    val name: String,
+    @Json(name = "name_en") val nameEn: String? = null,
+    val lat: Double,
+    val lng: Double,
 )
 
 @JsonClass(generateAdapter = true)

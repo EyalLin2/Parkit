@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.Lock
@@ -80,7 +82,14 @@ private const val REPORTS_PREVIEW = 4
  * flat outlined sections. Settings no longer live here at all — they have
  * their own screen behind the gear, like every mainstream app. */
 @Composable
-fun ProfileScreen(api: ApiService, onBack: () -> Unit, onOpenSettings: () -> Unit, onSessionExpired: () -> Unit) {
+fun ProfileScreen(
+    api: ApiService,
+    sessionStore: com.parkit.app.auth.SessionStore,
+    onBack: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenDriver: () -> Unit,
+    onSessionExpired: () -> Unit,
+) {
     val context = LocalContext.current
     var profile by remember { mutableStateOf<ProfileOut?>(null) }
     var leaderboard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }
@@ -88,7 +97,7 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onOpenSettings: () -> Uni
 
     LaunchedEffect(Unit) {
         try {
-            profile = api.myProfile()
+            profile = api.myProfile().also { sessionStore.syncDriver(it.preferences) }
             leaderboard = api.leaderboard(10)
         } catch (e: Exception) {
             if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
@@ -121,6 +130,8 @@ fun ProfileScreen(api: ApiService, onBack: () -> Unit, onOpenSettings: () -> Uni
             item { IdentityHeader(p) }
             item { LevelHeroCard(p, dark = com.parkit.app.ui.theme.isDarkThemeActive()) }
             item { StatsCard(p) }
+            item { SectionTitle(stringResource(R.string.driver_title)) }
+            item { DriverSummaryCard(sessionStore.driver.value.preferences, onOpenDriver) }
             item { SectionTitle(stringResource(R.string.levels_title)) }
             item { LevelLadder(points = p.points, current = ParkItLevel.of(p.level)) }
             item { SectionTitle(stringResource(R.string.profile_leaderboard_title)) }
@@ -186,6 +197,45 @@ private fun StatsCard(p: ProfileOut) {
             Stat(p.activity.size.toString(), stringResource(R.string.profile_total_reports), Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(40.dp).background(MaterialTheme.colorScheme.outline))
             Stat(p.weeklyPoints.toString(), stringResource(R.string.profile_this_week), Modifier.weight(1f))
+        }
+    }
+}
+
+/** One-glance summary of the car and permits; the whole card opens the editor. */
+@Composable
+private fun DriverSummaryCard(prefs: com.parkit.app.api.Preferences, onClick: () -> Unit) {
+    val sizeRes = when (prefs.vehicleSize) {
+        "compact" -> R.string.report_size_compact
+        "large" -> R.string.report_size_large
+        "regular" -> R.string.report_size_regular
+        else -> null
+    }
+    val lines = listOfNotNull(
+        prefs.carLabel ?: sizeRes?.let { stringResource(R.string.driver_summary_size, stringResource(it)) },
+        stringResource(R.string.driver_disabled_permit).takeIf { prefs.hasDisabledPermit },
+        prefs.homeCity,
+        prefs.residentZone?.let { stringResource(R.string.driver_summary_zone, it.substringAfter(':')) },
+    )
+    SectionCard(modifier = Modifier.clickable(onClick = onClick)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
+            Box(
+                modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(androidx.compose.material.icons.Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            }
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                if (lines.isEmpty()) {
+                    Text(stringResource(R.string.driver_summary_empty_title), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.driver_summary_empty_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text(lines.first(), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (lines.size > 1) {
+                        Text(lines.drop(1).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.driver_edit_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

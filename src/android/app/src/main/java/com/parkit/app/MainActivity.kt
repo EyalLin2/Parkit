@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.parkit.app.api.ApiClient
 import com.parkit.app.auth.SessionStore
 import com.parkit.app.locale.LocaleManager
+import com.parkit.app.ui.DriverProfileScreen
 import com.parkit.app.ui.LoginScreen
 import com.parkit.app.ui.MapScreen
 import com.parkit.app.ui.ProfileScreen
@@ -59,7 +60,10 @@ class MainActivity : ComponentActivity() {
 fun ParkItApp(sessionStore: SessionStore) {
     val navController = rememberNavController()
     val api = ApiClient.create(sessionStore)
-    val startDestination = if (sessionStore.token.value != null) "map" else "login"
+    // Decided once: the token flips to non-null mid-login, and a changed
+    // startDestination rebuilds the graph — which used to jump straight to
+    // the map and skip the post-login onboarding step.
+    val startDestination = androidx.compose.runtime.remember { if (sessionStore.token.value != null) "map" else "login" }
 
     // One path back to login for both a manual Logout tap and an expired
     // JWT (dev-login tokens last 24h with no refresh) — popUpTo(0) clears
@@ -85,7 +89,22 @@ fun ParkItApp(sessionStore: SessionStore) {
             LoginScreen(
                 api = api,
                 sessionStore = sessionStore,
-                onLoggedIn = { navController.navigate("map") { popUpTo("login") { inclusive = true } } },
+                onLoggedIn = {
+                    val next = if (sessionStore.onboardingSeen) "map" else "onboarding"
+                    navController.navigate(next) { popUpTo("login") { inclusive = true } }
+                },
+            )
+        }
+        composable(
+            "onboarding",
+            exitTransition = { fadeOut(animationSpec = motionSpec) },
+        ) {
+            DriverProfileScreen(
+                api = api,
+                sessionStore = sessionStore,
+                onboarding = true,
+                onDone = { navController.navigate("map") { popUpTo("onboarding") { inclusive = true } } },
+                onSessionExpired = goToLogin,
             )
         }
         composable(
@@ -111,7 +130,22 @@ fun ParkItApp(sessionStore: SessionStore) {
             ProfileScreen(
                 api = api,
                 onBack = { navController.popBackStack() },
+                sessionStore = sessionStore,
                 onOpenSettings = { navController.navigate("settings") },
+                onOpenDriver = { navController.navigate("driver") },
+                onSessionExpired = goToLogin,
+            )
+        }
+        composable(
+            "driver",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
+        ) {
+            DriverProfileScreen(
+                api = api,
+                sessionStore = sessionStore,
+                onboarding = false,
+                onDone = { navController.popBackStack() },
                 onSessionExpired = goToLogin,
             )
         }
