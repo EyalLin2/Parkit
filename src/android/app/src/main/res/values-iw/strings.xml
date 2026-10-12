@@ -264,4 +264,12 @@
         <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
         <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
+    <string name="map_filter_lots">חניונים</string>
+    <string name="lot_unnamed">חניון</string>
+    <string name="lot_kind_underground">תת-קרקעי</string>
+    <string name="lot_kind_multistorey">רב-קומות</string>
+    <string name="lot_kind_rooftop">על הגג</string>
+    <string name="lot_kind_surface">פתוח</string>
+    <string name="lot_capacity">%1$d מקומות</string>
+    <string name="lot_source_note">נתוני החניונים מ-OpenStreetMap — שעות ומחירים בכניסה לחניון.</string>
 </resources>

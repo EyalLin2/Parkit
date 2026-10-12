@@ -41,6 +41,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -199,6 +201,10 @@ private const val LAYER_PINS = "spots-pins"
 
 // Google-Maps-adjacent status colors: green = go, brand blue = yours,
 // amber = someone is already on their way.
+private const val SOURCE_LOTS = "parking-lots"
+private const val LAYER_LOTS = "parking-lots-pins"
+private const val LOT_ICON = "lot-pin"
+private const val LOTS_RADIUS_M = 1500
 private const val COLOR_FREE = "#188038"
 private const val COLOR_MINE = "#1B4F91"
 private const val COLOR_CLAIMED = "#E8710A"
@@ -264,6 +270,11 @@ fun MapScreen(
     var claimEndsAt by remember { mutableStateOf(0L) }
     var showReportFlow by remember { mutableStateOf(false) }
     var typeFilter by remember { mutableStateOf<String?>(null) } // null = All
+    // Paid car parks: off by default — the map is about free street parking,
+    // lots only appear when the driver asks for them.
+    var showLots by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var lots by remember { mutableStateOf<List<com.parkit.app.api.ParkingLotOut>>(emptyList()) }
+    var selectedLot by remember { mutableStateOf<com.parkit.app.api.ParkingLotOut?>(null) }
     var cameraMoving by remember { mutableStateOf(false) }
     var mapRendered by remember { mutableStateOf(false) }
     // Where to open the map: a recent cached fix if there is one; otherwise
@@ -484,7 +495,13 @@ fun MapScreen(
             m.addOnMapClickListener { latLng ->
                 val point = m.projection.toScreenLocation(latLng)
                 val hit = m.queryRenderedFeatures(point, LAYER_PINS, LAYER_CLUSTERS).firstOrNull()
-                    ?: return@addOnMapClickListener false
+                if (hit == null) {
+                    // Free spots win a tap; only then try the lots underneath.
+                    val lotId = m.queryRenderedFeatures(point, LAYER_LOTS).firstOrNull()?.getNumberProperty("id")?.toInt()
+                        ?: return@addOnMapClickListener false
+                    selectedLot = lots.firstOrNull { it.id == lotId }
+                    return@addOnMapClickListener true
+                }
                 if (hit.hasProperty("point_count")) {
                     val source = m.style?.getSourceAs<GeoJsonSource>(SOURCE_SPOTS)
                     val zoom = source?.getClusterExpansionZoom(hit)?.toDouble() ?: (m.cameraPosition.zoom + 2)
@@ -507,10 +524,30 @@ fun MapScreen(
         val m = map ?: return@LaunchedEffect
         style = null
         m.setStyle(Style.Builder().fromJson(MapStyle.json(context, isDarkTheme, language))) { s ->
-            installSpotLayers(s, isDarkTheme)
+            installSpotLayers(context, s, isDarkTheme)
             style = s
             enableLocationPuck()
         }
+    }
+
+    LaunchedEffect(showLots, geocodeTarget) {
+        if (!showLots) return@LaunchedEffect
+        lots = try {
+            api.parkingLots(geocodeTarget.latitude, geocodeTarget.longitude, LOTS_RADIUS_M)
+        } catch (_: Exception) {
+            lots // keep what's shown; the next camera stop retries
+        }
+    }
+    LaunchedEffect(style, showLots, lots) {
+        val s = style ?: return@LaunchedEffect
+        val features = if (showLots) {
+            lots.map { lot ->
+                Feature.fromGeometry(Point.fromLngLat(lot.lng, lot.lat)).apply { addNumberProperty("id", lot.id) }
+            }
+        } else {
+            emptyList()
+        }
+        s.getSourceAs<GeoJsonSource>(SOURCE_LOTS)?.setGeoJson(FeatureCollection.fromFeatures(features))
     }
 
     // Push spot data into the map whenever it, the filter, or the selection changes.
@@ -612,6 +649,10 @@ fun MapScreen(
                     MapChip(stringResource(R.string.map_filter_all), Icons.Filled.LocalParking, typeFilter == null) { typeFilter = null }
                     MapChip(stringResource(R.string.map_filter_regular), Icons.Filled.DirectionsCar, typeFilter == "street") { typeFilter = "street" }
                     MapChip(stringResource(R.string.map_filter_disabled), Icons.AutoMirrored.Filled.Accessible, typeFilter == "disabled") { typeFilter = "disabled" }
+                    LotsChip(checked = showLots) {
+                        showLots = !showLots
+                        if (!showLots) selectedLot = null
+                    }
                 }
                 activeClaim?.let { claim ->
                     ClaimTripCard(
@@ -702,6 +743,10 @@ fun MapScreen(
         )
     }
 
+    selectedLot?.let { lot ->
+        LotSheet(lot = lot, onDismiss = { selectedLot = null })
+    }
+
     selectedSpot?.let { spot ->
         SpotActionsSheet(
             api = api,
@@ -731,7 +776,18 @@ fun MapScreen(
 /** Native GeoJSON clustering + symbol layers — the map engine itself
  * groups, positions, and hit-tests pins (on the GPU, smoothly through
  * zoom), instead of Kotlin re-bucketing bitmaps on every recomposition. */
-private fun installSpotLayers(style: Style, dark: Boolean) {
+private fun installSpotLayers(context: android.content.Context, style: Style, dark: Boolean) {
+    // Car parks sit *under* the spot pins, and only from street zoom: from
+    // further out hundreds of them would bury the free spots.
+    style.addImage(LOT_ICON, MarkerBitmaps.lotPin(context))
+    style.addSource(GeoJsonSource(SOURCE_LOTS, FeatureCollection.fromFeatures(emptyList())))
+    style.addLayer(
+        SymbolLayer(LAYER_LOTS, SOURCE_LOTS).withProperties(
+            PropertyFactory.iconImage(LOT_ICON),
+            PropertyFactory.iconAllowOverlap(true),
+            PropertyFactory.iconIgnorePlacement(true),
+        ).apply { minZoom = 14f },
+    )
     style.addSource(
         GeoJsonSource(
             SOURCE_SPOTS,
@@ -860,6 +916,34 @@ private fun MapChip(label: String, icon: ImageVector, selected: Boolean, onClick
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp)) {
             Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
             Text(label, style = MaterialTheme.typography.labelLarge, color = content, modifier = Modifier.padding(start = 6.dp))
+        }
+    }
+}
+
+/** An on/off toggle, not one of the single-choice type filters above: a
+ * checkbox and the car-park slate, so it reads as "also show lots". */
+@Composable
+private fun LotsChip(checked: Boolean, onClick: () -> Unit) {
+    val slate = Color(android.graphics.Color.parseColor(MarkerBitmaps.LOT_COLOR))
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = if (checked) slate else MaterialTheme.colorScheme.surface,
+        shadowElevation = 3.dp,
+        modifier = Modifier.height(36.dp).clickable(onClick = onClick),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp)) {
+            Icon(
+                if (checked) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
+                contentDescription = null,
+                tint = if (checked) Color.White else slate,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                stringResource(R.string.map_filter_lots),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (checked) Color.White else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 6.dp),
+            )
         }
     }
 }

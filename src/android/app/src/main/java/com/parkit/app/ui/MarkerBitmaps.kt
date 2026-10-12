@@ -164,6 +164,34 @@ object MarkerBitmaps {
         }
     }
 
+    /** Paid car park: a rounded square in slate — deliberately not the
+     * round green pin, so it never reads as a free spot. */
+    fun lotPin(context: Context): Bitmap {
+        val d = context.resources.displayMetrics.density
+        val side = 26f * d
+        val pad = PAD_DP * d
+        val size = (side + 2 * pad).toInt()
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val rect = android.graphics.RectF(pad, pad, pad + side, pad + side)
+        canvas.drawRoundRect(rect, 7f * d, 7f * d, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            setShadowLayer(2.5f * d, 0f, 1f * d, Color.argb(90, 0, 0, 0))
+        })
+        val inner = android.graphics.RectF(rect).apply { inset(2f * d, 2f * d) }
+        canvas.drawRoundRect(inner, 5.5f * d, 5.5f * d, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(LOT_COLOR) })
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = 15f * d
+        }
+        canvas.drawText("P", rect.centerX(), rect.centerY() - (p.descent() + p.ascent()) / 2f, p)
+        return bmp
+    }
+
+    const val LOT_COLOR = "#4A5B78"
+
     /** "2m" / "1h" / "3d" / "now" — compact enough to fit on a small pin. */
     fun relativeTimeShort(context: Context, iso: String): String = try {
         val minutes = Duration.between(Instant.parse(iso), Instant.now()).toMinutes()

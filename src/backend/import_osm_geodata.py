@@ -11,6 +11,9 @@ extracts:
 - streets:   named drivable/pedestrian highways (not footpaths)
 - squares:   named squares / pedestrian plazas (polygons)
 - places:    city / town / village / suburb nodes
+- parking lots: public off-street car parks (amenity=parking, not street-side
+             parking and not private/customers-only) — the "Paid parking"
+             layer and the "couldn't find a spot" fallback
 
 and replaces the contents of the osm_* tables in a single transaction, so the
 geocoder never sees a half-loaded state.
@@ -53,6 +56,9 @@ STREET_HIGHWAYS = {
     "tertiary_link",
 }
 PLACE_KINDS = {"city", "town", "village", "suburb"}
+# Street-side parking is what ParkIt users report themselves; these are lots.
+NOT_A_LOT = {"street_side", "lane", "on_street", "on_kerb", "half_on_kerb", "layby"}
+NOT_PUBLIC = {"private", "customers", "no", "permit", "residents", "delivery", "employees"}
 _wkt = osmium.geom.WKTFactory()
 
 
@@ -93,6 +99,26 @@ class Extractor(osmium.SimpleHandler):
         self.streets: list[tuple[str, str, str | None, str | None]] = []
         self.places: list[tuple[str, str, str, str | None, str | None]] = []
         self.areas: list[tuple[str, str, str | None, str | None]] = []
+        self.lots: list[tuple[str, ...]] = []
+
+    def _lot(self, tags, lon: float, lat: float) -> None:
+        if tags.get("amenity") != "parking":
+            return
+        if tags.get("parking") in NOT_A_LOT or tags.get("access") in NOT_PUBLIC:
+            return
+        capacity = tags.get("capacity", "")
+        self.lots.append(
+            (
+                f"POINT({lon} {lat})",
+                (tags.get("name") or "")[:200] or None,
+                tags.get("name:he"),
+                tags.get("name:en"),
+                tags.get("parking"),
+                tags.get("fee"),
+                capacity if capacity.isdigit() else None,
+                (tags.get("operator") or "")[:120] or None,
+            )
+        )
 
     @staticmethod
     def _address(tags) -> tuple[str | None, str, str | None] | None:
@@ -116,6 +142,8 @@ class Extractor(osmium.SimpleHandler):
         if addr and n.location.valid():
             self.addresses.append((f"POINT({n.location.lon} {n.location.lat})", *addr))
             self.numbered_nodes[n.id] = (n.location.lon, n.location.lat, addr[1], addr[0])
+        if n.location.valid():
+            self._lot(tags, n.location.lon, n.location.lat)
         kind = tags.get("place")
         if kind in PLACE_KINDS and tags.get("name") and n.location.valid():
             point = f"POINT({n.location.lon} {n.location.lat})"
@@ -155,6 +183,10 @@ class Extractor(osmium.SimpleHandler):
                 lon = sum(p[0] for p in pts) / len(pts)
                 lat = sum(p[1] for p in pts) / len(pts)
                 self.addresses.append((f"POINT({lon} {lat})", *addr))
+        if tags.get("amenity") == "parking":
+            pts = [(n.lon, n.lat) for ring in a.outer_rings() for n in ring if n.location.valid()]
+            if pts:
+                self._lot(tags, sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
         if not _is_named_square(tags):
             return
         try:
@@ -217,18 +249,25 @@ async def _load(ex: Extractor) -> None:
                 ("osm_streets", ("wkt", "name", "name_he", "name_en"), ex.streets),
                 ("osm_areas", ("wkt", "name", "name_he", "name_en"), ex.areas),
                 ("osm_places", ("wkt", "kind", "name", "name_he", "name_en"), ex.places),
+                (
+                    "osm_parking_lots",
+                    ("wkt", "name", "name_he", "name_en", "kind", "fee", "capacity", "operator"),
+                    ex.lots,
+                ),
             ):
                 stage = f"stage_{table}"
                 await conn.execute(f"CREATE TEMP TABLE {stage} ({', '.join(c + ' text' for c in cols)}) ON COMMIT DROP")
                 await conn.copy_records_to_table(stage, records=rows, columns=list(cols))
                 rest = ", ".join(cols[1:])
+                # Everything is staged as text; the one integer column is cast on the way in.
+                select_rest = rest.replace("capacity", "capacity::int")
                 await conn.execute(f"TRUNCATE {table} RESTART IDENTITY")
                 await conn.execute(
                     f"INSERT INTO {table} (geom, {rest}) "
-                    f"SELECT ST_GeogFromText('SRID=4326;' || wkt), {rest} FROM {stage}"
+                    f"SELECT ST_GeogFromText('SRID=4326;' || wkt), {select_rest} FROM {stage}"
                 )
                 print(f"  {table}: {len(rows):,} rows", flush=True)
-        for table in ("osm_addresses", "osm_streets", "osm_areas", "osm_places"):
+        for table in ("osm_addresses", "osm_streets", "osm_areas", "osm_places", "osm_parking_lots"):
             await conn.execute(f"ANALYZE {table}")
     finally:
         await conn.close()
@@ -245,7 +284,7 @@ def main() -> None:
         if pbf is None:
             pbf = Path(tmp) / "extract.osm.pbf"
             _download(pbf)
-        print("Extracting addresses, streets, squares and places …", flush=True)
+        print("Extracting addresses, streets, squares, places and parking lots …", flush=True)
         rels = StreetRelations()
         rels.apply_file(str(pbf))
         ex = Extractor(rels.street_of)

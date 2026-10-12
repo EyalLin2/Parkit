@@ -173,3 +173,20 @@ class OsmPlace(Base):
     name: Mapped[str] = mapped_column(String(200))
     name_he: Mapped[str | None] = mapped_column(String(200), nullable=True)
     name_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class OsmParkingLot(Base):
+    """Public off-street car parks from OpenStreetMap (import_osm_geodata.py).
+    Shown only when the driver turns on "Paid parking" on the map."""
+
+    __tablename__ = "osm_parking_lots"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    geom: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326))
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    name_he: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    name_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    kind: Mapped[str | None] = mapped_column(String(40), nullable=True)  # surface / underground / multi-storey …
+    fee: Mapped[str | None] = mapped_column(String(40), nullable=True)  # "yes" / "no" / unknown
+    capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    operator: Mapped[str | None] = mapped_column(String(120), nullable=True)

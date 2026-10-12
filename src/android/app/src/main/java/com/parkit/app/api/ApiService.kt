@@ -49,6 +49,13 @@ interface ApiService {
     @GET("vehicles/lookup")
     suspend fun lookupVehicle(@Query("plate") plate: String): VehicleLookupOut
 
+    @GET("parking-lots")
+    suspend fun parkingLots(
+        @Query("lat") lat: Double,
+        @Query("lng") lng: Double,
+        @Query("radius_m") radiusM: Int,
+    ): List<ParkingLotOut>
+
     @GET("places/cities")
     suspend fun cities(): List<CityOut>
 

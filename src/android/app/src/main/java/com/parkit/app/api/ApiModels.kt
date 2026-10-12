@@ -107,6 +107,22 @@ data class VehicleLookupOut(
     val label: String,
 )
 
+/** A public off-street car park (OpenStreetMap). Most fields are often
+ * missing in the source data — the UI only shows what's there. */
+@JsonClass(generateAdapter = true)
+data class ParkingLotOut(
+    val id: Int,
+    val lat: Double,
+    val lng: Double,
+    val name: String?,
+    @Json(name = "name_en") val nameEn: String?,
+    val kind: String?,
+    val fee: String?,
+    val capacity: Int?,
+    val operator: String?,
+    @Json(name = "distance_m") val distanceM: Double,
+)
+
 @JsonClass(generateAdapter = true)
 data class CityOut(
     val name: String,

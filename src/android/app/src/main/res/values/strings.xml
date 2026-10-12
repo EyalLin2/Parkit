@@ -256,4 +256,12 @@
         <item quantity="one">1 face or plate blurred</item>
         <item quantity="other">%1$d faces or plates blurred</item>
     </plurals>
+    <string name="map_filter_lots">Parking lots</string>
+    <string name="lot_unnamed">Parking lot</string>
+    <string name="lot_kind_underground">Underground</string>
+    <string name="lot_kind_multistorey">Multi-storey</string>
+    <string name="lot_kind_rooftop">Rooftop</string>
+    <string name="lot_kind_surface">Open-air</string>
+    <string name="lot_capacity">%1$d spaces</string>
+    <string name="lot_source_note">Lot data from OpenStreetMap — check the entrance for hours and prices.</string>
 </resources>
