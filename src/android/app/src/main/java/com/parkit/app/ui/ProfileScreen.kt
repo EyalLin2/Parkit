@@ -105,6 +105,7 @@ fun ProfileScreen(
     }
 
     val p = profile
+    var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding(),
     ) {
@@ -129,25 +130,56 @@ fun ProfileScreen(
         } else {
             item { IdentityHeader(p) }
             item { LevelHeroCard(p, dark = com.parkit.app.ui.theme.isDarkThemeActive()) }
-            item { StatsCard(p) }
-            item { SectionTitle(stringResource(R.string.driver_title)) }
-            item { DriverSummaryCard(sessionStore.driver.value.preferences, onOpenDriver) }
-            item { SectionTitle(stringResource(R.string.levels_title)) }
-            item { LevelLadder(points = p.points, current = ParkItLevel.of(p.level)) }
-            item { SectionTitle(stringResource(R.string.profile_leaderboard_title)) }
-            item {
-                Text(
-                    stringResource(R.string.league_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp).offset(y = (-6).dp),
-                )
+            // Three tabs instead of one endless scroll: what you have, how
+            // you rank, what you reported. The tab bar sticks under the top.
+            @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+            stickyHeader { ProfileTabs(tab) { tab = it } }
+            when (tab) {
+                0 -> {
+                    item { StatsCard(p) }
+                    item { SectionTitle(stringResource(R.string.driver_title)) }
+                    item { DriverSummaryCard(sessionStore.driver.value.preferences, onOpenDriver) }
+                    item { SectionTitle(stringResource(R.string.levels_title)) }
+                    item { LevelLadder(points = p.points, current = ParkItLevel.of(p.level)) }
+                }
+                1 -> {
+                    item {
+                        Text(
+                            stringResource(R.string.league_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
+                        )
+                    }
+                    item { LeagueSection(leaderboard, me = p) }
+                }
+                else -> {
+                    item { Spacer(Modifier.height(16.dp)) }
+                    item { MyReportsCard(p.activity) }
+                }
             }
-            item { LeagueSection(leaderboard, myUserId = p.userId) }
-            item { SectionTitle(stringResource(R.string.profile_my_reports_title)) }
-            item { MyReportsCard(p.activity) }
         }
         item { Spacer(Modifier.navigationBarsPadding().height(24.dp)) }
+    }
+}
+
+@Composable
+private fun ProfileTabs(selected: Int, onSelect: (Int) -> Unit) {
+    val titles = listOf(R.string.profile_tab_overview, R.string.profile_tab_league, R.string.profile_tab_reports)
+    androidx.compose.material3.TabRow(
+        selectedTabIndex = selected,
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = Modifier.padding(top = 8.dp),
+    ) {
+        titles.forEachIndexed { index, res ->
+            androidx.compose.material3.Tab(
+                selected = selected == index,
+                onClick = { onSelect(index) },
+                text = { Text(stringResource(res), style = MaterialTheme.typography.titleSmall) },
+                selectedContentColor = MaterialTheme.colorScheme.primary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

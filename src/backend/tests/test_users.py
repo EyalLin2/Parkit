@@ -70,3 +70,18 @@ async def test_leaderboard_excludes_users_with_no_weekly_points(client, make_use
     _, headers = await make_user("bystander")
     board = await client.get("/leaderboard", headers=headers)
     assert "bystander" not in [e["display_name"] for e in board.json()]
+
+
+async def test_profile_shows_my_place_in_the_weekly_league(client, make_user):
+    _, headers_a = await make_user("a")
+    _, headers_b = await make_user("b")
+    _, headers_seeker = await make_user("seeker")
+    report_a = await _report(client, headers_a, lat=32.09, lng=34.79)
+    await client.post(
+        f"/spots/{report_a.json()['id']}/feedback", json={"type": "confirmed_taken"}, headers=headers_seeker
+    )
+    await _report(client, headers_b, lat=32.10, lng=34.80)
+
+    assert (await client.get("/users/me", headers=headers_a)).json()["weekly_rank"] == 1  # 15 points
+    assert (await client.get("/users/me", headers=headers_b)).json()["weekly_rank"] == 2  # 10 points
+    assert (await client.get("/users/me", headers=headers_seeker)).json()["weekly_rank"] is None  # no points yet

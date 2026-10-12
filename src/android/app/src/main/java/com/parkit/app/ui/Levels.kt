@@ -211,17 +211,17 @@ fun LevelLadder(points: Int, current: ParkItLevel) {
                                 .background(level.color.copy(alpha = 0.07f), RoundedCornerShape(16.dp))
                             else Modifier,
                         )
-                        .padding(horizontal = 10.dp, vertical = 10.dp),
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         if (reached) {
-                            LevelEmblem(level, 44.dp)
+                            LevelEmblem(level, 38.dp)
                         } else {
                             Box(
-                                modifier = Modifier.size(44.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), CircleShape),
+                                modifier = Modifier.size(38.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), CircleShape),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(level.icon, contentDescription = null, tint = level.color.copy(alpha = 0.45f), modifier = Modifier.size(20.dp))
+                                Icon(level.icon, contentDescription = null, tint = level.color.copy(alpha = 0.45f), modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -261,7 +261,7 @@ fun LevelLadder(points: Int, current: ParkItLevel) {
                     )
                 }
                 if (index < ParkItLevel.entries.lastIndex && !isCurrent && ParkItLevel.entries[index + 1] != current) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(start = 74.dp, end = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(start = 68.dp, end = 16.dp))
                 }
             }
             Text(
@@ -275,12 +275,39 @@ fun LevelLadder(points: Int, current: ParkItLevel) {
     }
 }
 
-/** Weekly league: a podium of the top three (each ringed in its level
- * colour), then the rest as a ranked list with level chips; your own row
- * is highlighted wherever it is. */
+/** Weekly league: a compact podium of the top three, slim ranked rows for
+ * the rest, and — always — your own place pinned at the bottom, even when
+ * you're outside the top ten or not ranked yet. */
 @Composable
-fun LeagueSection(entries: List<LeaderboardEntry>, myUserId: String) {
-    if (entries.isEmpty()) {
+fun LeagueSection(entries: List<LeaderboardEntry>, me: ProfileOut) {
+    if (entries.isNotEmpty()) {
+        val podium = listOf(entries.getOrNull(1), entries.getOrNull(0), entries.getOrNull(2))
+        val medal = listOf(Color(0xFF9AA5B4), Color(0xFFD4A017), Color(0xFFB0703C))
+        SectionCard {
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 16.dp),
+            ) {
+                podium.forEachIndexed { i, entry ->
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.BottomCenter) {
+                        if (entry != null) PodiumSpot(entry, medal[i], first = i == 1, isMe = entry.userId == me.userId)
+                    }
+                }
+            }
+        }
+        val rest = entries.drop(3)
+        if (rest.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            SectionCard {
+                Column {
+                    rest.forEachIndexed { index, entry ->
+                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), modifier = Modifier.padding(start = 92.dp))
+                        LeagueRow(entry.rank.toString(), entry.displayName, ParkItLevel.of(entry.level), entry.weeklyPoints, isMe = entry.userId == me.userId)
+                    }
+                }
+            }
+        }
+    } else {
         SectionCard {
             Text(
                 stringResource(R.string.profile_leaderboard_empty),
@@ -289,112 +316,102 @@ fun LeagueSection(entries: List<LeaderboardEntry>, myUserId: String) {
                 modifier = Modifier.padding(20.dp),
             )
         }
-        return
     }
-    val podium = listOf(entries.getOrNull(1), entries.getOrNull(0), entries.getOrNull(2))
-    val medal = listOf(Color(0xFF9AA5B4), Color(0xFFD4A017), Color(0xFFB0703C))
-    val lift = listOf(20.dp, 0.dp, 32.dp)
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.Bottom,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-    ) {
-        podium.forEachIndexed { i, entry ->
-            Box(modifier = Modifier.weight(1f)) {
-                if (entry != null) {
-                    PodiumCard(entry, medal[i], top = lift[i], first = i == 1, isMe = entry.userId == myUserId)
-                }
-            }
-        }
-    }
-    val rest = entries.drop(3)
-    if (rest.isNotEmpty()) {
+
+    // Your place — unless you're already visible in the list above.
+    if (entries.none { it.userId == me.userId }) {
         Spacer(Modifier.height(10.dp))
-        SectionCard {
-            Column {
-                rest.forEachIndexed { index, entry ->
-                    if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                    LeagueRow(entry, isMe = entry.userId == myUserId)
-                }
+        val level = ParkItLevel.of(me.level)
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = level.color.copy(alpha = 0.08f),
+            border = BorderStroke(1.dp, level.color.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        ) {
+            if (me.weeklyRank != null) {
+                LeagueRow(me.weeklyRank.toString(), me.displayName, level, me.weeklyPoints, isMe = true, highlight = false)
+            } else {
+                Text(
+                    stringResource(R.string.league_not_ranked),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun PodiumCard(entry: LeaderboardEntry, medal: Color, top: Dp, first: Boolean, isMe: Boolean) {
+private fun PodiumSpot(entry: LeaderboardEntry, medal: Color, first: Boolean, isMe: Boolean) {
     val level = ParkItLevel.of(entry.level)
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = if (isMe) level.color.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (first) 1.5.dp else 1.dp, if (first) medal else MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)),
-        modifier = Modifier.fillMaxWidth().padding(top = top),
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 14.dp, horizontal = 8.dp)) {
+    val ring = if (first) 64.dp else 52.dp
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 4.dp)) {
+        Box {
             Box(
-                modifier = Modifier.size(28.dp).background(medal, CircleShape),
+                modifier = Modifier.size(ring).border(2.5.dp, level.color, CircleShape).padding(4.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(entry.rank.toString(), style = MaterialTheme.typography.labelLarge, color = Color.White)
+                Avatar(entry.displayName, level.color, size = ring - 8.dp)
             }
+            // Medal with the place number, on the avatar's shoulder.
             Box(
-                modifier = Modifier.padding(top = 10.dp).size(if (first) 64.dp else 54.dp).border(3.dp, level.color, CircleShape).padding(5.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).size(22.dp)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape).padding(2.dp)
+                    .background(medal, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Avatar(entry.displayName, level.color, size = if (first) 54.dp else 44.dp)
+                Text(entry.rank.toString(), style = MaterialTheme.typography.labelSmall, color = Color.White)
             }
-            Text(
-                entry.displayName,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            LevelChip(level, modifier = Modifier.padding(top = 4.dp))
-            Text(
-                stringResource(R.string.profile_points_suffix, entry.weeklyPoints),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = 6.dp),
-            )
         }
+        Text(
+            if (isMe) stringResource(R.string.profile_you) else entry.displayName,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        Text(
+            stringResource(R.string.profile_points_suffix, entry.weeklyPoints),
+            style = if (first) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,
+            color = if (first) medal else MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
+/** One slim league line: place · avatar · name with a small level mark · points. */
 @Composable
-private fun LeagueRow(entry: LeaderboardEntry, isMe: Boolean) {
-    val level = ParkItLevel.of(entry.level)
+private fun LeagueRow(rank: String, name: String, level: ParkItLevel, points: Int, isMe: Boolean, highlight: Boolean = true) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
-            .background(if (isMe) level.color.copy(alpha = 0.08f) else Color.Transparent)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .background(if (isMe && highlight) level.color.copy(alpha = 0.08f) else Color.Transparent)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         Text(
-            entry.rank.toString(),
-            style = MaterialTheme.typography.labelLarge,
+            rank,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(24.dp),
+            modifier = Modifier.width(28.dp),
         )
         Box(
-            modifier = Modifier.padding(start = 8.dp).size(42.dp).border(2.dp, level.color, CircleShape).padding(3.dp),
+            modifier = Modifier.padding(start = 8.dp).size(40.dp).border(2.dp, level.color, CircleShape).padding(3.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Avatar(entry.displayName, level.color, size = 36.dp)
-        }
-        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(
-                if (isMe) "${entry.displayName} · ${stringResource(R.string.profile_you)}" else entry.displayName,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            LevelChip(level, modifier = Modifier.padding(top = 3.dp))
+            Avatar(name, level.color, size = 34.dp)
         }
         Text(
-            stringResource(R.string.profile_points_suffix, entry.weeklyPoints),
-            style = MaterialTheme.typography.labelLarge,
+            if (isMe) "$name · ${stringResource(R.string.profile_you)}" else name,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false).padding(start = 12.dp),
+        )
+        Icon(level.icon, contentDescription = stringResource(level.nameRes), tint = level.color, modifier = Modifier.padding(start = 6.dp).size(16.dp))
+        Spacer(Modifier.weight(1f).width(8.dp))
+        Text(
+            stringResource(R.string.profile_points_suffix, points),
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }

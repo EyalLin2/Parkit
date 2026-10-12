@@ -48,6 +48,13 @@ async def my_profile(
         .all()
     )
 
+    # Same ordering as /leaderboard: only drivers with points this week are
+    # ranked, so 0 points means "not in the league yet", not last place.
+    weekly_rank = None
+    if user.weekly_points > 0:
+        ahead = (await db.execute(select(func.count()).where(User.weekly_points > user.weekly_points))).scalar_one()
+        weekly_rank = ahead + 1
+
     level = level_for(user.points)
     upcoming = next_level(user.points)
     return ProfileOut(
@@ -55,6 +62,7 @@ async def my_profile(
         display_name=user.display_name,
         points=user.points,
         weekly_points=user.weekly_points,
+        weekly_rank=weekly_rank,
         successful_reports=successful_reports,
         badges=[t for t in BADGE_THRESHOLDS if successful_reports >= t],
         level=level.key,

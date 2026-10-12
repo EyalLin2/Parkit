@@ -275,4 +275,8 @@
     <string name="parked_pango_action">פנגו</string>
     <string name="spot_no_photo_cd">אין תמונה לחניה הזו</string>
     <string name="spot_age_short">לפני %1$s</string>
+    <string name="profile_tab_overview">סקירה</string>
+    <string name="profile_tab_league">ליגה</string>
+    <string name="profile_tab_reports">הדיווחים שלי</string>
+    <string name="league_not_ranked">עוד לא נכנסת לליגה השבוע — דווח על חניה כדי להופיע בטבלה.</string>
 </resources>

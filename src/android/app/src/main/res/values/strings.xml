@@ -267,4 +267,8 @@
     <string name="parked_pango_action">Pango</string>
     <string name="spot_no_photo_cd">No photo for this spot</string>
     <string name="spot_age_short">%1$s ago</string>
+    <string name="profile_tab_overview">Overview</string>
+    <string name="profile_tab_league">League</string>
+    <string name="profile_tab_reports">My reports</string>
+    <string name="league_not_ranked">You\'re not in this week\'s league yet — report a spot to get on the board.</string>
 </resources>

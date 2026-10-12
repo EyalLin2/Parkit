@@ -56,6 +56,7 @@ class ProfileOut(BaseModel):
     display_name: str
     points: int
     weekly_points: int
+    weekly_rank: int | None = None  # place in this week's league; None = no points yet
     successful_reports: int
     badges: list[int]  # deprecated: replaced by levels, kept for older app builds
     level: str
