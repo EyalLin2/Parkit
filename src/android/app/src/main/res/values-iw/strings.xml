@@ -283,4 +283,12 @@
     <string name="league_all_israel">כל הארץ</string>
     <string name="league_pick_city_title">בחר עיר</string>
     <string name="league_pick_city_body">כדי להתחרות מול נהגים מהעיר שלך בליגה שבועית</string>
+    <string name="badges_title">תגים</string>
+    <string name="badges_progress">הושגו %1$d מתוך %2$d</string>
+    <string name="badge_first">דיווח ראשון</string>
+    <string name="badge_reports_10">10 דיווחים</string>
+    <string name="badge_reports_50">50 דיווחים</string>
+    <string name="badge_reports_100">100 דיווחים</string>
+    <string name="badge_helped_10">עזרת ל־10 נהגים</string>
+    <string name="badge_helped_50">גיבור החניה</string>
 </resources>

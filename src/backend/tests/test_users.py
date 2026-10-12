@@ -101,3 +101,10 @@ async def test_city_league_only_ranks_drivers_from_that_city(client, make_user):
     assert [e["display_name"] for e in board] == ["tlv-b"]  # haifa has more points but isn't in this league
     me = (await client.get("/users/me", headers=tlv_b)).json()
     assert (me["weekly_rank"], me["weekly_city_rank"]) == (2, 1)
+
+
+async def test_profile_counts_all_reports(client, make_user):
+    _, headers = await make_user("counter")
+    await _report(client, headers)
+    me = (await client.get("/users/me", headers=headers)).json()
+    assert (me["total_reports"], me["successful_reports"]) == (1, 0)

@@ -77,6 +77,7 @@ data class ProfileOut(
     @Json(name = "weekly_rank") val weeklyRank: Int? = null,
     @Json(name = "weekly_city_rank") val weeklyCityRank: Int? = null,
     @Json(name = "successful_reports") val successfulReports: Int,
+    @Json(name = "total_reports") val totalReports: Int = 0,
     val badges: List<Int>,
     val level: String = "newbie",
     @Json(name = "level_min_points") val levelMinPoints: Int = 0,

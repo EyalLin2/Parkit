@@ -275,4 +275,12 @@
     <string name="league_all_israel">All of Israel</string>
     <string name="league_pick_city_title">Pick your city</string>
     <string name="league_pick_city_body">Compete with drivers near you in a weekly city league</string>
+    <string name="badges_title">Badges</string>
+    <string name="badges_progress">%1$d of %2$d earned</string>
+    <string name="badge_first">First report</string>
+    <string name="badge_reports_10">10 reports</string>
+    <string name="badge_reports_50">50 reports</string>
+    <string name="badge_reports_100">100 reports</string>
+    <string name="badge_helped_10">Helped 10 drivers</string>
+    <string name="badge_helped_50">Parking hero</string>
 </resources>

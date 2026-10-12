@@ -38,6 +38,10 @@ async def my_profile(
         )
     ).scalar_one()
 
+    total_reports = (
+        await db.execute(select(func.count()).select_from(Spot).where(Spot.reporter_id == user_id))
+    ).scalar_one()
+
     activity = (
         (
             await db.execute(
@@ -68,6 +72,7 @@ async def my_profile(
         weekly_rank=weekly_rank,
         weekly_city_rank=weekly_city_rank,
         successful_reports=successful_reports,
+        total_reports=total_reports,
         badges=[t for t in BADGE_THRESHOLDS if successful_reports >= t],
         level=level.key,
         level_min_points=level.min_points,

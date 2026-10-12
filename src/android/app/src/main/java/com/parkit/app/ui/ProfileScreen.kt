@@ -149,6 +149,8 @@ fun ProfileScreen(
             when (tab) {
                 0 -> {
                     item { StatsCard(p) }
+                    item { SectionTitle(stringResource(R.string.badges_title)) }
+                    item { BadgesCard(p) }
                     item { SectionTitle(stringResource(R.string.driver_title)) }
                     item { DriverSummaryCard(sessionStore.driver.value.preferences, onOpenDriver) }
                     item { SectionTitle(stringResource(R.string.levels_title)) }
