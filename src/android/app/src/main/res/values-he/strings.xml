@@ -31,7 +31,7 @@
     </plurals>
 
     <!-- Report flow -->
-    <string name="report_title">דיווח על חניה</string>
+    <string name="report_title">דיווח על חניה פנויה</string>
     <string name="report_photo_required">תמונה היא שלב חובה — זה מה שהופך דיווחים לאמינים.</string>
     <string name="report_take_photo_cd">צילום תמונה</string>
     <string name="report_preview_cd">תצוגה מקדימה של התמונה המטושטשת</string>
@@ -56,9 +56,9 @@
     <string name="spot_status">סטטוס: %1$s</string>
     <string name="spot_fits">מתאימה ל: %1$s</string>
     <string name="spot_navigate">ניווט</string>
-    <string name="spot_claim">אני תופס את החניה</string>
-    <string name="spot_i_took_it">תפסתי אותה</string>
-    <string name="spot_flag_taken">החניה תפוסה (דיווח)</string>
+    <string name="spot_claim">אני בדרך</string>
+    <string name="spot_i_took_it">חניתי כאן</string>
+    <string name="spot_flag_taken">כבר תפוסה</string>
     <string name="spot_cancel_report">ביטול הדיווח שלי</string>
     <string name="spot_action_failed">הפעולה נכשלה</string>
     <string name="error_not_found">החניה הזו כבר לא קיימת.</string>
@@ -160,7 +160,7 @@
     <string name="profile_see_all">הצג הכל</string>
     <string name="profile_show_less">הצג פחות</string>
     <string name="profile_you">את/ה</string>
-    <string name="profile_week_delta">+%1$d השבוע</string>
+    <string name="profile_week_delta">⁦+%1$d⁩ השבוע</string>
 
     <!-- Settings -->
     <string name="settings_title">הגדרות</string>
@@ -177,4 +177,18 @@
     <string name="settings_cancel">ביטול</string>
     <string name="map_spot_kind_regular">חניה רגילה</string>
     <string name="map_spot_kind_disabled">חניית נכים</string>
+    <string name="report_points_reward">⁦+10⁩ נק׳</string>
+    <string name="report_needs_photo">צלם תמונה כדי להמשיך</string>
+    <string name="report_take_photo">צלם את החניה</string>
+    <string name="report_blurring">מטשטש פנים לשמירה על פרטיות…</string>
+    <string name="report_privacy_checked">נבדק לפרטיות</string>
+    <string name="report_retake">צלם שוב</string>
+    <string name="spot_close_cd">סגירה</string>
+    <string name="spot_someone_on_the_way">מישהו כבר בדרך</string>
+    <string name="spot_photo_cd">תמונת החניה</string>
+    <string name="spot_still_free_question">החניה עדיין פנויה?</string>
+    <string name="spot_distance_away">במרחק %1$s</string>
+    <string name="map_report_fab">דווח על חניה</string>
+    <string name="map_nearby_searching">מחפש חניות פנויות…</string>
+    <string name="map_nearby_searching_hint">בודק דיווחים סביב הנעץ</string>
 </resources>

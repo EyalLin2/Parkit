@@ -58,6 +58,7 @@ async def my_profile(
                 spot_id=s.id,
                 spot_type=s.spot_type,
                 payment=s.payment,
+                address=s.address,
                 reported_at=s.reported_at,
                 status=s.status,
                 removed_reason=s.removed_reason,

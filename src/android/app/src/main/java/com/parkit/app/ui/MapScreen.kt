@@ -169,6 +169,8 @@ fun MapScreen(
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var style by remember { mutableStateOf<Style?>(null) }
     var spots by remember { mutableStateOf<List<SpotOut>>(emptyList()) }
+    // "No spots nearby" must mean the server said so — not "still loading".
+    var spotsLoaded by remember { mutableStateOf(false) }
     var selectedSpot by remember { mutableStateOf<SpotOut?>(null) }
     var showReportFlow by remember { mutableStateOf(false) }
     var typeFilter by remember { mutableStateOf<String?>(null) } // null = All
@@ -178,6 +180,7 @@ fun MapScreen(
 
     var geocodeTarget by remember { mutableStateOf(TEL_AVIV) }
     var resolvedAddress by remember { mutableStateOf<String?>(null) }
+    var resolvedStreet by remember { mutableStateOf<String?>(null) }
 
     val visibleSpots = typeFilter?.let { f -> spots.filter { it.spotType == f } } ?: spots
     // "Nearby" means near *you* when we know where you are, otherwise near
@@ -190,7 +193,9 @@ fun MapScreen(
     val spotAddresses = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
     LaunchedEffect(sortedSpots.map { it.id }) {
         for (spot in sortedSpots) {
-            if (spotAddresses.containsKey(spot.id)) continue
+            // Reports carry their own address now; only older ones (made
+            // before the backend stored it) still need a lookup.
+            if (spot.address != null || spotAddresses.containsKey(spot.id)) continue
             val cached = com.parkit.app.api.SpotAddressCache.get(spot.id)
             if (cached != null) {
                 spotAddresses[spot.id] = cached
@@ -204,12 +209,16 @@ fun MapScreen(
     LaunchedEffect(geocodeTarget) {
         delay(500)
         try {
-            resolvedAddress = GeocodingClient.service.reverse(geocodeTarget.latitude, geocodeTarget.longitude).shortLabel()
+            val result = GeocodingClient.service.reverse(geocodeTarget.latitude, geocodeTarget.longitude)
+            resolvedAddress = result.shortLabel()
+            resolvedStreet = result.streetLabel()
         } catch (_: Exception) {
             resolvedAddress = "%.5f, %.5f".format(geocodeTarget.latitude, geocodeTarget.longitude)
+            resolvedStreet = null
         }
         try {
             spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
+            spotsLoaded = true
         } catch (e: Exception) {
             snackbarHostState.showSnackbar(context.getString(R.string.map_load_error, e.friendlyMessage(context)))
         }
@@ -393,10 +402,10 @@ fun MapScreen(
         sheetContent = {
             NearbySheet(
                 spots = sortedSpots,
+                loaded = spotsLoaded,
                 addresses = spotAddresses,
                 reference = reference,
                 myUserId = myUserId,
-                onReport = { showReportFlow = true },
                 onSpotClick = { spot ->
                     flyTo(LatLng(spot.lat, spot.lng), 16.5)
                     selectedSpot = spot
@@ -438,8 +447,22 @@ fun MapScreen(
                 }
             }
 
-            // Rides on top of the sheet's edge (like Google Maps' locate
-            // button), so it's always reachable and never covered.
+            // Both floating actions ride the sheet's top edge (Google Maps'
+            // locate-button pattern) so they move with it and are never
+            // covered. Report is its own one-tap button on the map — Waze's
+            // model — not an action buried inside the nearby-spots sheet.
+            val fabHeight = 60.dp
+            ReportFab(
+                onClick = { showReportFlow = true },
+                height = fabHeight,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset {
+                        val top = sheetTopPx?.toInt() ?: 0
+                        IntOffset(-16.dp.roundToPx(), top - fabHeight.roundToPx() - 16.dp.roundToPx())
+                    },
+            )
+
             val buttonSize = 48.dp
             Surface(
                 shape = CircleShape,
@@ -449,7 +472,7 @@ fun MapScreen(
                     .align(Alignment.TopEnd)
                     .offset {
                         val top = sheetTopPx?.toInt() ?: 0
-                        IntOffset(-16.dp.roundToPx(), top - buttonSize.roundToPx() - 16.dp.roundToPx())
+                        IntOffset(-22.dp.roundToPx(), top - fabHeight.roundToPx() - buttonSize.roundToPx() - 28.dp.roundToPx())
                     }
                     .size(buttonSize)
                     .clickable {
@@ -469,6 +492,7 @@ fun MapScreen(
             lat = geocodeTarget.latitude,
             lng = geocodeTarget.longitude,
             addressLabel = resolvedAddress ?: "%.5f, %.5f".format(geocodeTarget.latitude, geocodeTarget.longitude),
+            streetAddress = resolvedStreet,
             onDismiss = { showReportFlow = false },
             onReported = {
                 showReportFlow = false
@@ -484,6 +508,10 @@ fun MapScreen(
             api = api,
             spot = spot,
             myUserId = myUserId,
+            distanceLabel = context.getString(
+                R.string.spot_distance_away,
+                formatDistance(context, LatLng(spot.lat, spot.lng).distanceTo(reference)),
+            ),
             onDismiss = { selectedSpot = null },
             onChanged = {
                 selectedSpot = null
@@ -638,10 +666,10 @@ private fun CenterPin(lifted: Boolean, modifier: Modifier = Modifier) {
 @Composable
 private fun NearbySheet(
     spots: List<SpotOut>,
+    loaded: Boolean,
     addresses: Map<String, String>,
     reference: LatLng,
     myUserId: String?,
-    onReport: () -> Unit,
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -652,13 +680,15 @@ private fun NearbySheet(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    if (spots.isEmpty()) stringResource(R.string.map_nearby_none)
+                    if (!loaded) stringResource(R.string.map_nearby_searching)
+                    else if (spots.isEmpty()) stringResource(R.string.map_nearby_none)
                     else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
                     style = MaterialTheme.typography.titleLarge,
                 )
                 val nearest = spots.firstOrNull()
                 Text(
-                    if (nearest == null) stringResource(R.string.map_nearby_empty_hint)
+                    if (!loaded) stringResource(R.string.map_nearby_searching_hint)
+                    else if (nearest == null) stringResource(R.string.map_nearby_empty_hint)
                     else stringResource(
                         R.string.map_nearest,
                         formatDistance(context, LatLng(nearest.lat, nearest.lng).distanceTo(reference)),
@@ -670,21 +700,12 @@ private fun NearbySheet(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Button(
-                onClick = onReport,
-                shape = RoundedCornerShape(50),
-                contentPadding = PaddingValues(start = 16.dp, end = 20.dp),
-                modifier = Modifier.height(48.dp),
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-                Text(stringResource(R.string.map_report_button), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 6.dp))
-            }
         }
         if (spots.isNotEmpty()) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             LazyColumn(modifier = Modifier.fillMaxWidth().height(360.dp)) {
                 items(spots, key = { it.id }) { spot ->
-                    SpotRow(spot, addresses[spot.id], reference, myUserId, onClick = { onSpotClick(spot) })
+                    SpotRow(spot, spot.address ?: addresses[spot.id], reference, myUserId, onClick = { onSpotClick(spot) })
                 }
             }
         }
@@ -745,6 +766,42 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
 private fun formatDistance(context: android.content.Context, meters: Double): String =
     if (meters < 1000) context.getString(R.string.distance_m, (Math.round(meters / 10.0) * 10).toInt())
     else context.getString(R.string.distance_km, meters / 1000.0)
+
+/** The app's single most important action, as one big tap target on the
+ * map itself: brand-colored pill, icon + label (an icon alone was easy to
+ * miss), bouncing in once on entry so the eye finds it immediately. */
+@Composable
+private fun ReportFab(onClick: () -> Unit, height: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val scale by animateFloatAsState(
+        targetValue = if (entered) 1f else 0.4f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "reportFabEntrance",
+    )
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        shadowElevation = 10.dp,
+        modifier = modifier.height(height).graphicsLayer { scaleX = scale; scaleY = scale },
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 18.dp, end = 24.dp)) {
+            Box(
+                modifier = Modifier.size(34.dp).background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(24.dp))
+            }
+            Text(
+                stringResource(R.string.map_report_fab),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 10.dp),
+            )
+        }
+    }
+}
 
 /** Branded loader shown only until the first fully-rendered map frame —
  * a real signal from the engine now, not a fixed timer. */

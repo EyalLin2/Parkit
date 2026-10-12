@@ -83,6 +83,10 @@ class Spot(Base):
     payment: Mapped[Payment] = mapped_column(Enum(Payment, name="payment"))
     vehicle_size: Mapped[VehicleSize | None] = mapped_column(Enum(VehicleSize, name="vehicle_size"), nullable=True)
     photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Human-readable street label ("Dizengoff 50") resolved by the reporting
+    # client at report time — stored once so every viewer's nearby list can
+    # show it without each client re-geocoding every spot.
+    address: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     status: Mapped[SpotStatus] = mapped_column(Enum(SpotStatus, name="spot_status"), default=SpotStatus.active)
     reported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

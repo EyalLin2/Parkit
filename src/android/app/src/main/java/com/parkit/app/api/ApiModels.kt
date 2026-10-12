@@ -24,6 +24,7 @@ data class SpotCreate(
     val payment: String,
     @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "photo_staging_id") val photoStagingId: String? = null,
+    val address: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -36,6 +37,7 @@ data class SpotOut(
     val payment: String,
     @Json(name = "vehicle_size") val vehicleSize: String?,
     @Json(name = "photo_url") val photoUrl: String?,
+    val address: String? = null,
     val status: String,
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
@@ -56,6 +58,7 @@ data class ActivityItem(
     @Json(name = "spot_id") val spotId: String,
     @Json(name = "spot_type") val spotType: String,
     val payment: String,
+    val address: String? = null,
     @Json(name = "reported_at") val reportedAt: String,
     val status: String,
     @Json(name = "removed_reason") val removedReason: String?,

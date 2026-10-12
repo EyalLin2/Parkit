@@ -108,6 +108,8 @@ async def report_spot(
 
     if existing is not None:
         existing.reported_at = now
+        if existing.address is None and payload.address:
+            existing.address = payload.address.strip() or None
         if existing.reporter_id != user_id:
             award_points(user, POINTS_REFRESH_BONUS)
         spot = existing
@@ -120,6 +122,7 @@ async def report_spot(
             spot_type=payload.spot_type,
             payment=payload.payment,
             vehicle_size=payload.vehicle_size,
+            address=(payload.address or "").strip() or None,
         )
         db.add(spot)
         award_points(user, POINTS_REPORT)

@@ -13,6 +13,7 @@ class SpotCreate(BaseModel):
     payment: Payment
     vehicle_size: VehicleSize | None = None
     photo_staging_id: str | None = None
+    address: str | None = Field(default=None, max_length=200)
 
 
 class SpotOut(BaseModel):
@@ -24,6 +25,7 @@ class SpotOut(BaseModel):
     payment: Payment
     vehicle_size: VehicleSize | None
     photo_url: str | None
+    address: str | None
     status: SpotStatus
     reported_at: datetime
     claimed_by: uuid.UUID | None
@@ -39,6 +41,7 @@ class ActivityItem(BaseModel):
     spot_id: uuid.UUID
     spot_type: SpotType
     payment: Payment
+    address: str | None
     reported_at: datetime
     status: SpotStatus
     removed_reason: RemovedReason | None

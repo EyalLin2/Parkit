@@ -30,7 +30,7 @@
     </plurals>
 
     <!-- Report flow -->
-    <string name="report_title">Report parking</string>
+    <string name="report_title">Report a free spot</string>
     <string name="report_photo_required">A photo is required — it\'s what makes reports trustworthy.</string>
     <string name="report_take_photo_cd">Take a photo</string>
     <string name="report_preview_cd">Blurred photo preview</string>
@@ -54,9 +54,9 @@
     <string name="spot_status">Status: %1$s</string>
     <string name="spot_fits">Fits: %1$s</string>
     <string name="spot_navigate">Navigate</string>
-    <string name="spot_claim">Claim this spot</string>
-    <string name="spot_i_took_it">I took it</string>
-    <string name="spot_flag_taken">Spot is taken (flag)</string>
+    <string name="spot_claim">I\'m heading there</string>
+    <string name="spot_i_took_it">I parked here</string>
+    <string name="spot_flag_taken">Already taken</string>
     <string name="spot_cancel_report">Cancel my report</string>
     <string name="spot_action_failed">Action failed</string>
     <string name="error_not_found">That spot isn\'t there anymore.</string>
@@ -170,4 +170,18 @@
     <string name="settings_cancel">Cancel</string>
     <string name="map_spot_kind_regular">Regular spot</string>
     <string name="map_spot_kind_disabled">Disabled parking</string>
+    <string name="report_points_reward">+10 pts</string>
+    <string name="report_needs_photo">Take a photo to continue</string>
+    <string name="report_take_photo">Take a photo of the spot</string>
+    <string name="report_blurring">Blurring faces for privacy…</string>
+    <string name="report_privacy_checked">Checked for privacy</string>
+    <string name="report_retake">Retake</string>
+    <string name="spot_close_cd">Close</string>
+    <string name="spot_someone_on_the_way">Someone is on the way</string>
+    <string name="spot_photo_cd">Photo of the spot</string>
+    <string name="spot_still_free_question">Is the spot still free?</string>
+    <string name="spot_distance_away">%1$s away</string>
+    <string name="map_report_fab">Report a spot</string>
+    <string name="map_nearby_searching">Looking for free spots…</string>
+    <string name="map_nearby_searching_hint">Checking reports around the pin</string>
 </resources>
