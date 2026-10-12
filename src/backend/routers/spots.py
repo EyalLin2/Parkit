@@ -22,6 +22,8 @@ from schemas import FeedbackCreate, SpotCreate, SpotOut
 router = APIRouter(prefix="/spots", tags=["spots"])
 
 CLAIM_TTL_SECONDS = 120
+SPOT_TTL_MINUTES = 30  # the same for everyone: a stale spot helps no one
+REPORT_COOLDOWN_SECONDS = 120
 CANCEL_WINDOW_MINUTES = 2
 DEDUP_RADIUS_M = 15
 SAME_SPOT_WINDOW_SECONDS = 600
@@ -90,7 +92,6 @@ async def report_spot(
         raise HTTPException(404, "Unknown user")
 
     now = datetime.now(timezone.utc)
-    level = level_for(user.points)
     if user.reporting_blocked_until and user.reporting_blocked_until > now:
         raise HTTPException(403, "Reporting temporarily blocked")
 
@@ -135,7 +136,7 @@ async def report_spot(
             payment=payload.payment,
             vehicle_size=payload.vehicle_size,
             address=address,
-            ttl_minutes=level.spot_ttl_minutes,
+            ttl_minutes=SPOT_TTL_MINUTES,
             hot_minutes=hot,
         )
         db.add(spot)
@@ -149,7 +150,7 @@ async def report_spot(
         await redis.delete(f"photo_staging:{payload.photo_staging_id}")
         spot.photo_url = save_photo(spot.id, base64.b64decode(staged))
 
-    await redis.set(f"report_cooldown:{user_id}", "1", ex=level.report_cooldown_seconds)
+    await redis.set(f"report_cooldown:{user_id}", "1", ex=REPORT_COOLDOWN_SECONDS)
     same_spot_key = f"same_spot_count:{user_id}:{bucket}"
     count = await redis.incr(same_spot_key)
     if count == 1:

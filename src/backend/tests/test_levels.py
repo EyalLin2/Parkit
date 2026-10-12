@@ -5,7 +5,6 @@ from sqlalchemy import text
 
 from database import engine
 from levels import LEVELS, level_for, next_level
-from redis_client import redis_client
 
 TLV = {"lat": 32.0809, "lng": 34.7806}
 
@@ -54,26 +53,6 @@ async def test_profile_reports_level_and_points_to_next(client, make_user):
     assert body["next_level_points"] == 1200
 
 
-async def test_silver_reports_stay_on_the_map_longer(client, make_user):
-    newbie_id, newbie = await make_user("newbie")
-    silver_id, silver = await make_user("silver")
-    await _set_points(silver_id, 400)
-    a = (await _report(client, newbie)).json()
-    b = (await _report(client, silver, lat=TLV["lat"] + 0.01)).json()
-    async with engine.connect() as conn:
-        ttl = dict((await conn.execute(text("SELECT id::text, ttl_minutes FROM spots"))).all())
-    assert ttl[a["id"]] == 30
-    assert ttl[b["id"]] == 45
-
-
-async def test_gold_waits_one_minute_between_reports(client, make_user):
-    gold_id, gold = await make_user("gold")
-    await _set_points(gold_id, 1200)
-    assert (await _report(client, gold)).status_code == 201
-    remaining = await redis_client.ttl(f"report_cooldown:{gold_id}")
-    assert 0 < remaining <= 60
-
-
 async def test_nearby_spots_carry_the_reporters_level(client, make_user):
     legend_id, legend = await make_user("legend")
     await _set_points(legend_id, 3000)
@@ -88,3 +67,23 @@ async def test_leaderboard_entries_carry_level(client, make_user):
     await _set_points(user_id, 1300)
     board = (await client.get("/leaderboard", headers=headers)).json()
     assert board[0]["level"] == "gold"
+
+
+async def test_levels_do_not_change_how_long_a_spot_stays(client, make_user):
+    """Perks are cosmetic: a legend's report expires like anyone's."""
+    legend_id, legend = await make_user("legend")
+    await _set_points(legend_id, 5000)
+    newbie_spot = (await _report(client, (await make_user("newbie"))[1], lat=32.07, lng=34.77)).json()
+    legend_spot = (await _report(client, legend)).json()
+    async with engine.begin() as conn:
+        ttls = (
+            (
+                await conn.execute(
+                    text("SELECT ttl_minutes FROM spots WHERE id IN (:a, :b)"),
+                    {"a": uuid.UUID(newbie_spot["id"]), "b": uuid.UUID(legend_spot["id"])},
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert ttls == [30, 30]

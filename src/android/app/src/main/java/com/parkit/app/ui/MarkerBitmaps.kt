@@ -26,6 +26,7 @@ object MarkerBitmaps {
     private const val HEAD_DP = 34f
     private const val TAIL_DP = 9f
     private const val BORDER_DP = 2.5f
+    private const val FRAME_DP = 3.5f // a level frame is a little thicker so its colour reads
     private const val PAD_DP = 4f
     private const val TAG_H_DP = 16f
 
@@ -33,7 +34,10 @@ object MarkerBitmaps {
      * this so the tip (not the padded bitmap edge) sits on the coordinate. */
     const val TIP_PADDING_DP = PAD_DP
 
-    fun pin(context: Context, colorHex: String, tag: String, disabled: Boolean = false, hot: Boolean = false): Bitmap {
+    /** [frameHex]: the reporter's level colour (bronze/silver/gold) as the
+     * pin's frame instead of white — a recognition perk that leaves the
+     * fill, and so the spot's meaning, untouched. */
+    fun pin(context: Context, colorHex: String, tag: String, disabled: Boolean = false, hot: Boolean = false, frameHex: String? = null): Bitmap {
         val d = context.resources.displayMetrics.density
         val head = HEAD_DP * d
         val r = head / 2f
@@ -78,12 +82,12 @@ object MarkerBitmaps {
         if (hot) drawFlames(canvas, cx, cy, r, flame)
 
         canvas.drawPath(outline, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
+            color = frameHex?.let { Color.parseColor(it) } ?: Color.WHITE
             setShadowLayer(3f * d, 0f, 1.5f * d, Color.argb(90, 0, 0, 0))
         })
 
         val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(colorHex) }
-        val inner = r - BORDER_DP * d
+        val inner = r - (if (frameHex != null) FRAME_DP else BORDER_DP) * d
         canvas.drawCircle(cx, cy, inner, fill)
         canvas.drawPath(Path().apply {
             moveTo(cx - inner * 0.42f, cy + inner * 0.72f)

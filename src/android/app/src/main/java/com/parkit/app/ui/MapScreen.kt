@@ -221,6 +221,14 @@ private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
     else -> freshnessGreen(ageMinutes(spot.reportedAt))
 }
 
+/** Pin frame for the reporter's level; legends already have their own pin. */
+private fun levelFrame(level: String): String? = when (level) {
+    "bronze" -> "#B0703C"
+    "silver" -> "#9AA7B8"
+    "gold" -> "#D4A017"
+    else -> null
+}
+
 /** A free spot starts deep green and pales as it waits, so the map itself
  * shows how long each spot has been free — no need to read the tags. Steps
  * rather than a smooth blend: five shades the eye can actually tell apart
@@ -301,12 +309,11 @@ fun MapScreen(
     // the pin — the same reference point the search radius uses.
     val reference = deviceLocation ?: geocodeTarget
     // Spots this driver can't use (disabled bay without a permit, too small
-    // for their car) go last; then legend-level reports (a level perk); then
-    // distance.
+    // for their car) go last; otherwise purely by distance — levels are
+    // recognition, they don't reorder anyone's list.
     val sortedSpots = visibleSpots.sortedWith(
         compareBy<SpotOut>(
             { fitOf(it, driverPrefs.preferences).unusable },
-            { it.reporterLevel != "legend" },
             { LatLng(it.lat, it.lng).distanceTo(reference) },
         ),
     )
@@ -571,8 +578,9 @@ fun MapScreen(
             val tag = MarkerBitmaps.relativeTimeShort(context, spot.reportedAt)
             val disabled = spot.spotType == "disabled"
             val hot = spot.hotMinutes != null && spot.status == "active"
-            val iconId = "pin-$color-$tag-${if (disabled) "d" else "p"}${if (hot) "-hot" else ""}"
-            if (s.getImage(iconId) == null) s.addImage(iconId, MarkerBitmaps.pin(context, color, tag, disabled, hot))
+            val frame = levelFrame(spot.reporterLevel)
+            val iconId = "pin-$color-$tag-${if (disabled) "d" else "p"}${if (hot) "-hot" else ""}-${frame ?: "w"}"
+            if (s.getImage(iconId) == null) s.addImage(iconId, MarkerBitmaps.pin(context, color, tag, disabled, hot, frame))
             Feature.fromGeometry(Point.fromLngLat(spot.lng, spot.lat)).apply {
                 addStringProperty("id", spot.id)
                 addStringProperty("icon", iconId)

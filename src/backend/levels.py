@@ -1,13 +1,15 @@
 """Reporter levels: what each costs in points and what it unlocks.
 
-One place for the whole ladder so the API, the perks and the app's
-"benefits" screen can never disagree. Perks are real behaviour, earned by
-a track record (false reports cost points, so a level can be lost):
+One place for the whole ladder so the API and the app's "levels" screen
+can never disagree. Perks are recognition only — they change how *your*
+reports and name look, never how long a spot stays or where it's listed,
+so a higher level can't make the map worse for anyone else (a spot kept
+around longer is usually a spot that's already gone):
 
-- bronze: a bronze badge next to your name and on your reports
-- silver: your reports stay on the map 45 min instead of 30
-- gold:   1 min between reports instead of 2
-- legend: a distinct pin on the map, listed first in "nearby"
+- bronze: bronze frame on your pins, bronze badge by your name
+- silver: silver frame on your pins
+- gold:   gold frame on your pins
+- legend: a solid purple pin of your own
 """
 
 from dataclasses import dataclass
@@ -17,16 +19,14 @@ from dataclasses import dataclass
 class Level:
     key: str
     min_points: int
-    spot_ttl_minutes: int
-    report_cooldown_seconds: int
 
 
 LEVELS: tuple[Level, ...] = (
-    Level("newbie", 0, 30, 120),
-    Level("bronze", 100, 30, 120),
-    Level("silver", 400, 45, 120),
-    Level("gold", 1200, 45, 60),
-    Level("legend", 3000, 45, 60),
+    Level("newbie", 0),
+    Level("bronze", 100),
+    Level("silver", 400),
+    Level("gold", 1200),
+    Level("legend", 3000),
 )
 
 
