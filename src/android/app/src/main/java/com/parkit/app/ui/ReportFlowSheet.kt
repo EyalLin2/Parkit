@@ -100,6 +100,7 @@ fun ReportFlowSheet(
 
     var blurredPreview by remember { mutableStateOf<Bitmap?>(null) }
     var stagingId by remember { mutableStateOf<String?>(null) }
+    // Faces + licence plates the server blurred in this photo.
     var facesBlurred by remember { mutableStateOf<Int?>(null) }
     var uploading by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf("street") }
@@ -117,7 +118,7 @@ fun ReportFlowSheet(
             val part = MultipartBody.Part.createFormData("file", "photo.jpg", body)
             val staged = api.stagePhoto(part)
             stagingId = staged.stagingId
-            facesBlurred = staged.facesBlurred
+            facesBlurred = staged.facesBlurred + staged.platesBlurred
             val previewBytes = Base64.decode(staged.previewBase64, Base64.DEFAULT)
             blurredPreview = BitmapFactory.decodeByteArray(previewBytes, 0, previewBytes.size)
         } catch (e: Exception) {
@@ -202,6 +203,16 @@ fun ReportFlowSheet(
                 onTakePhoto = { startCamera() },
                 modifier = Modifier.padding(top = 18.dp),
             )
+            // Said before the photo is taken, not only after: what happens to it.
+            Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp)) {
+                Icon(Icons.Filled.FaceRetouchingOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp).padding(top = 1.dp))
+                Text(
+                    stringResource(R.string.report_privacy_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
 
             FieldLabel(stringResource(R.string.report_type_question))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -309,7 +320,7 @@ private fun PhotoArea(preview: Bitmap?, facesBlurred: Int?, uploading: Boolean, 
             ) {
                 Icon(Icons.Filled.FaceRetouchingOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                 Text(
-                    if ((facesBlurred ?: 0) > 0) pluralStringResource(R.plurals.report_faces_blurred, facesBlurred!!, facesBlurred)
+                    if ((facesBlurred ?: 0) > 0) pluralStringResource(R.plurals.report_items_blurred, facesBlurred!!, facesBlurred)
                     else stringResource(R.string.report_privacy_checked),
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White,

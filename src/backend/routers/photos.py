@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from auth import get_current_user_id
-from blur import blur_faces
+from blur import blur_sensitive
 from redis_client import get_redis
 
 router = APIRouter(prefix="/photos", tags=["photos"])
@@ -18,6 +18,7 @@ MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 class StagedPhotoOut(BaseModel):
     staging_id: str
     faces_blurred: int
+    plates_blurred: int = 0
     preview_base64: str
 
 
@@ -32,7 +33,7 @@ async def stage_photo(
         raise HTTPException(413, "Photo too large")
 
     try:
-        blurred, faces_blurred = blur_faces(raw)
+        blurred, faces_blurred, plates_blurred = blur_sensitive(raw)
     except ValueError:
         raise HTTPException(400, "Could not process image") from None
 
@@ -42,5 +43,6 @@ async def stage_photo(
     return StagedPhotoOut(
         staging_id=staging_id,
         faces_blurred=faces_blurred,
+        plates_blurred=plates_blurred,
         preview_base64=base64.b64encode(blurred).decode(),
     )

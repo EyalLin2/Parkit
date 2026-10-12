@@ -53,6 +53,7 @@ data class FeedbackCreate(val type: String)
 data class StagedPhotoOut(
     @Json(name = "staging_id") val stagingId: String,
     @Json(name = "faces_blurred") val facesBlurred: Int,
+    @Json(name = "plates_blurred") val platesBlurred: Int = 0,
     @Json(name = "preview_base64") val previewBase64: String,
 )
 

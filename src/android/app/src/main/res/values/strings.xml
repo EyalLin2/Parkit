@@ -35,10 +35,6 @@
     <string name="report_take_photo_cd">Take a photo</string>
     <string name="report_preview_cd">Blurred photo preview</string>
     <string name="report_photo_upload_failed">Photo upload failed: %1$s</string>
-    <plurals name="report_faces_blurred">
-        <item quantity="one">%1$d face blurred for privacy</item>
-        <item quantity="other">%1$d faces blurred for privacy</item>
-    </plurals>
     <string name="report_type_question">What kind of spot?</string>
     <string name="report_type_regular">Regular</string>
     <string name="report_type_disabled">Disabled</string>
@@ -254,5 +250,10 @@
     <plurals name="hot_long">
         <item quantity="one">Hot area — spots here usually go within a minute. If you want it, go now.</item>
         <item quantity="other">Hot area — spots here usually go within ~%d minutes. If you want it, go now.</item>
+    </plurals>
+    <string name="report_privacy_note">Faces and licence plates are blurred automatically. The original photo isn\'t saved, and the photo is deleted when the spot closes.</string>
+    <plurals name="report_items_blurred">
+        <item quantity="one">1 face or plate blurred</item>
+        <item quantity="other">%1$d faces or plates blurred</item>
     </plurals>
 </resources>

@@ -36,11 +36,6 @@
     <string name="report_take_photo_cd">צילום תמונה</string>
     <string name="report_preview_cd">תצוגה מקדימה של התמונה המטושטשת</string>
     <string name="report_photo_upload_failed">העלאת התמונה נכשלה: %1$s</string>
-    <plurals name="report_faces_blurred">
-        <item quantity="one">פרצוף אחד טושטש לשם פרטיות</item>
-        <item quantity="two">%1$d פרצופים טושטשו לשם פרטיות</item>
-        <item quantity="other">%1$d פרצופים טושטשו לשם פרטיות</item>
-    </plurals>
     <string name="report_type_question">איזה סוג חניה?</string>
     <string name="report_type_regular">רגילה</string>
     <string name="report_type_disabled">נכים</string>
@@ -262,5 +257,11 @@
         <item quantity="one">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך דקה. אם אתה רוצה אותה, צא עכשיו.</item>
         <item quantity="two">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות. אם אתה רוצה אותה, צא עכשיו.</item>
         <item quantity="other">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות. אם אתה רוצה אותה, צא עכשיו.</item>
+    </plurals>
+    <string name="report_privacy_note">פנים ולוחיות רישוי מטושטשים אוטומטית. התמונה המקורית לא נשמרת, והתמונה נמחקת כשהחניה נסגרת.</string>
+    <plurals name="report_items_blurred">
+        <item quantity="one">טושטשו פנים או לוחית אחת</item>
+        <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
+        <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
 </resources>
