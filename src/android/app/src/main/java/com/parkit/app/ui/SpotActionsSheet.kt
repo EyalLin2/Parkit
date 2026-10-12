@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.text.withStyle
+import androidx.compose.material.icons.filled.NoPhotography
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.CheckCircle
@@ -115,6 +117,9 @@ fun SpotActionsSheet(
     }
     val photoUrl = spot.photoUrl?.let { ApiConfig.BASE_URL.trimEnd('/') + it }
     var photoFullScreen by remember { mutableStateOf(false) }
+    // A photo that fails to load (e.g. deleted) falls back to the header slot.
+    var photoFailed by remember { mutableStateOf(false) }
+    val showHero = photoUrl != null && !photoFailed
 
     LaunchedEffect(spot.id) {
         if (address == null) address = SpotAddressCache.resolve(spot.id, spot.lat, spot.lng)
@@ -145,7 +150,7 @@ fun SpotActionsSheet(
             // The reporter's own photo is the strongest proof the spot is
             // real, so when there is one it leads the card (Google Maps'
             // place-sheet pattern) instead of a generic parking icon.
-            if (photoUrl != null) {
+            if (showHero) {
                 Box(
                     modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth().height(220.dp).clip(RoundedCornerShape(20.dp))
                         .background(MaterialTheme.colorScheme.secondaryContainer)
@@ -155,6 +160,7 @@ fun SpotActionsSheet(
                         model = photoUrl,
                         contentDescription = stringResource(R.string.spot_photo_cd),
                         contentScale = ContentScale.Crop,
+                        onError = { photoFailed = true },
                         modifier = Modifier.fillMaxSize(),
                     )
                     Row(
@@ -182,6 +188,22 @@ fun SpotActionsSheet(
             // Header: where it is, then one quiet line — type · distance ·
             // freshness (a coloured dot carries how fresh, at a glance).
             Row(verticalAlignment = Alignment.Top) {
+                if (!showHero) {
+                    // The photo's place, kept even when there's none — the
+                    // card reads the same with or without one.
+                    Box(
+                        modifier = Modifier.padding(end = 14.dp).size(56.dp).clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Filled.NoPhotography,
+                            contentDescription = stringResource(R.string.spot_no_photo_cd),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
                 Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                     Text(
                         address ?: stringResource(R.string.map_locating),
@@ -189,23 +211,28 @@ fun SpotActionsSheet(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                        Text(
-                            listOfNotNull(
-                                stringResource(if (isDisabledSpot) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
-                                distanceLabel,
-                            ).joinToString(" · ") + " · ",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Box(Modifier.size(8.dp).background(freshnessColor(spot.reportedAt), CircleShape))
-                        Text(
-                            MarkerBitmaps.relativeTimeLong(context, spot.reportedAt),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 5.dp),
-                        )
+                    // One text run (not a Row) so it wraps as a sentence; the
+                    // coloured dot carries freshness.
+                    val meta = listOfNotNull(
+                        stringResource(if (isDisabledSpot) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
+                        distanceLabel,
+                    ).joinToString(" · ")
+                    val age = if (MarkerBitmaps.relativeTimeShort(context, spot.reportedAt) == stringResource(R.string.time_now_short)) {
+                        stringResource(R.string.time_now_long) // "just now", not "ago now"
+                    } else {
+                        stringResource(R.string.spot_age_short, MarkerBitmaps.relativeTimeShort(context, spot.reportedAt))
                     }
+                    val dotColor = freshnessColor(spot.reportedAt)
+                    Text(
+                        androidx.compose.ui.text.buildAnnotatedString {
+                            append("$meta · ")
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = dotColor)) { append("● ") }
+                            append(age)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                 }
                 IconButton(
                     onClick = onDismiss,

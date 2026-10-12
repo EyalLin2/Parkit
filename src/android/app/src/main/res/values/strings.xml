@@ -265,4 +265,6 @@
     <string name="lot_source_note">Lot data from OpenStreetMap — check the entrance for hours and prices.</string>
     <string name="parked_pango_prompt">Parked! Blue-white? Start parking in Pango</string>
     <string name="parked_pango_action">Pango</string>
+    <string name="spot_no_photo_cd">No photo for this spot</string>
+    <string name="spot_age_short">%1$s ago</string>
 </resources>
