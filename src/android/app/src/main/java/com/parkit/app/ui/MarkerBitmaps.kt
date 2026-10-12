@@ -33,7 +33,7 @@ object MarkerBitmaps {
      * this so the tip (not the padded bitmap edge) sits on the coordinate. */
     const val TIP_PADDING_DP = PAD_DP
 
-    fun pin(context: Context, colorHex: String, tag: String): Bitmap {
+    fun pin(context: Context, colorHex: String, tag: String, disabled: Boolean = false): Bitmap {
         val d = context.resources.displayMetrics.density
         val head = HEAD_DP * d
         val r = head / 2f
@@ -92,7 +92,16 @@ object MarkerBitmaps {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textSize = 18f * d
         }
-        canvas.drawText("P", cx, cy - (p.descent() + p.ascent()) / 2f, p)
+        if (disabled) {
+            // Disabled-parking spots carry the wheelchair symbol, not "P",
+            // so they're recognisable on the map at a glance.
+            val icon = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_pin_accessible)!!
+            val half = (20f * d / 2f).toInt()
+            icon.setBounds((cx - half).toInt(), (cy - half).toInt(), (cx + half).toInt(), (cy + half).toInt())
+            icon.draw(canvas)
+        } else {
+            canvas.drawText("P", cx, cy - (p.descent() + p.ascent()) / 2f, p)
+        }
 
         if (tag.isNotEmpty()) {
             val left = cx + r * 0.35f

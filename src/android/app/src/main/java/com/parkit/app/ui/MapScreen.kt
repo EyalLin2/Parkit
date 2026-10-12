@@ -45,6 +45,9 @@ import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.DoNotDisturbOn
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.BottomSheetScaffold
@@ -200,6 +203,7 @@ private const val COLOR_CLAIMED = "#E8710A"
 private const val COLOR_LEGEND = "#7B3FE4"
 
 private val SHEET_PEEK = 114.dp
+private const val CLAIM_HOLD_MS = 120_000L // matches the backend's CLAIM_TTL_SECONDS
 
 private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
     spot.status == "claimed" -> COLOR_CLAIMED
@@ -236,6 +240,12 @@ fun MapScreen(
     // "No spots nearby" must mean the server said so — not "still loading".
     var spotsLoaded by remember { mutableStateOf(false) }
     var selectedSpot by remember { mutableStateOf<SpotOut?>(null) }
+    // The spot this user said "I'm heading there" to. The server hides
+    // claimed spots from everyone (so nobody else is sent there), so the
+    // claimer keeps it locally — on the map and in a trip card — until they
+    // report what happened or the 2-minute hold runs out.
+    var activeClaim by remember { mutableStateOf<SpotOut?>(null) }
+    var claimEndsAt by remember { mutableStateOf(0L) }
     var showReportFlow by remember { mutableStateOf(false) }
     var typeFilter by remember { mutableStateOf<String?>(null) } // null = All
     var cameraMoving by remember { mutableStateOf(false) }
@@ -256,7 +266,10 @@ fun MapScreen(
     var addressLoading by remember { mutableStateOf(true) }
     var addressFailed by remember { mutableStateOf(false) }
 
-    val visibleSpots = typeFilter?.let { f -> spots.filter { it.spotType == f } } ?: spots
+    val visibleSpots = (typeFilter?.let { f -> spots.filter { it.spotType == f } } ?: spots).let { list ->
+        val claim = activeClaim
+        if (claim != null && list.none { it.id == claim.id }) list + claim else list
+    }
     // "Nearby" means near *you* when we know where you are, otherwise near
     // the pin — the same reference point the search radius uses.
     val reference = deviceLocation ?: geocodeTarget
@@ -482,8 +495,9 @@ fun MapScreen(
         val features = visibleSpots.map { spot ->
             val color = pinColor(spot, myUserId)
             val tag = MarkerBitmaps.relativeTimeShort(context, spot.reportedAt)
-            val iconId = "pin-$color-$tag"
-            if (s.getImage(iconId) == null) s.addImage(iconId, MarkerBitmaps.pin(context, color, tag))
+            val disabled = spot.spotType == "disabled"
+            val iconId = "pin-$color-$tag-${if (disabled) "d" else "p"}"
+            if (s.getImage(iconId) == null) s.addImage(iconId, MarkerBitmaps.pin(context, color, tag, disabled))
             Feature.fromGeometry(Point.fromLngLat(spot.lng, spot.lat)).apply {
                 addStringProperty("id", spot.id)
                 addStringProperty("icon", iconId)
@@ -573,6 +587,36 @@ fun MapScreen(
                     MapChip(stringResource(R.string.map_filter_regular), Icons.Filled.DirectionsCar, typeFilter == "street") { typeFilter = "street" }
                     MapChip(stringResource(R.string.map_filter_disabled), Icons.AutoMirrored.Filled.Accessible, typeFilter == "disabled") { typeFilter = "disabled" }
                 }
+                activeClaim?.let { claim ->
+                    ClaimTripCard(
+                        spot = claim,
+                        endsAt = claimEndsAt,
+                        onNavigate = {
+                            val uri = android.net.Uri.parse("geo:${claim.lat},${claim.lng}?q=${claim.lat},${claim.lng}")
+                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri))
+                        },
+                        onFeedback = { type ->
+                            scope.launch {
+                                try {
+                                    api.submitFeedback(claim.id, com.parkit.app.api.FeedbackCreate(type))
+                                    activeClaim = null
+                                    snackbarHostState.showSnackbar(
+                                        context.getString(if (type == "confirmed_taken") R.string.claim_parked_thanks else R.string.claim_taken_thanks),
+                                    )
+                                    refreshSpotsNow()
+                                } catch (e: Exception) {
+                                    snackbarHostState.showSnackbar(e.friendlyMessage(context))
+                                }
+                            }
+                        },
+                        onExpired = {
+                            activeClaim = null
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.claim_expired)) }
+                            refreshSpotsNow()
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
+                }
             }
 
             androidx.compose.animation.AnimatedVisibility(
@@ -643,6 +687,12 @@ fun MapScreen(
             onDismiss = { selectedSpot = null },
             onChanged = {
                 selectedSpot = null
+                refreshSpotsNow()
+            },
+            onClaimed = { claimed ->
+                selectedSpot = null
+                activeClaim = claimed
+                claimEndsAt = System.currentTimeMillis() + CLAIM_HOLD_MS
                 refreshSpotsNow()
             },
             onSessionExpired = onLoggedOut,
@@ -1038,6 +1088,76 @@ private fun ReportHereBubble(visible: Boolean, onClick: () -> Unit, modifier: Mo
                     modifier = Modifier.size(20.dp),
                 )
             }
+        }
+    }
+}
+
+/** "You're on your way" — stays on screen after "I'm heading there" so the
+ * claimer always knows the spot is held for them, how long for, and can
+ * close the loop ("I parked here" / "already taken") from the map. */
+@Composable
+private fun ClaimTripCard(
+    spot: SpotOut,
+    endsAt: Long,
+    onNavigate: () -> Unit,
+    onFeedback: (String) -> Unit,
+    onExpired: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var remaining by remember(endsAt) { mutableStateOf(((endsAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)) }
+    LaunchedEffect(endsAt) {
+        while (remaining > 0) {
+            delay(1000)
+            remaining = ((endsAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+        }
+        onExpired()
+    }
+    val orange = Color(0xFFE8710A)
+    val green = Color(0xFF188038)
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).background(orange.copy(alpha = 0.14f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = orange)
+                }
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text(stringResource(R.string.claim_trip_title), style = MaterialTheme.typography.labelMedium, color = orange)
+                    Text(
+                        spot.address ?: stringResource(R.string.map_locating),
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "%d:%02d".format(remaining / 60, remaining % 60),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (remaining <= 30) orange else MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(stringResource(R.string.claim_held_for_you), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+                TripAction(stringResource(R.string.spot_navigate), Icons.Filled.Navigation, MaterialTheme.colorScheme.primary, Modifier.weight(1f), onNavigate)
+                TripAction(stringResource(R.string.spot_i_took_it), Icons.Filled.CheckCircle, green, Modifier.weight(1f)) { onFeedback("confirmed_taken") }
+                TripAction(stringResource(R.string.spot_flag_taken), Icons.Filled.DoNotDisturbOn, orange, Modifier.weight(1f)) { onFeedback("flagged_false") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TripAction(label: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(14.dp), color = color.copy(alpha = 0.1f), modifier = modifier.height(44.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, color = color, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
         }
     }
 }

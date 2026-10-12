@@ -210,4 +210,9 @@
     <string name="level_earn_hint">Report = +10 · someone parks in your spot = +5 · false report = −5</string>
     <string name="league_subtitle">Points this week · resets every week</string>
     <string name="spot_reported_by_level">Reported by a %1$s driver</string>
+    <string name="claim_trip_title">You\'re on your way</string>
+    <string name="claim_held_for_you">held for you</string>
+    <string name="claim_parked_thanks">Thanks! The reporter got points for a good spot</string>
+    <string name="claim_taken_thanks">Thanks — we warned other drivers</string>
+    <string name="claim_expired">Time\'s up — the spot is back on the map</string>
 </resources>

@@ -91,6 +91,7 @@ fun SpotActionsSheet(
     distanceLabel: String?,
     onDismiss: () -> Unit,
     onChanged: () -> Unit,
+    onClaimed: (SpotOut) -> Unit,
     onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -246,7 +247,19 @@ fun SpotActionsSheet(
                 }
                 if (spot.status == "active" && !isMine) {
                     OutlinedButton(
-                        onClick = { run { api.claimSpot(spot.id) } },
+                        onClick = {
+                            busy = true
+                            error = null
+                            scope.launch {
+                                try {
+                                    onClaimed(api.claimSpot(spot.id).copy(address = spot.address ?: address, reporterLevel = spot.reporterLevel))
+                                } catch (e: Exception) {
+                                    if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        },
                         enabled = !busy,
                         shape = RoundedCornerShape(50),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
