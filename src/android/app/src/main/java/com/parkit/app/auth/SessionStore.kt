@@ -35,6 +35,11 @@ class SessionStore(context: Context) {
         get() = prefs.getBoolean(KEY_ONBOARDING_SEEN, false)
         set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_SEEN, value).apply()
 
+    /** When the app last went to the background (0 = never / signed out). */
+    var leftAppAt: Long
+        get() = prefs.getLong(KEY_LEFT_APP_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_LEFT_APP_AT, value).apply()
+
     fun saveDriver(d: DriverPrefs) {
         val p = d.preferences
         prefs.edit()
@@ -91,6 +96,7 @@ class SessionStore(context: Context) {
         private const val KEY_USER_ID = "user_id"
         private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_ONBOARDING_SEEN = "onboarding_seen"
+        private const val KEY_LEFT_APP_AT = "left_app_at"
         private const val KEY_VEHICLE_SIZE = "vehicle_size"
         private const val KEY_CAR_LABEL = "car_label"
         private const val KEY_DISABLED_PERMIT = "has_disabled_permit"

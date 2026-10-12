@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.parkit.app.api.ApiClient
 import com.parkit.app.auth.SessionStore
 import com.parkit.app.locale.LocaleManager
+import com.parkit.app.ui.DetailsScreen
 import com.parkit.app.ui.DriverProfileScreen
 import com.parkit.app.ui.LoginScreen
 import com.parkit.app.ui.MapScreen
@@ -27,6 +28,7 @@ import com.parkit.app.ui.ProfileScreen
 import com.parkit.app.ui.theme.ParkItTheme
 import com.parkit.app.ui.theme.ThemeManager
 import com.parkit.app.ui.SettingsScreen
+import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 
 class MainActivity : ComponentActivity() {
@@ -56,6 +58,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private const val SESSION_IDLE_MS = 30 * 60 * 1000L // matches the server's SESSION_IDLE_MINUTES
+private const val RENEW_EVERY_MS = 10 * 60 * 1000L
+
 @Composable
 fun ParkItApp(sessionStore: SessionStore) {
     val navController = rememberNavController()
@@ -81,6 +86,43 @@ fun ParkItApp(sessionStore: SessionStore) {
     val motionSpec = tween<Float>(280)
     val offsetSpec = tween<androidx.compose.ui.unit.IntOffset>(280)
 
+    // Sessions end after SESSION_IDLE_MINUTES away from the app (the server
+    // enforces the same window). While the app is open the session is
+    // renewed every few minutes; coming back after longer than the window
+    // goes straight to the SMS sign-in — even offline.
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    suspend fun renew() {
+        if (sessionStore.token.value == null) return
+        try {
+            val fresh = api.refreshToken()
+            sessionStore.save(fresh.accessToken, fresh.userId, sessionStore.displayName.value.orEmpty())
+        } catch (e: Exception) {
+            if (e is retrofit2.HttpException && e.code() == 401) goToLogin()
+        }
+    }
+    val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> sessionStore.leftAppAt = System.currentTimeMillis()
+                androidx.lifecycle.Lifecycle.Event.ON_START -> {
+                    val away = System.currentTimeMillis() - sessionStore.leftAppAt
+                    if (sessionStore.token.value != null && sessionStore.leftAppAt > 0 && away > SESSION_IDLE_MS) goToLogin()
+                    else scope.launch { renew() }
+                }
+                else -> Unit
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(RENEW_EVERY_MS)
+            renew()
+        }
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
         composable(
             "login",
@@ -89,11 +131,33 @@ fun ParkItApp(sessionStore: SessionStore) {
             LoginScreen(
                 api = api,
                 sessionStore = sessionStore,
-                onLoggedIn = {
-                    val next = if (sessionStore.onboardingSeen) "map" else "onboarding"
+                onLoggedIn = { needsProfile ->
+                    val next = when {
+                        needsProfile -> "details"
+                        sessionStore.onboardingSeen -> "map"
+                        else -> "onboarding"
+                    }
                     navController.navigate(next) { popUpTo("login") { inclusive = true } }
                 },
             )
+        }
+        composable("details", exitTransition = { fadeOut(animationSpec = motionSpec) }) {
+            DetailsScreen(
+                api = api,
+                sessionStore = sessionStore,
+                firstTime = true,
+                onDone = {
+                    navController.navigate(if (sessionStore.onboardingSeen) "map" else "onboarding") { popUpTo("details") { inclusive = true } }
+                },
+                onSessionExpired = goToLogin,
+            )
+        }
+        composable(
+            "details-edit",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
+        ) {
+            DetailsScreen(api = api, sessionStore = sessionStore, firstTime = false, onDone = { navController.popBackStack() }, onSessionExpired = goToLogin)
         }
         composable(
             "onboarding",
@@ -133,6 +197,7 @@ fun ParkItApp(sessionStore: SessionStore) {
                 sessionStore = sessionStore,
                 onOpenSettings = { navController.navigate("settings") },
                 onOpenDriver = { navController.navigate("driver") },
+                onOpenDetails = { navController.navigate("details-edit") },
                 onSessionExpired = goToLogin,
             )
         }

@@ -59,6 +59,13 @@ class User(Base):
     auth_provider: Mapped[str] = mapped_column(String(20))
     external_id: Mapped[str] = mapped_column(String(255), unique=True)
     display_name: Mapped[str] = mapped_column(String(80))
+    # Phone sign-in (E.164, verified by SMS code) and the basic details asked
+    # right after the first login. The leaderboard shows only first name +
+    # last initial (display_name); the rest is visible to the user alone.
+    phone: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(254), nullable=True)
 
     points: Mapped[int] = mapped_column(default=0)
     weekly_points: Mapped[int] = mapped_column(default=0)

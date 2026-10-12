@@ -14,6 +14,37 @@ data class DevLoginRequest(
 data class TokenOut(
     @Json(name = "access_token") val accessToken: String,
     @Json(name = "user_id") val userId: String,
+    /** First phone sign-in: name + email still to fill in. */
+    @Json(name = "needs_profile") val needsProfile: Boolean = false,
+)
+
+@JsonClass(generateAdapter = true)
+data class OtpRequest(val phone: String)
+
+@JsonClass(generateAdapter = true)
+data class OtpRequested(
+    val phone: String,
+    @Json(name = "resend_after_seconds") val resendAfterSeconds: Int = 60,
+    /** Only from a local dev server: the code, so the emulator needs no SMS. */
+    @Json(name = "dev_code") val devCode: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class OtpVerify(val phone: String, val code: String)
+
+@JsonClass(generateAdapter = true)
+data class DetailsUpdate(
+    @Json(name = "first_name") val firstName: String,
+    @Json(name = "last_name") val lastName: String,
+    val email: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class AccountOut(
+    val phone: String?,
+    @Json(name = "first_name") val firstName: String?,
+    @Json(name = "last_name") val lastName: String?,
+    val email: String?,
 )
 
 @JsonClass(generateAdapter = true)
@@ -85,6 +116,7 @@ data class ProfileOut(
     @Json(name = "next_level_points") val nextLevelPoints: Int? = null,
     val activity: List<ActivityItem>,
     val preferences: Preferences = Preferences(),
+    val account: AccountOut? = null,
 )
 
 /** The driver's car and parking preferences. The plate itself is never

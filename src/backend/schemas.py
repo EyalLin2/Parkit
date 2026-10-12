@@ -66,6 +66,7 @@ class ProfileOut(BaseModel):
     next_level: str | None
     next_level_points: int | None
     preferences: "Preferences"
+    account: "AccountOut | None" = None
     activity: list[ActivityItem]
 
 
@@ -112,3 +113,22 @@ class VehicleLookupOut(BaseModel):
     body: str | None
     size: VehicleSize
     label: str
+
+
+class DetailsUpdate(BaseModel):
+    """Basic details, asked once right after the first phone sign-in."""
+
+    first_name: str = Field(min_length=1, max_length=60)
+    last_name: str = Field(min_length=1, max_length=60)
+    # Format check only (no confirmation mail yet).
+    email: str = Field(max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+
+
+class AccountOut(BaseModel):
+    phone: str | None
+    first_name: str | None
+    last_name: str | None
+    email: str | None
+
+
+ProfileOut.model_rebuild()

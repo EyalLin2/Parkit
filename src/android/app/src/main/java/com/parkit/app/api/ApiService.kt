@@ -15,6 +15,18 @@ interface ApiService {
     @POST("auth/dev-login")
     suspend fun devLogin(@Body body: DevLoginRequest): TokenOut
 
+    @POST("auth/refresh")
+    suspend fun refreshToken(): TokenOut
+
+    @POST("auth/otp/request")
+    suspend fun requestOtp(@Body body: OtpRequest): OtpRequested
+
+    @POST("auth/otp/verify")
+    suspend fun verifyOtp(@Body body: OtpVerify): TokenOut
+
+    @PATCH("users/me/details")
+    suspend fun updateDetails(@Body body: DetailsUpdate): AccountOut
+
     @GET("spots")
     suspend fun nearbySpots(
         @Query("lat") lat: Double,

@@ -11,7 +11,7 @@ from auth import get_current_user_id
 from database import get_db
 from models import User
 from redis_client import get_redis
-from schemas import CityOut, Preferences, PreferencesUpdate, VehicleLookupOut
+from schemas import AccountOut, CityOut, DetailsUpdate, Preferences, PreferencesUpdate, VehicleLookupOut
 from vehicles import lookup, normalise_plate
 
 router = APIRouter(tags=["driver profile"])
@@ -40,6 +40,28 @@ async def update_preferences(
         setattr(user, field, value)
     await db.commit()
     return preferences_of(user)
+
+
+@router.patch("/users/me/details", response_model=AccountOut)
+async def update_details(
+    payload: DetailsUpdate,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> AccountOut:
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(404, "Unknown user")
+    user.first_name = payload.first_name.strip()
+    user.last_name = payload.last_name.strip()
+    user.email = payload.email.strip().lower()
+    # Public name (league, spot cards): first name + last initial only.
+    user.display_name = f"{user.first_name} {user.last_name[0]}."
+    await db.commit()
+    return account_of(user)
+
+
+def account_of(user: User) -> AccountOut:
+    return AccountOut(phone=user.phone, first_name=user.first_name, last_name=user.last_name, email=user.email)
 
 
 @router.get("/vehicles/lookup", response_model=VehicleLookupOut)

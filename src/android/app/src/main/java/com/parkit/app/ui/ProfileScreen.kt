@@ -92,6 +92,7 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenDriver: () -> Unit,
+    onOpenDetails: () -> Unit,
     onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -151,6 +152,10 @@ fun ProfileScreen(
                     item { StatsCard(p) }
                     item { SectionTitle(stringResource(R.string.badges_title)) }
                     item { BadgesCard(p) }
+                    p.account?.let { account ->
+                        item { SectionTitle(stringResource(R.string.details_title)) }
+                        item { AccountCard(account, onOpenDetails) }
+                    }
                     item { SectionTitle(stringResource(R.string.driver_title)) }
                     item { DriverSummaryCard(sessionStore.driver.value.preferences, onOpenDriver) }
                     item { SectionTitle(stringResource(R.string.levels_title)) }
@@ -293,6 +298,28 @@ private fun StatsCard(p: ProfileOut) {
             Stat(p.activity.size.toString(), stringResource(R.string.profile_total_reports), Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(40.dp).background(MaterialTheme.colorScheme.outline))
             Stat(p.weeklyPoints.toString(), stringResource(R.string.profile_this_week), Modifier.weight(1f))
+        }
+    }
+}
+
+/** Name, phone and email — only you see these (others see "first name +
+ * last initial"). Tapping edits them. */
+@Composable
+private fun AccountCard(account: com.parkit.app.api.AccountOut, onClick: () -> Unit) {
+    val name = listOfNotNull(account.firstName, account.lastName).joinToString(" ").ifBlank { null }
+    SectionCard(modifier = Modifier.clickable(onClick = onClick)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name ?: stringResource(R.string.details_missing), style = MaterialTheme.typography.titleSmall)
+                Text(
+                    listOfNotNull(account.phone?.let { "\u2066$it\u2069" }, account.email).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -8,6 +8,16 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
     jwt_secret: str = "dev-secret-change-me"
+    # "dev" logs codes instead of texting them; a real provider plugs in via sms.py.
+    sms_provider: str = "dev"
+    # Signed out after this long without using the app (sign in again by SMS).
+    # The app renews the session while it's open, so active use never expires.
+    session_idle_minutes: int = 30
+    # SMS_PROVIDER=twilio: credentials from the Twilio console. TWILIO_FROM is
+    # the sending number (+1…) or a Messaging Service SID (MG…).
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_from: str = ""
 
 
 settings = Settings()
