@@ -10,6 +10,14 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-change-me"
     # "dev" logs codes instead of texting them; a real provider plugs in via sms.py.
     sms_provider: str = "dev"
+    # Email login codes: "dev" logs them; "smtp" sends through any SMTP server
+    # (Brevo free tier: smtp-relay.brevo.com:587, or Gmail + app password).
+    email_provider: str = "dev"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    email_from: str = ""
     # Signed out after this long without using the app (sign in again by SMS).
     # The app renews the session while it's open, so active use never expires.
     session_idle_minutes: int = 30

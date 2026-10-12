@@ -59,8 +59,9 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
     val emailOk = EMAIL.matches(email.trim())
     val valid = first.isNotBlank() && last.isNotBlank() && emailOk
 
+    // Prefill whatever we already know (e.g. the address an email sign-in used).
     LaunchedEffect(Unit) {
-        if (!firstTime) {
+        run {
             runCatching { api.myProfile().account }.getOrNull()?.let {
                 first = it.firstName.orEmpty()
                 last = it.lastName.orEmpty()

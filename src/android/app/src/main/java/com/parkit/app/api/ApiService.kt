@@ -18,6 +18,12 @@ interface ApiService {
     @POST("auth/refresh")
     suspend fun refreshToken(): TokenOut
 
+    @POST("auth/email/request")
+    suspend fun requestEmailOtp(@Body body: EmailOtpRequest): EmailOtpRequested
+
+    @POST("auth/email/verify")
+    suspend fun verifyEmailOtp(@Body body: EmailOtpVerify): TokenOut
+
     @POST("auth/otp/request")
     suspend fun requestOtp(@Body body: OtpRequest): OtpRequested
 

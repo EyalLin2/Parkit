@@ -4,7 +4,7 @@ import uuid
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from redis.asyncio import Redis
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
@@ -51,9 +51,13 @@ async def update_details(
     user = await db.get(User, user_id)
     if user is None:
         raise HTTPException(404, "Unknown user")
+    email = payload.email.strip().lower()
+    taken = (await db.execute(select(User.id).where(User.email == email, User.id != user_id))).first()
+    if taken is not None:
+        raise HTTPException(409, "This email is already used by another account")
     user.first_name = payload.first_name.strip()
     user.last_name = payload.last_name.strip()
-    user.email = payload.email.strip().lower()
+    user.email = email
     # Public name (league, spot cards): first name + last initial only.
     user.display_name = f"{user.first_name} {user.last_name[0]}."
     await db.commit()

@@ -33,6 +33,19 @@ data class OtpRequested(
 data class OtpVerify(val phone: String, val code: String)
 
 @JsonClass(generateAdapter = true)
+data class EmailOtpRequest(val email: String)
+
+@JsonClass(generateAdapter = true)
+data class EmailOtpRequested(
+    val email: String,
+    @Json(name = "resend_after_seconds") val resendAfterSeconds: Int = 60,
+    @Json(name = "dev_code") val devCode: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class EmailOtpVerify(val email: String, val code: String)
+
+@JsonClass(generateAdapter = true)
 data class DetailsUpdate(
     @Json(name = "first_name") val firstName: String,
     @Json(name = "last_name") val lastName: String,

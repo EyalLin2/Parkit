@@ -306,7 +306,7 @@
     <string name="login_too_many">יותר מדי ניסיונות — חכו דקה ונסו שוב</string>
     <string name="login_code_wrong">הקוד שגוי — בדקו את ה-SMS ונסו שוב</string>
     <string name="login_code_expired">פג תוקף הקוד — שלחו קוד חדש</string>
-    <string name="login_terms_note">המספר משמש רק לכניסה. הוא לא מוצג לנהגים אחרים.</string>
+    <string name="login_terms_note">הטלפון או המייל שלך משמשים רק לכניסה. נהגים אחרים לא רואים אותם.</string>
     <string name="details_title">הפרטים שלי</string>
     <string name="details_welcome_title">ברוכים הבאים ל-ParkIt!</string>
     <string name="details_welcome_body">כמה פרטים כדי שנדע מי אתה</string>
@@ -316,4 +316,8 @@
     <string name="details_email_invalid">זו לא נראית כתובת אימייל תקינה</string>
     <string name="details_privacy">נהגים אחרים רואים רק את השם הפרטי ואת האות הראשונה של שם המשפחה.</string>
     <string name="details_missing">הוסיפו את השם שלכם</string>
+    <string name="login_by_email">אימייל</string>
+    <string name="login_by_phone">טלפון</string>
+    <string name="login_email_body">נשלח לך קוד בן 6 ספרות למייל</string>
+    <string name="login_send_failed">לא הצלחנו לשלוח את הקוד כרגע — נסו שוב בעוד רגע</string>
 </resources>

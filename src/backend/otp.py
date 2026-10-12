@@ -1,10 +1,11 @@
-"""One-time login codes sent by SMS.
+"""One-time login codes, sent by SMS or email (the target is a phone or an
+address — the rules are the same).
 
 Security rules, all enforced in Redis so they hold across app servers:
 - 6 random digits (secrets), valid 5 minutes, stored only as an HMAC —
   never in plain text.
 - At most 5 wrong guesses per code; then the code is burned.
-- Sending is throttled per phone (1 a minute, 5 an hour) and per IP (20 an
+- Sending is throttled per target (1 a minute, 5 an hour) and per IP (20 an
   hour) — so nobody can brute-force a code or run up our SMS bill by
   spamming a number ("SMS pumping").
 """
@@ -24,6 +25,7 @@ RESEND_COOLDOWN_SECONDS = 60
 MAX_PER_PHONE_PER_HOUR = 5
 MAX_PER_IP_PER_HOUR = 20
 
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 _ISRAELI_MOBILE = re.compile(r"^(?:\+?972|0)?(5\d{8})$")
 
 
@@ -41,8 +43,13 @@ def normalise_phone(raw: str) -> str | None:
     return f"+972{match.group(1)}" if match else None
 
 
-def _digest(phone: str, code: str) -> str:
-    return hmac.new(settings.jwt_secret.encode(), f"{phone}:{code}".encode(), hashlib.sha256).hexdigest()
+def normalise_email(raw: str) -> str | None:
+    email = raw.strip().lower()
+    return email if len(email) <= 254 and _EMAIL.match(email) else None
+
+
+def _digest(target: str, code: str) -> str:
+    return hmac.new(settings.jwt_secret.encode(), f"{target}:{code}".encode(), hashlib.sha256).hexdigest()
 
 
 async def _bump(redis: Redis, key: str, ttl: int) -> int:
@@ -52,35 +59,35 @@ async def _bump(redis: Redis, key: str, ttl: int) -> int:
     return count
 
 
-async def issue(redis: Redis, phone: str, ip: str) -> str:
-    if await redis.exists(f"otp:cooldown:{phone}"):
+async def issue(redis: Redis, target: str, ip: str) -> str:
+    if await redis.exists(f"otp:cooldown:{target}"):
         raise OtpError(429, "Please wait a minute before asking for another code")
-    if await _bump(redis, f"otp:phone_hour:{phone}", 3600) > MAX_PER_PHONE_PER_HOUR:
-        raise OtpError(429, "Too many codes for this number — try again later")
+    if await _bump(redis, f"otp:phone_hour:{target}", 3600) > MAX_PER_PHONE_PER_HOUR:
+        raise OtpError(429, "Too many codes for this number or address — try again later")
     if await _bump(redis, f"otp:ip_hour:{ip}", 3600) > MAX_PER_IP_PER_HOUR:
         raise OtpError(429, "Too many requests — try again later")
 
     code = f"{secrets.randbelow(1_000_000):06d}"
-    await redis.set(f"otp:code:{phone}", _digest(phone, code), ex=CODE_TTL_SECONDS)
-    await redis.delete(f"otp:attempts:{phone}")
-    await redis.set(f"otp:cooldown:{phone}", "1", ex=RESEND_COOLDOWN_SECONDS)
+    await redis.set(f"otp:code:{target}", _digest(target, code), ex=CODE_TTL_SECONDS)
+    await redis.delete(f"otp:attempts:{target}")
+    await redis.set(f"otp:cooldown:{target}", "1", ex=RESEND_COOLDOWN_SECONDS)
     return code
 
 
-async def check(redis: Redis, phone: str, code: str) -> None:
-    stored = await redis.get(f"otp:code:{phone}")
+async def check(redis: Redis, target: str, code: str) -> None:
+    stored = await redis.get(f"otp:code:{target}")
     if stored is None:
         raise OtpError(400, "The code expired — ask for a new one")
-    if await _bump(redis, f"otp:attempts:{phone}", CODE_TTL_SECONDS) > MAX_ATTEMPTS:
-        await redis.delete(f"otp:code:{phone}")
+    if await _bump(redis, f"otp:attempts:{target}", CODE_TTL_SECONDS) > MAX_ATTEMPTS:
+        await redis.delete(f"otp:code:{target}")
         raise OtpError(429, "Too many wrong codes — ask for a new one")
     stored = stored.decode() if isinstance(stored, bytes) else stored
-    if not hmac.compare_digest(stored, _digest(phone, code.strip())):
+    if not hmac.compare_digest(stored, _digest(target, code.strip())):
         raise OtpError(400, "Wrong code")
-    await redis.delete(f"otp:code:{phone}", f"otp:attempts:{phone}")
+    await redis.delete(f"otp:code:{target}", f"otp:attempts:{target}")
 
 
-async def forget(redis: Redis, phone: str) -> None:
+async def forget(redis: Redis, target: str) -> None:
     """Undo an issued code whose SMS never left (so the user isn't stuck in
     the resend cooldown for a message they never got)."""
-    await redis.delete(f"otp:code:{phone}", f"otp:cooldown:{phone}")
+    await redis.delete(f"otp:code:{target}", f"otp:cooldown:{target}")
