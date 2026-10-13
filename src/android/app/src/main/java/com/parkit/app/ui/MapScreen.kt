@@ -2,6 +2,8 @@
 
 package com.parkit.app.ui
 
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.joinAll
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
@@ -142,7 +144,10 @@ private const val SERVICE_AREA_RADIUS_M = 350_000.0
 // the user is in Tel Aviv.
 private val ISRAEL_OVERVIEW = LatLng(31.6, 34.95)
 private const val OVERVIEW_ZOOM = 6.6
-private const val FIX_TIMEOUT_MS = 12_000L
+private const val FIX_TIMEOUT_MS = 8_000L
+private const val QUICK_FIX_MAX_AGE_MS = 10 * 60_000L
+private const val PRECISE_FIX_TIMEOUT_MS = 20_000L
+private const val PRECISE_JUMP_M = 60.0
 private const val LAST_KNOWN_MAX_AGE_MS = 30 * 60_000L
 
 private fun inServiceArea(p: LatLng) = p.distanceTo(SERVICE_AREA_CENTER) <= SERVICE_AREA_RADIUS_M
@@ -178,22 +183,35 @@ private fun recentLastKnown(context: android.content.Context): LatLng? {
     return LatLng(best.latitude, best.longitude).takeIf { inServiceArea(it) }
 }
 
-/** A fresh fix: Google's fused provider first (Wi-Fi + cell + GPS — seconds,
- * even indoors), then the plain Android providers for phones without Google
- * services, then a recent cached fix. Null after [FIX_TIMEOUT_MS]. */
+/** A fresh fix, fast: Google's fused provider on Wi-Fi + cell (a second or
+ * two, even indoors — waiting for GPS here is what made the first fix take
+ * 10s+), then the plain Android providers for phones without Google
+ * services, then any cached fix. GPS precision comes after, in [locate]. */
 @SuppressLint("MissingPermission")
 private suspend fun freshFix(context: android.content.Context): LatLng? {
     if (!hasAnyLocation(context)) return null
-    return kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) { fusedFix(context) }
+    return firstFusedFix(context)
         ?: kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) { platformFix(context) }
         ?: fusedLastKnown(context)
         ?: recentLastKnown(context)
 }
 
+/** Wi-Fi/cell and GPS raced: whichever answers first wins, so a phone with
+ * Wi-Fi off doesn't sit out the whole timeout before GPS even starts. */
+private suspend fun firstFusedFix(context: android.content.Context): LatLng? = kotlinx.coroutines.coroutineScope {
+    val first = kotlinx.coroutines.CompletableDeferred<LatLng?>()
+    val attempts = listOfNotNull(false, true.takeIf { hasPreciseLocation(context) }).map { precise ->
+        launch { fusedFix(context, precise)?.let { first.complete(it) } }
+    }
+    launch { attempts.joinAll(); first.complete(null) }
+    kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) { first.await() }
+        .also { coroutineContext.cancelChildren() }
+}
+
 @SuppressLint("MissingPermission")
-private suspend fun fusedFix(context: android.content.Context): LatLng? = try {
+private suspend fun fusedFix(context: android.content.Context, precise: Boolean): LatLng? = try {
     val client = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
-    val priority = if (hasPreciseLocation(context)) {
+    val priority = if (precise) {
         com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY
     } else {
         com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY
@@ -209,13 +227,18 @@ private suspend fun fusedFix(context: android.content.Context): LatLng? = try {
     null // no Google Play services on this phone
 }
 
+/** Google's cached fix — instant, and on a real phone usually only minutes
+ * old because other apps keep it fresh. [maxAgeMs] drops older ones. */
 @SuppressLint("MissingPermission")
-private suspend fun fusedLastKnown(context: android.content.Context): LatLng? = try {
+private suspend fun fusedLastKnown(context: android.content.Context, maxAgeMs: Long = Long.MAX_VALUE): LatLng? = try {
     val client = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
     kotlinx.coroutines.withTimeoutOrNull(3_000) {
         kotlinx.coroutines.suspendCancellableCoroutine { cont ->
             client.lastLocation
-                .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc?.let { LatLng(it.latitude, it.longitude) }) { } }
+                .addOnSuccessListener { loc ->
+                    val fresh = loc?.takeIf { System.currentTimeMillis() - it.time <= maxAgeMs }
+                    if (cont.isActive) cont.resume(fresh?.let { LatLng(it.latitude, it.longitude) }) { }
+                }
                 .addOnFailureListener { if (cont.isActive) cont.resume(null) { } }
         }
     }
@@ -517,17 +540,31 @@ fun MapScreen(
             }
             return
         }
+        fun use(fix: LatLng, fly: Boolean) {
+            deviceLocation = fix
+            sessionStore.lastFix = fix.latitude to fix.longitude
+            if (fly && (fromButton || !userTookOver)) {
+                geocodeTarget = fix
+                flyTo(fix)
+            }
+        }
         scope.launch {
             locating = true
+            // 1. Instant: where the phone already knows it is.
+            fusedLastKnown(context, maxAgeMs = QUICK_FIX_MAX_AGE_MS)?.takeIf { inServiceArea(it) }?.let { use(it, fly = true) }
+            // 2. Fast: Wi-Fi + cell, a second or two.
             val fix = freshFix(context)
             locating = false
             when {
                 fix != null && inServiceArea(fix) -> {
-                    deviceLocation = fix
-                    sessionStore.lastFix = fix.latitude to fix.longitude
-                    if (fromButton || !userTookOver) {
-                        geocodeTarget = fix
-                        flyTo(fix)
+                    use(fix, fly = true)
+                    // 3. Precise: GPS in the background; move only if it's meaningfully off.
+                    if (hasPreciseLocation(context)) {
+                        launch {
+                            val precise = kotlinx.coroutines.withTimeoutOrNull(PRECISE_FIX_TIMEOUT_MS) { fusedFix(context, precise = true) }
+                                ?.takeIf { inServiceArea(it) } ?: return@launch
+                            use(precise, fly = precise.distanceTo(fix) > PRECISE_JUMP_M && !userTookOver)
+                        }
                     }
                 }
                 // ParkIt only operates in Israel; an out-of-country fix (or the
@@ -843,10 +880,12 @@ fun MapScreen(
             }
 
             androidx.compose.animation.AnimatedVisibility(
-                visible = locating && deviceLocation == null && !userTookOver,
+                visible = locating && !userTookOver,
                 enter = androidx.compose.animation.fadeIn(),
                 exit = androidx.compose.animation.fadeOut(),
-                modifier = Modifier.align(Alignment.Center),
+                // Centre while there's nothing to see; once a first fix is on
+                // the map, under the top bar so it doesn't cover the pin.
+                modifier = if (deviceLocation == null) Modifier.align(Alignment.Center) else Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 128.dp),
             ) {
                 Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface, shadowElevation = 6.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
