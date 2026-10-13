@@ -82,12 +82,10 @@ private val Claimed = Color(0xFFE8710A)
 private val Mine = Color(0xFF1B4F91)
 private val Hot = Color(0xFFE8480C)
 
-/** The tapped-spot card, rebuilt on Google Maps' place-sheet pattern:
- * where it is (address as the title), how trustworthy it is (freshness +
- * the reporter's photo), then one primary action (Navigate) and the
- * crowd-feedback question asked plainly — "is it still free?" — instead of
- * a stack of five equally-loud full-width buttons. */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+/** The tapped-spot card, top to bottom: where (address), status (one
+ * pill + distance), proof (photo), what matters to you, one big action
+ * ("On my way" claims *and* navigates), then "still free?" as one quiet
+ * two-part control. */
 @Composable
 fun SpotActionsSheet(
     api: ApiService,
@@ -140,6 +138,18 @@ fun SpotActionsSheet(
         }
     }
 
+    // Claim and navigate are one tap: saying "on my way" is the reason you
+    // open navigation, so they shouldn't be two buttons to choose between.
+    fun navigate() {
+        val uri = Uri.parse("geo:${spot.lat},${spot.lng}?q=${spot.lat},${spot.lng}")
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+        } catch (_: android.content.ActivityNotFoundException) {
+            // No maps app — the claim still holds the spot.
+        }
+    }
+    val canClaim = spot.status == "active" && !isMine
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -147,12 +157,67 @@ fun SpotActionsSheet(
         tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp)) {
-            // The reporter's own photo is the strongest proof the spot is
-            // real, so when there is one it leads the card (Google Maps'
-            // place-sheet pattern) instead of a generic parking icon.
+            // 1. Where — the address, with the close button.
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    address ?: stringResource(R.string.map_locating),
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(end = 12.dp),
+                )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(36.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), CircleShape),
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.spot_close_cd), modifier = Modifier.size(18.dp))
+                }
+            }
+
+            // 2. Status — one pill (free / on the way / yours, with its age)
+            // and the distance. Everything else the card used to list is gone.
+            val age = if (MarkerBitmaps.relativeTimeShort(context, spot.reportedAt) == stringResource(R.string.time_now_short)) {
+                stringResource(R.string.time_now_long)
+            } else {
+                stringResource(R.string.spot_age_short, MarkerBitmaps.relativeTimeShort(context, spot.reportedAt))
+            }
+            val statusText = when {
+                isClaimed -> stringResource(R.string.spot_someone_on_the_way)
+                isMine -> stringResource(R.string.map_spot_yours)
+                else -> stringResource(R.string.spot_status_free)
+            }
+            val statusColor = if (isClaimed || isMine) accent else freshnessColor(spot.reportedAt)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.background(statusColor.copy(alpha = 0.12f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    Box(Modifier.size(8.dp).background(statusColor, CircleShape))
+                    Text(
+                        "$statusText · $age",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = statusColor,
+                        maxLines = 1,
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+                distanceLabel?.let { extra ->
+                    Text(
+                        extra,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 10.dp),
+                    )
+                }
+            }
+
+            // 3. Proof — the reporter's photo, or a quiet "no photo" strip so
+            // the card has the same shape either way.
             if (showHero) {
                 Box(
-                    modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth().height(220.dp).clip(RoundedCornerShape(20.dp))
+                    modifier = Modifier.padding(top = 14.dp).fillMaxWidth().height(170.dp).clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.secondaryContainer)
                         .clickable { photoFullScreen = true },
                 ) {
@@ -184,71 +249,30 @@ fun SpotActionsSheet(
                         Icon(Icons.Filled.OpenInFull, contentDescription = stringResource(R.string.spot_photo_expand_cd), tint = Color.White, modifier = Modifier.size(16.dp))
                     }
                 }
-            }
-            // Header: where it is, then one quiet line — type · distance ·
-            // freshness (a coloured dot carries how fresh, at a glance).
-            Row(verticalAlignment = Alignment.Top) {
-                if (!showHero) {
-                    // The photo's place, kept even when there's none — the
-                    // card reads the same with or without one.
-                    Box(
-                        modifier = Modifier.padding(end = 14.dp).size(56.dp).clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Filled.NoPhotography,
-                            contentDescription = stringResource(R.string.spot_no_photo_cd),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                }
-                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                    Text(
-                        address ?: stringResource(R.string.map_locating),
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    // One text run (not a Row) so it wraps as a sentence; the
-                    // coloured dot carries freshness.
-                    val meta = listOfNotNull(
-                        stringResource(if (isDisabledSpot) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
-                        distanceLabel,
-                    ).joinToString(" · ")
-                    val age = if (MarkerBitmaps.relativeTimeShort(context, spot.reportedAt) == stringResource(R.string.time_now_short)) {
-                        stringResource(R.string.time_now_long) // "just now", not "ago now"
-                    } else {
-                        stringResource(R.string.spot_age_short, MarkerBitmaps.relativeTimeShort(context, spot.reportedAt))
-                    }
-                    val dotColor = freshnessColor(spot.reportedAt)
-                    Text(
-                        androidx.compose.ui.text.buildAnnotatedString {
-                            append("$meta · ")
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = dotColor)) { append("●\u00A0") } // dot stays with the age
-                            append(age)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(36.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), CircleShape),
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 14.dp).fillMaxWidth().height(44.dp).clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)).padding(horizontal = 12.dp),
                 ) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.spot_close_cd), modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Filled.NoPhotography,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        stringResource(R.string.spot_no_photo_cd),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
                 }
             }
 
-            // Facts as plain icon + text (no coloured pills competing with the
-            // buttons); wraps to a second line instead of running off-screen.
-            val facts = buildList {
-                when {
-                    isClaimed -> add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.spot_someone_on_the_way), Claimed))
-                    isMine -> add(Triple(Icons.Filled.CheckCircle, stringResource(R.string.map_spot_yours), Mine))
-                }
+            // 4. Details — each on its own line with an icon, in one soft
+            // panel, so nothing is lost and nothing competes with the button.
+            val details = buildList {
                 spot.vehicleSize?.let { size ->
                     val label = stringResource(
                         when (size) {
@@ -259,69 +283,66 @@ fun SpotActionsSheet(
                     )
                     add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.spot_fits, label.lowercase()), null))
                 }
+                if (isDisabledSpot) add(Triple(Icons.AutoMirrored.Filled.Accessible, stringResource(R.string.map_spot_kind_disabled), null))
                 ParkItLevel.of(spot.reporterLevel).takeIf { it != ParkItLevel.Newbie }?.let { level ->
                     add(Triple(level.icon, stringResource(R.string.spot_reported_by_level, stringResource(level.nameRes)), level.color))
                 }
             }
-            if (facts.isNotEmpty()) {
-                androidx.compose.foundation.layout.FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 12.dp),
-                ) {
-                    facts.forEach { (icon, text, tint) -> Fact(icon, text, tint) }
-                }
-            }
+            DriverNotices(fit, spot.hotMinutes, details)
 
-            DriverNotices(fit, spot.hotMinutes)
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 18.dp)) {
-                Button(
-                    onClick = {
-                        val uri = Uri.parse("geo:${spot.lat},${spot.lng}?q=${spot.lat},${spot.lng}")
-                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                    },
-                    shape = RoundedCornerShape(50),
-                    modifier = Modifier.weight(1f).height(48.dp),
-                ) {
-                    Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(stringResource(R.string.spot_navigate), style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
-                }
-                if (spot.status == "active" && !isMine) {
-                    androidx.compose.material3.FilledTonalButton(
-                        onClick = {
-                            busy = true
-                            error = null
-                            scope.launch {
-                                try {
-                                    onClaimed(api.claimSpot(spot.id).copy(address = spot.address ?: address, reporterLevel = spot.reporterLevel))
-                                } catch (e: Exception) {
-                                    if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
-                                } finally {
-                                    busy = false
-                                }
-                            }
-                        },
-                        enabled = !busy,
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier.weight(1f).height(48.dp),
-                    ) {
-                        Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.spot_claim), style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+            // 5. One big action.
+            Button(
+                onClick = {
+                    if (!canClaim) {
+                        navigate()
+                        return@Button
                     }
+                    busy = true
+                    error = null
+                    scope.launch {
+                        try {
+                            val claimed = api.claimSpot(spot.id).copy(address = spot.address ?: address, reporterLevel = spot.reporterLevel)
+                            navigate()
+                            onClaimed(claimed)
+                        } catch (e: Exception) {
+                            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                        } finally {
+                            busy = false
+                        }
+                    }
+                },
+                enabled = !busy,
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.padding(top = 18.dp).fillMaxWidth().height(54.dp),
+            ) {
+                if (busy) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Text(
+                        stringResource(if (canClaim) R.string.spot_go else R.string.spot_navigate),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
                 }
             }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 10.dp)) }
 
+            // 6. The crowd question, as one quiet two-part control.
             if (!isMine) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), modifier = Modifier.padding(top = 20.dp))
                 Text(
                     stringResource(R.string.spot_still_free_question),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 14.dp, bottom = 10.dp),
+                    modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FeedbackOption(
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                ) {
+                    FeedbackHalf(
                         label = stringResource(R.string.spot_i_took_it),
                         icon = Icons.Filled.CheckCircle,
                         color = Free,
@@ -334,7 +355,8 @@ fun SpotActionsSheet(
                         },
                         modifier = Modifier.weight(1f),
                     )
-                    FeedbackOption(
+                    Box(Modifier.size(width = 1.dp, height = 22.dp).background(MaterialTheme.colorScheme.outline))
+                    FeedbackHalf(
                         label = stringResource(R.string.spot_flag_taken),
                         icon = Icons.Filled.DoNotDisturbOn,
                         color = Claimed,
@@ -344,13 +366,6 @@ fun SpotActionsSheet(
                     )
                 }
             }
-
-            if (busy) {
-                Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.5.dp)
-                }
-            }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp)) }
 
             if (isMine && spot.status == "active") {
                 TextButton(
@@ -427,65 +442,47 @@ private fun freshnessColor(iso: String): Color {
     }
 }
 
+/** The card's details panel: first what matters to *this* driver (hot
+ * area, disabled permit, car fit — coloured, full sentences), then the
+ * spot's own facts (size, kind, reporter) in quiet grey. One soft panel,
+ * one line each, so the card stays calm and the button stays loudest. */
 @Composable
-private fun Tag(icon: ImageVector, text: String, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.background(color.copy(alpha = 0.12f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 5.dp),
-    ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = color, modifier = Modifier.padding(start = 5.dp))
-    }
-}
-
-/** What this spot means for *this* driver — hot area, disabled permit,
- * car fit — as full sentences with a coloured icon and no box, so the card
- * stays calm and the buttons stay the loudest thing on it. */
-@Composable
-private fun DriverNotices(fit: DriverFit, hotMinutes: Int?) {
-    val notices = buildList {
+private fun DriverNotices(fit: DriverFit, hotMinutes: Int?, facts: List<Triple<ImageVector, String, Color?>>) {
+    val notices = buildList<Triple<ImageVector, String, Color?>> {
         hotMinutes?.let { add(Triple(Icons.Filled.LocalFireDepartment, androidx.compose.ui.res.pluralStringResource(R.plurals.hot_long, it, it), Hot)) }
         if (fit.needsDisabledPermit) add(Triple(Icons.AutoMirrored.Filled.Accessible, stringResource(R.string.fit_needs_disabled_permit_long), MaterialTheme.colorScheme.error))
         if (fit.tooSmall) add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.fit_too_small_long), Claimed))
+        addAll(facts)
     }
     if (notices.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 14.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)).padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
         notices.forEach { (icon, text, color) ->
             Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-                Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(start = 10.dp))
+                Icon(icon, contentDescription = null, tint = color ?: MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                Text(
+                    text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (color != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 10.dp),
+                )
             }
         }
     }
 }
 
-/** Quiet secondary answer to "still free?": an outlined pill with a
- * coloured icon — the big pastel blocks it replaces out-shouted Navigate. */
+/** One half of the "still free?" control: icon + label, no border. */
 @Composable
-private fun FeedbackOption(label: String, icon: ImageVector, color: Color, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-        modifier = modifier.height(44.dp),
+private fun FeedbackHalf(label: String, icon: ImageVector, color: Color, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = modifier.fillMaxSize().clickable(enabled = enabled, onClick = onClick),
     ) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
-    }
-}
-
-/** One fact in the card's fact line: small icon + text, no background. */
-@Composable
-private fun Fact(icon: ImageVector, text: String, tint: Color?) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-        Text(
-            text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 5.dp),
-        )
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 6.dp))
     }
 }

@@ -1326,8 +1326,8 @@ private fun ReportHereBubble(visible: Boolean, onClick: () -> Unit, modifier: Mo
     }
 }
 
-/** "You're on your way" — stays on screen after "I'm heading there" so the
- * claimer always knows the spot is held for them, how long for, and can
+/** "You're on your way" — stays on screen after "On my way" so the
+ * claimer knows the spot is held for them (no visible timer — see below) and can
  * close the loop ("I parked here" / "already taken") from the map. */
 @Composable
 private fun ClaimTripCard(
@@ -1368,15 +1368,15 @@ private fun ClaimTripCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "%d:%02d".format(remaining / 60, remaining % 60),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (remaining <= 30) orange else MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(stringResource(R.string.claim_held_for_you), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
+            // No ticking countdown: a timer on screen while driving pushes
+            // people to hurry. The hold still ends quietly in the background.
+            Text(
+                stringResource(R.string.claim_drive_safely),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
                 TripAction(stringResource(R.string.spot_navigate), Icons.Filled.Navigation, MaterialTheme.colorScheme.primary, Modifier.weight(1f), onNavigate)
                 TripAction(stringResource(R.string.spot_i_took_it), Icons.Filled.CheckCircle, green, Modifier.weight(1f)) { onFeedback("confirmed_taken") }

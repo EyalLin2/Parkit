@@ -51,6 +51,8 @@
     <string name="spot_status">סטטוס: %1$s</string>
     <string name="spot_fits">מתאים לרכב %1$s</string>
     <string name="spot_navigate">ניווט</string>
+    <string name="spot_go">אני בדרך · ניווט</string>
+    <string name="spot_status_free">פנויה</string>
     <string name="spot_claim">אני בדרך</string>
     <string name="spot_i_took_it">חניתי כאן</string>
     <string name="spot_flag_taken">כבר תפוסה</string>
@@ -213,9 +215,10 @@
     <string name="league_subtitle">נקודות השבוע · מתאפס בכל שבוע</string>
     <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
     <string name="claim_trip_title">בדרך לחניה</string>
+    <string name="claim_drive_safely">שמורה לך. אין צורך למהר — סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
     <string name="claim_held_for_you">שמורה לך</string>
     <string name="claim_taken_thanks">תודה — עדכנו את שאר הנהגים</string>
-    <string name="claim_expired">הזמן נגמר — החניה חזרה למפה</string>
+    <string name="claim_expired">החניה חזרה למפה. בלי לחץ — יש עוד חניות בסביבה.</string>
     <!-- פרופיל נהג: רכב, תגים, אזור מועדף -->
     <string name="driver_title">הרכב שלי והעדפות</string>
     <string name="driver_skip">דלג</string>
@@ -253,9 +256,9 @@
     <string name="fit_too_small_long">המדווח ציין שהחניה מתאימה לרכב קטן יותר משלך.</string>
     <string name="hot_short">🔥 אזור לוהט</string>
     <plurals name="hot_long">
-        <item quantity="one">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך דקה. אם אתה רוצה אותה, צא עכשיו.</item>
-        <item quantity="two">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות. אם אתה רוצה אותה, צא עכשיו.</item>
-        <item quantity="other">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות. אם אתה רוצה אותה, צא עכשיו.</item>
+        <item quantity="one">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך דקה, אז ייתכן שתיתפס לפני שתגיע. אין צורך למהר — סעו בבטחה.</item>
+        <item quantity="two">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות, אז ייתכן שתיתפס לפני שתגיע. אין צורך למהר — סעו בבטחה.</item>
+        <item quantity="other">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות, אז ייתכן שתיתפס לפני שתגיע. אין צורך למהר — סעו בבטחה.</item>
     </plurals>
     <string name="report_privacy_note">פנים ולוחיות רישוי מטושטשים אוטומטית. התמונה המקורית לא נשמרת, והתמונה נמחקת כשהחניה נסגרת.</string>
     <plurals name="report_items_blurred">
@@ -393,6 +396,6 @@
     <string name="intro_choose_language">בחרו שפה</string>
     <string name="intro_how_it_works">איך זה עובד</string>
     <string name="intro_go_title">לוחצים, מנווטים, נוסעים</string>
-    <string name="intro_go_body">רואים כמה החניה טרייה ולאיזה רכב היא מתאימה. לוחצים "אני בדרך" — ונשמור לך אותה 2 דקות. 🔥 = שם חניות נתפסות מהר.</string>
+    <string name="intro_go_body">רואים כמה החניה טרייה ולאיזה רכב היא מתאימה. לוחצים \"אני בדרך\" — הניווט נפתח ונהגים אחרים רואים שמישהו בדרך. 🔥 = אזור עמוס, ייתכן שהחניה תיתפס. אף פעם לא ממהרים.</string>
     <string name="hero_helped_hint">בכל פעם שנהג לוחץ "חניתי כאן" על חניה שדיווחת — המספר עולה.</string>
 </resources>

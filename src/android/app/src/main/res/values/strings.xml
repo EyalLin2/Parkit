@@ -50,6 +50,8 @@
     <string name="spot_status">Status: %1$s</string>
     <string name="spot_fits">Fits a %1$s car</string>
     <string name="spot_navigate">Navigate</string>
+    <string name="spot_go">On my way · Navigate</string>
+    <string name="spot_status_free">Free</string>
     <string name="spot_claim">On my way</string>
     <string name="spot_i_took_it">I parked here</string>
     <string name="spot_flag_taken">Already taken</string>
@@ -207,9 +209,10 @@
     <string name="league_subtitle">Points this week · resets every week</string>
     <string name="spot_reported_by_level">Reported by a %1$s driver</string>
     <string name="claim_trip_title">You\'re on your way</string>
+    <string name="claim_drive_safely">Held for you. No need to rush — drive safely, and only touch the phone when parked.</string>
     <string name="claim_held_for_you">held for you</string>
     <string name="claim_taken_thanks">Thanks — we warned other drivers</string>
-    <string name="claim_expired">Time\'s up — the spot is back on the map</string>
+    <string name="claim_expired">The spot went back on the map. Take your time — there are more around.</string>
     <!-- Driver profile: car, permits, preferred area -->
     <string name="driver_title">My car &amp; preferences</string>
     <string name="driver_skip">Skip</string>
@@ -247,8 +250,8 @@
     <string name="fit_too_small_long">The reporter said this spot fits a smaller car than yours.</string>
     <string name="hot_short">🔥 Hot area</string>
     <plurals name="hot_long">
-        <item quantity="one">Hot area — spots here usually go within a minute. If you want it, go now.</item>
-        <item quantity="other">Hot area — spots here usually go within ~%d minutes. If you want it, go now.</item>
+        <item quantity="one">Hot area — spots here usually go within a minute, so it may be gone before you arrive. No need to rush — drive safely.</item>
+        <item quantity="other">Hot area — spots here usually go within ~%d minutes, so it may be gone before you arrive. No need to rush — drive safely.</item>
     </plurals>
     <string name="report_privacy_note">Faces and licence plates are blurred automatically. The original photo isn\'t saved, and the photo is deleted when the spot closes.</string>
     <plurals name="report_items_blurred">
@@ -384,6 +387,6 @@
     <string name="intro_choose_language">Choose your language</string>
     <string name="intro_how_it_works">How it works</string>
     <string name="intro_go_title">Tap, navigate, go</string>
-    <string name="intro_go_body">See how fresh it is and what car it fits. Tap On my way — we hold it for you for 2 minutes. 🔥 means spots there go fast.</string>
+    <string name="intro_go_body">See how fresh it is and what car it fits. Tap On my way — navigation opens and other drivers see someone is coming. 🔥 = busy area, the spot may be gone when you arrive. Never rush.</string>
     <string name="hero_helped_hint">Every time a driver taps "I parked here" on a spot you reported, this goes up.</string>
 </resources>

@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.parkit.app.R
 
 /** Sixteen Tel Aviv types — the hipster from Florentin, the surfer from
@@ -64,8 +65,12 @@ fun AvatarGrid(selected: String?, onPick: (String) -> Unit, modifier: Modifier =
                             names.getOrNull(i).orEmpty(),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            // Two-word names ("Falafel lover") wrap instead of
+                            // being cut off in the narrow dialog; minLines keeps rows aligned.
+                            maxLines = 2,
+                            minLines = 2,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            lineHeight = 13.sp,
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
