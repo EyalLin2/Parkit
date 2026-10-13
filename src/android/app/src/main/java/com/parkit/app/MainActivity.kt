@@ -219,7 +219,14 @@ fun ParkItApp(sessionStore: SessionStore) {
             enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
             popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
         ) {
-            SettingsScreen(onBack = { navController.popBackStack() }, onLogout = goToLogin)
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = goToLogin,
+                onDeleteAccount = {
+                    api.deleteAccount()
+                    goToLogin()
+                },
+            )
         }
     }
 }

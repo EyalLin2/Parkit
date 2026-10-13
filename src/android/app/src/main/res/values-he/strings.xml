@@ -320,4 +320,8 @@
     <string name="login_by_phone">טלפון</string>
     <string name="login_email_body">נשלח לך קוד בן 6 ספרות למייל</string>
     <string name="login_send_failed">לא הצלחנו לשלוח את הקוד כרגע — נסו שוב בעוד רגע</string>
+    <string name="settings_delete_account">מחיקת חשבון</string>
+    <string name="settings_delete_title">למחוק את החשבון?</string>
+    <string name="settings_delete_body">החשבון, הנקודות, הדיווחים, התמונות והפרטים שלך יימחקו לצמיתות. אי אפשר לבטל את זה.</string>
+    <string name="settings_delete_confirm">מחיקה לצמיתות</string>
 </resources>

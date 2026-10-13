@@ -19,6 +19,9 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import com.parkit.app.api.friendlyMessage
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DarkMode
@@ -55,9 +58,12 @@ import com.parkit.app.ui.theme.ThemeManager
  * already knows how to use — instead of a stack of cards with chips
  * squeezed into each one. */
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit, onDeleteAccount: suspend () -> Unit) {
     val context = LocalContext.current
-    var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout"
+    var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout" | "delete"
+    var deleting by remember { mutableStateOf(false) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     val languageCode = LocaleManager.getLanguage(context) ?: java.util.Locale.getDefault().language
     val languageLabel = if (languageCode == "he" || languageCode == "iw") stringResource(R.string.profile_language_hebrew) else stringResource(R.string.profile_language_english)
@@ -118,6 +124,14 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit) {
                 tint = MaterialTheme.colorScheme.error,
                 showChevron = false,
             ) { dialog = "logout" }
+            RowDivider()
+            // Required by Google Play and the App Store for any app with accounts.
+            SettingsRow(
+                Icons.Filled.DeleteForever,
+                stringResource(R.string.settings_delete_account),
+                tint = MaterialTheme.colorScheme.error,
+                showChevron = false,
+            ) { dialog = "delete" }
         }
         Spacer(Modifier.navigationBarsPadding().height(24.dp))
     }
@@ -160,6 +174,34 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit) {
                 }
             },
             dismissButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(R.string.settings_cancel)) } },
+        )
+        "delete" -> AlertDialog(
+            onDismissRequest = { if (!deleting) dialog = null },
+            title = { Text(stringResource(R.string.settings_delete_title)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.settings_delete_body))
+                    deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !deleting,
+                    onClick = {
+                        deleting = true
+                        deleteError = null
+                        scope.launch {
+                            try {
+                                onDeleteAccount()
+                            } catch (e: Exception) {
+                                deleteError = e.friendlyMessage(context)
+                                deleting = false
+                            }
+                        }
+                    },
+                ) { Text(stringResource(R.string.settings_delete_confirm), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(enabled = !deleting, onClick = { dialog = null }) { Text(stringResource(R.string.settings_cancel)) } },
         )
     }
 }

@@ -56,6 +56,9 @@ interface ApiService {
     @POST("photos/stage")
     suspend fun stagePhoto(@Part file: MultipartBody.Part): StagedPhotoOut
 
+    @DELETE("users/me")
+    suspend fun deleteAccount()
+
     @GET("users/me")
     suspend fun myProfile(): ProfileOut
 

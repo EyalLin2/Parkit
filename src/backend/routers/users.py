@@ -1,13 +1,14 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
 from database import get_db
 from levels import level_for, next_level
-from models import RemovedReason, Spot, User
+from media import delete_photo
+from models import RemovedReason, Spot, SpotFeedback, User
 from points import reconcile_weekly_points
 from routers.me import account_of, preferences_of
 from schemas import ActivityItem, LeaderboardEntry, ProfileOut
@@ -119,3 +120,29 @@ async def leaderboard(
         )
         for i, u in enumerate(rows, start=1)
     ]
+
+
+@router.delete("/users/me", status_code=204)
+async def delete_my_account(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Delete the account and everything tied to it (both app stores require
+    this): profile, phone/email, car details, every report and its photo,
+    and all feedback given. Spots the user only *claimed* stay for their
+    reporters, just without the claimer."""
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(404, "Unknown user")
+    my_spots = (await db.execute(select(Spot).where(Spot.reporter_id == user_id))).scalars().all()
+    spot_ids = [s.id for s in my_spots]
+    for spot in my_spots:
+        delete_photo(spot.photo_url)
+    await db.execute(delete(SpotFeedback).where(SpotFeedback.user_id == user_id))
+    if spot_ids:
+        await db.execute(delete(SpotFeedback).where(SpotFeedback.spot_id.in_(spot_ids)))
+        await db.execute(delete(Spot).where(Spot.id.in_(spot_ids)))
+    await db.execute(update(Spot).where(Spot.claimed_by == user_id).values(claimed_by=None))
+    await db.delete(user)
+    await db.commit()
+    return Response(status_code=204)

@@ -312,4 +312,8 @@
     <string name="login_by_phone">Phone</string>
     <string name="login_email_body">We\'ll email you a 6-digit code</string>
     <string name="login_send_failed">Couldn\'t send the code right now — try again in a moment</string>
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_delete_title">Delete your account?</string>
+    <string name="settings_delete_body">Your account, points, reports, photos and details will be deleted for good. This can\'t be undone.</string>
+    <string name="settings_delete_confirm">Delete for good</string>
 </resources>
