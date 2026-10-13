@@ -49,3 +49,4 @@ src/backend/static/*.apk
 *.jks
 *.keystore
 keystore.properties
+deployments/production/download/

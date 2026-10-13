@@ -67,6 +67,7 @@ services:
       DOMAIN: ${DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./download:/srv/download:ro
       - caddydata:/data
     depends_on:
       - backend
