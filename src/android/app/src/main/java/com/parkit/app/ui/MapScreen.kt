@@ -41,6 +41,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.automirrored.filled.Accessible
@@ -102,6 +103,7 @@ import com.parkit.app.api.ApiService
 import com.parkit.app.api.GeocodingClient
 import com.parkit.app.api.SpotOut
 import com.parkit.app.api.friendlyMessage
+import com.parkit.app.api.isUnauthorized
 import com.parkit.app.auth.SessionStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -269,6 +271,10 @@ fun MapScreen(
     var spots by remember { mutableStateOf<List<SpotOut>>(emptyList()) }
     // "No spots nearby" must mean the server said so — not "still loading".
     var spotsLoaded by remember { mutableStateOf(false) }
+    // The server couldn't be reached: say so (and retry), instead of an
+    // empty list that would read as "no free spots here".
+    var spotsFailed by remember { mutableStateOf(false) }
+    var reloadTick by remember { mutableStateOf(0) }
     var selectedSpot by remember { mutableStateOf<SpotOut?>(null) }
     // The spot this user said "I'm heading there" to. The server hides
     // claimed spots from everyone (so nobody else is sent there), so the
@@ -368,13 +374,19 @@ fun MapScreen(
 
     // Spots load independently of the address — a slow geocoder must never
     // delay the thing people actually opened the app for.
-    LaunchedEffect(geocodeTarget) {
+    LaunchedEffect(geocodeTarget, reloadTick) {
         delay(300)
-        try {
-            spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
-            spotsLoaded = true
-        } catch (e: Exception) {
-            snackbarHostState.showSnackbar(context.getString(R.string.map_load_error, e.friendlyMessage(context)))
+        while (true) {
+            try {
+                spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
+                spotsLoaded = true
+                spotsFailed = false
+                break
+            } catch (e: Exception) {
+                if (e.isUnauthorized()) { onLoggedOut(); break }
+                spotsFailed = true
+                delay(10_000) // keep trying quietly; the sheet shows the problem and a retry button
+            }
         }
     }
 
@@ -629,6 +641,8 @@ fun MapScreen(
             NearbySheet(
                 spots = sortedSpots,
                 loaded = spotsLoaded,
+                failed = spotsFailed,
+                onRetry = { spotsFailed = false; reloadTick++ },
                 addresses = spotAddresses,
                 reference = reference,
                 myUserId = myUserId,
@@ -1051,9 +1065,28 @@ private fun NearbySheet(
     reference: LatLng,
     myUserId: String?,
     prefs: com.parkit.app.api.Preferences,
+    failed: Boolean,
+    onRetry: () -> Unit,
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
+    if (failed) {
+        // Offline / server down: a clear state with a way out, never a fake "no spots".
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 16.dp, bottom = 16.dp),
+        ) {
+            Icon(Icons.Filled.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(28.dp))
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                Text(stringResource(R.string.map_offline_title), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.map_offline_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            androidx.compose.material3.FilledTonalButton(onClick = onRetry, shape = RoundedCornerShape(50)) {
+                Text(stringResource(R.string.map_offline_retry))
+            }
+        }
+        return
+    }
     Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

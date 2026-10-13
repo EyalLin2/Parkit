@@ -352,4 +352,7 @@
     <string name="hero_helped">Drivers helped</string>
     <string name="hero_rank">This week</string>
     <string name="profile_tab_progress">Progress</string>
+    <string name="map_offline_title">Can\'t reach ParkIt</string>
+    <string name="map_offline_body">Check your connection — we\'ll keep trying</string>
+    <string name="map_offline_retry">Try again</string>
 </resources>
