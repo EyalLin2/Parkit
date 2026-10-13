@@ -570,7 +570,9 @@ fun MapScreen(
                 // ParkIt only operates in Israel; an out-of-country fix (or the
                 // emulator's default Mountain View) must not move the map away.
                 fix != null -> showTelAvivFallback(R.string.map_outside_service_area)
-                deviceLocation != null && fromButton -> flyTo(deviceLocation!!)
+                // Already placed (cached fix, or last session's) — keep it
+                // rather than throwing the map back to the fallback.
+                deviceLocation != null -> if (fromButton) flyTo(deviceLocation!!)
                 else -> showTelAvivFallback(R.string.map_location_unavailable)
             }
         }
