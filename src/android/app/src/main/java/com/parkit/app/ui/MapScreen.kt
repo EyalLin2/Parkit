@@ -774,6 +774,10 @@ fun MapScreen(
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded)
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
     val sheetTopPx = runCatching { sheetState.requireOffset() }.getOrNull()
+    // Back with the spot list open closes the list, not the whole app.
+    androidx.activity.compose.BackHandler(enabled = sheetState.currentValue == SheetValue.Expanded) {
+        scope.launch { sheetState.partialExpand() }
+    }
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
