@@ -45,6 +45,15 @@ class SessionStore(context: Context) {
         get() = prefs.getLong(KEY_LEFT_APP_AT, 0L)
         set(value) = prefs.edit().putLong(KEY_LEFT_APP_AT, value).apply()
 
+    /** Device-level flags that survive signing out (unlike the session). */
+    private val device: SharedPreferences =
+        context.applicationContext.getSharedPreferences("parkit_device", Context.MODE_PRIVATE)
+
+    /** The 3-screen intro was shown on this install. */
+    var introSeen: Boolean
+        get() = device.getBoolean("intro_seen", false)
+        set(value) = device.edit().putBoolean("intro_seen", value).apply()
+
     fun saveDriver(d: DriverPrefs) {
         val p = d.preferences
         prefs.edit()

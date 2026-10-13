@@ -69,7 +69,13 @@ fun ParkItApp(sessionStore: SessionStore) {
     // Decided once: the token flips to non-null mid-login, and a changed
     // startDestination rebuilds the graph — which used to jump straight to
     // the map and skip the post-login onboarding step.
-    val startDestination = androidx.compose.runtime.remember { if (sessionStore.token.value != null) "map" else "login" }
+    val startDestination = androidx.compose.runtime.remember {
+        when {
+            sessionStore.token.value != null -> "map"
+            !sessionStore.introSeen -> "intro"
+            else -> "login"
+        }
+    }
 
     // One path back to login for both a manual Logout tap and an expired
     // JWT (dev-login tokens last 24h with no refresh) — popUpTo(0) clears
@@ -129,6 +135,12 @@ fun ParkItApp(sessionStore: SessionStore) {
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
+        composable("intro", exitTransition = { fadeOut(animationSpec = motionSpec) }) {
+            com.parkit.app.ui.IntroScreen(onDone = {
+                sessionStore.introSeen = true
+                navController.navigate("login") { popUpTo("intro") { inclusive = true } }
+            })
+        }
         composable(
             "login",
             exitTransition = { fadeOut(animationSpec = motionSpec) },

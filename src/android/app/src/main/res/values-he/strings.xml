@@ -381,4 +381,12 @@
     <string name="feedback_send">שליחה</string>
     <string name="feedback_thanks_title">תודה!</string>
     <string name="feedback_thanks_body">אנחנו קוראים כל הודעה.</string>
+    <string name="intro_find_title">חניות רחוב פנויות, עכשיו</string>
+    <string name="intro_find_body">נהגים שעוזבים חניה מדווחים עליה — ואתם רואים אותה על המפה, הקרובות והטריות קודם.</string>
+    <string name="intro_report_title">עוזבים חניה? לחיצה אחת.</string>
+    <string name="intro_report_body">מצלמים — פנים ולוחיות מטושטשים אוטומטית — ומקבלים ‎+10 נקודות.</string>
+    <string name="intro_climb_title">עולים ברמות</string>
+    <string name="intro_climb_body">תגים, ליגה שבועית בעיר שלכם ומסגרת משלכם לפין, ככל שעוזרים ליותר נהגים לחנות.</string>
+    <string name="intro_next">הבא</string>
+    <string name="intro_start">יאללה</string>
 </resources>

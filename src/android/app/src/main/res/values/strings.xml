@@ -372,4 +372,12 @@
     <string name="feedback_send">Send</string>
     <string name="feedback_thanks_title">Thank you!</string>
     <string name="feedback_thanks_body">We read every message.</string>
+    <string name="intro_find_title">Free street spots, live</string>
+    <string name="intro_find_body">Drivers who just left a spot report it — you see it on the map, nearest and freshest first.</string>
+    <string name="intro_report_title">Leaving a spot? One tap.</string>
+    <string name="intro_report_body">Snap a photo — faces and plates are blurred automatically — and earn +10 points.</string>
+    <string name="intro_climb_title">Climb the levels</string>
+    <string name="intro_climb_body">Badges, a weekly league in your city and a pin frame of your own as you help more drivers park.</string>
+    <string name="intro_next">Next</string>
+    <string name="intro_start">Let\'s go</string>
 </resources>
