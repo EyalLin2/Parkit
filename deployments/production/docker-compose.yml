@@ -9,7 +9,10 @@
 #   docker compose exec backend python import_osm_geodata.py
 services:
   db:
-    image: postgis/postgis:16-3.4
+    # Same PostGIS 16-3.4 as dev, but a multi-arch build (by the official
+    # image's maintainer): the postgis/postgis image is amd64-only and
+    # can't run on ARM servers like Oracle's free Ampere machines.
+    image: imresamu/postgis:16-3.4
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
