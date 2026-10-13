@@ -71,6 +71,8 @@ fun ParkItApp(sessionStore: SessionStore) {
     // the map and skip the post-login onboarding step.
     val startDestination = androidx.compose.runtime.remember {
         when {
+            sessionStore.token.value != null && sessionStore.needsProfile -> "details"
+            sessionStore.token.value != null && !sessionStore.onboardingSeen -> "onboarding"
             sessionStore.token.value != null -> "map"
             !sessionStore.introSeen -> "intro"
             else -> "login"
@@ -149,6 +151,7 @@ fun ParkItApp(sessionStore: SessionStore) {
                 api = api,
                 sessionStore = sessionStore,
                 onLoggedIn = { needsProfile ->
+                    sessionStore.needsProfile = needsProfile
                     val next = when {
                         needsProfile -> "details"
                         sessionStore.onboardingSeen -> "map"
@@ -164,6 +167,7 @@ fun ParkItApp(sessionStore: SessionStore) {
                 sessionStore = sessionStore,
                 firstTime = true,
                 onDone = {
+                    sessionStore.needsProfile = false
                     navController.navigate(if (sessionStore.onboardingSeen) "map" else "onboarding") { popUpTo("details") { inclusive = true } }
                 },
                 onSessionExpired = goToLogin,

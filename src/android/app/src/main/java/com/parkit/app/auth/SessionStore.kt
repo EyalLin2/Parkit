@@ -35,6 +35,12 @@ class SessionStore(context: Context) {
         get() = prefs.getBoolean(KEY_ONBOARDING_SEEN, false)
         set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_SEEN, value).apply()
 
+    /** Signed in but the name/avatar step isn't done yet — so closing the app
+     * on that screen brings the driver back to it, not to a nameless map. */
+    var needsProfile: Boolean
+        get() = prefs.getBoolean(KEY_NEEDS_PROFILE, false)
+        set(value) = prefs.edit().putBoolean(KEY_NEEDS_PROFILE, value).apply()
+
     /** The level the driver last saw, so reaching a new one can be celebrated once. */
     var lastSeenLevel: String?
         get() = prefs.getString(KEY_LAST_LEVEL, null)
@@ -126,6 +132,7 @@ class SessionStore(context: Context) {
 
     companion object {
         private const val KEY_TOKEN = "token"
+        private const val KEY_NEEDS_PROFILE = "needs_profile"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_ONBOARDING_SEEN = "onboarding_seen"
