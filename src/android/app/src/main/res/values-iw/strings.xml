@@ -122,7 +122,7 @@
     <!-- Share -->
     <string name="profile_share_title">שיתוף ParkIt</string>
     <string name="profile_share_button">הזמנת חבר/ה</string>
-    <string name="profile_share_message">אני משתמש/ת ב-ParkIt כדי למצוא ולדווח על חניות חינם בקרבת מקום — נסו גם אתם!</string>
+    <string name="profile_share_message">אני משתמש/ת ב-ParkIt כדי למצוא ולדווח על חניות חינם ברחוב — נסו גם אתם: https://eyallin2.github.io/Parkit/</string>
 
     <!-- Theme -->
     <string name="profile_theme_label">מצב תצוגה</string>
@@ -364,4 +364,6 @@
     <string name="map_offline_title">אין חיבור ל-ParkIt</string>
     <string name="map_offline_body">בדקו את החיבור לאינטרנט — ננסה שוב בעצמנו</string>
     <string name="map_offline_retry">נסו שוב</string>
+    <string name="location_denied">בלי מיקום, ParkIt לא יכולה להראות חניות לידך</string>
+    <string name="location_open_settings">לאפשר</string>
 </resources>

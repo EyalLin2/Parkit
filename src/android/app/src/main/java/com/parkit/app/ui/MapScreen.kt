@@ -470,6 +470,23 @@ fun MapScreen(
         } else {
             locating = false
             showTelAvivFallback(null)
+            // Say why it matters and how to fix it — after a "don't ask again",
+            // Android won't show the system prompt any more, only Settings can.
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.location_denied),
+                    actionLabel = context.getString(R.string.location_open_settings),
+                    duration = androidx.compose.material3.SnackbarDuration.Long,
+                )
+                if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                    context.startActivity(
+                        android.content.Intent(
+                            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            android.net.Uri.fromParts("package", context.packageName, null),
+                        ),
+                    )
+                }
+            }
         }
     }
     LaunchedEffect(Unit) {

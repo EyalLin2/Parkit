@@ -117,7 +117,7 @@
     <!-- Share -->
     <string name="profile_share_title">Share ParkIt</string>
     <string name="profile_share_button">Invite a friend</string>
-    <string name="profile_share_message">I\'m using ParkIt to find and report free parking spots nearby — give it a try!</string>
+    <string name="profile_share_message">I\'m using ParkIt to find and report free street parking — give it a try: https://eyallin2.github.io/Parkit/</string>
 
     <!-- Theme -->
     <string name="profile_theme_label">Theme</string>
@@ -355,4 +355,6 @@
     <string name="map_offline_title">Can\'t reach ParkIt</string>
     <string name="map_offline_body">Check your connection — we\'ll keep trying</string>
     <string name="map_offline_retry">Try again</string>
+    <string name="location_denied">Without location, ParkIt can\'t show spots near you</string>
+    <string name="location_open_settings">Allow</string>
 </resources>
