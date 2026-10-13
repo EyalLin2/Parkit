@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Face
@@ -70,6 +71,7 @@ fun SettingsScreen(
     onOpenDriver: () -> Unit,
     carLabel: String?,
     onSendFeedback: suspend (String) -> Unit,
+    onOpenTips: () -> Unit,
 ) {
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout" | "delete"
@@ -121,6 +123,8 @@ fun SettingsScreen(
             Column {
             val shareTitle = stringResource(R.string.profile_share_title)
             val shareMessage = stringResource(R.string.profile_share_message)
+            SettingsRow(Icons.Filled.Lightbulb, stringResource(R.string.settings_tips), onClick = onOpenTips)
+            RowDivider()
             SettingsRow(Icons.Filled.Feedback, stringResource(R.string.feedback_title), subtitle = stringResource(R.string.feedback_subtitle)) { dialog = "feedback" }
             RowDivider()
             SettingsRow(Icons.Filled.PersonAdd, stringResource(R.string.profile_share_button), subtitle = stringResource(R.string.settings_invite_subtitle)) {

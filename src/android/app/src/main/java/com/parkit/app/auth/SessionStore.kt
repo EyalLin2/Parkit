@@ -54,6 +54,11 @@ class SessionStore(context: Context) {
         get() = device.getBoolean("intro_seen", false)
         set(value) = device.edit().putBoolean("intro_seen", value).apply()
 
+    /** The post-sign-up "how ParkIt works" tips were shown on this install. */
+    var tipsSeen: Boolean
+        get() = device.getBoolean("tips_seen", false)
+        set(value) = device.edit().putBoolean("tips_seen", value).apply()
+
     fun saveDriver(d: DriverPrefs) {
         val p = d.preferences
         prefs.edit()

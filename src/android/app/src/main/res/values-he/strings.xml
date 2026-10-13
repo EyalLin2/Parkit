@@ -398,4 +398,23 @@
     <string name="intro_go_title">לוחצים, מנווטים, נוסעים</string>
     <string name="intro_go_body">רואים כמה החניה טרייה ולאיזה רכב היא מתאימה. לוחצים \"אני בדרך\" — הניווט נפתח ונהגים אחרים רואים שמישהו בדרך. 🔥 = אזור עמוס, ייתכן שהחניה תיתפס. אף פעם לא ממהרים.</string>
     <string name="hero_helped_hint">בכל פעם שנהג לוחץ "חניתי כאן" על חניה שדיווחת — המספר עולה.</string>
+    <string name="tips_header">איך משתמשים ב-ParkIt</string>
+    <string name="tips_done">הבנתי, יאללה</string>
+    <string name="tip_map_title">קוראים את המפה</string>
+    <string name="tip_map_body">כל סיכה היא חניה פנויה. ירוק כהה = דווחה עכשיו, בהיר = מחכה כבר זמן מה. המספר הוא דקות מאז הדיווח. כתום = מישהו כבר בדרך.</string>
+    <string name="tip_tag_fresh">2 דק׳</string>
+    <string name="tip_tag_old">40 דק׳</string>
+    <string name="tip_cap_fresh">טרייה</string>
+    <string name="tip_cap_old">ותיקה</string>
+    <string name="tip_cap_claimed">מישהו בדרך</string>
+    <string name="tip_hot_title">🔥 אזור לוהט</string>
+    <string name="tip_hot_body">להבות אומרות שחניות שם נתפסות בדרך כלל תוך דקות, אז ייתכן שתיתפס עד שתגיעו. זה מידע — אף פעם לא סיבה למהר. סעו בבטחה.</string>
+    <string name="tip_go_title">בדרך לחניה</string>
+    <string name="tip_go_body">לוחצים על סיכה ואז \"אני בדרך\". הניווט נפתח ונהגים אחרים רואים שמישהו בדרך. מכינים הכל לפני הנסיעה — לא נוגעים בטלפון בכביש.</string>
+    <string name="tip_report_title">יוצאים? דווחו</string>
+    <string name="tip_report_body">משחררים חניה פנויה? לוחצים \"דווח על חניה כאן\" — כשהרכב עומד. תמונה שווה נקודות נוספות; פנים ולוחיות רישוי מטושטשים אוטומטית.</string>
+    <string name="tip_photo_points">תמונה = נקודות נוספות</string>
+    <string name="tip_close_title">סוגרים מעגל, עולים רמה</string>
+    <string name="tip_close_body">כשמגיעים, לוחצים \"חניתי כאן\" או \"כבר תפוסה\" — ככה המפה נשארת אמינה. כל דיווח ותשובה שווים נקודות, וכל רמה מקבלת מסגרת חדשה לסיכה.</string>
+    <string name="settings_tips">איך משתמשים ב-ParkIt</string>
 </resources>

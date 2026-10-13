@@ -389,4 +389,23 @@
     <string name="intro_go_title">Tap, navigate, go</string>
     <string name="intro_go_body">See how fresh it is and what car it fits. Tap On my way — navigation opens and other drivers see someone is coming. 🔥 = busy area, the spot may be gone when you arrive. Never rush.</string>
     <string name="hero_helped_hint">Every time a driver taps "I parked here" on a spot you reported, this goes up.</string>
+    <string name="tips_header">How ParkIt works</string>
+    <string name="tips_done">Got it, let\'s go</string>
+    <string name="tip_map_title">Reading the map</string>
+    <string name="tip_map_body">Each pin is a free spot. Dark green = just reported, pale = waiting a while. The number is minutes since the report. Orange = someone is on the way.</string>
+    <string name="tip_tag_fresh">2m</string>
+    <string name="tip_tag_old">40m</string>
+    <string name="tip_cap_fresh">Fresh</string>
+    <string name="tip_cap_old">Older</string>
+    <string name="tip_cap_claimed">Someone on the way</string>
+    <string name="tip_hot_title">🔥 Busy area</string>
+    <string name="tip_hot_body">Flames mean spots there usually go within minutes, so it may be gone when you arrive. That\'s information — never a reason to rush. Drive safely.</string>
+    <string name="tip_go_title">Heading to a spot</string>
+    <string name="tip_go_body">Tap a pin, then On my way. Navigation opens and other drivers see someone is coming. Set it up before you drive — don\'t touch the phone on the road.</string>
+    <string name="tip_report_title">Leaving? Report it</string>
+    <string name="tip_report_body">Pulling out of a free spot? Tap Report a spot here — when you\'re stopped. A photo earns extra points; faces and plates are blurred automatically.</string>
+    <string name="tip_photo_points">Photo = extra points</string>
+    <string name="tip_close_title">Close the loop, level up</string>
+    <string name="tip_close_body">When you get there, tap I parked here or Already taken — it keeps the map honest. Every report and answer earns points, and each level gets a new pin frame.</string>
+    <string name="settings_tips">How ParkIt works</string>
 </resources>

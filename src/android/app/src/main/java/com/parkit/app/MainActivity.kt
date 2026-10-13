@@ -184,9 +184,18 @@ fun ParkItApp(sessionStore: SessionStore) {
                 api = api,
                 sessionStore = sessionStore,
                 onboarding = true,
-                onDone = { navController.navigate("map") { popUpTo("onboarding") { inclusive = true } } },
+                onDone = { navController.navigate(if (sessionStore.tipsSeen) "map" else "tips") { popUpTo("onboarding") { inclusive = true } } },
                 onSessionExpired = goToLogin,
             )
+        }
+        composable("tips", exitTransition = { fadeOut(animationSpec = motionSpec) }) {
+            com.parkit.app.ui.TipsScreen(onDone = {
+                sessionStore.tipsSeen = true
+                // First run goes on to the map; from Settings it just closes.
+                if (!navController.popBackStack("settings", inclusive = false)) {
+                    navController.navigate("map") { popUpTo("tips") { inclusive = true } }
+                }
+            })
         }
         composable(
             "map",
@@ -245,6 +254,7 @@ fun ParkItApp(sessionStore: SessionStore) {
                 },
                 onOpenDetails = { navController.navigate("details-edit") },
                 onOpenDriver = { navController.navigate("driver") },
+                onOpenTips = { navController.navigate("tips") },
                 carLabel = sessionStore.driver.value.preferences.carLabel,
                 onSendFeedback = { text ->
                     val recent = com.parkit.app.api.RecentErrors.summary()
