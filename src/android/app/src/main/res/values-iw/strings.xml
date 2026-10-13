@@ -389,4 +389,10 @@
     <string name="intro_climb_body">תגים, ליגה שבועית בעיר שלכם ומסגרת משלכם לפין, ככל שעוזרים ליותר נהגים לחנות.</string>
     <string name="intro_next">הבא</string>
     <string name="intro_start">יאללה</string>
+    <string name="intro_welcome_body">חניות רחוב פנויות בתל אביב, מדווחות בזמן אמת על ידי נהגים כמוך.</string>
+    <string name="intro_choose_language">בחרו שפה</string>
+    <string name="intro_how_it_works">איך זה עובד</string>
+    <string name="intro_go_title">לוחצים, מנווטים, נוסעים</string>
+    <string name="intro_go_body">רואים כמה החניה טרייה ולאיזה רכב היא מתאימה. לוחצים "אני בדרך" — ונשמור לך אותה 2 דקות. 🔥 = שם חניות נתפסות מהר.</string>
+    <string name="hero_helped_hint">בכל פעם שנהג לוחץ "חניתי כאן" על חניה שדיווחת — המספר עולה.</string>
 </resources>

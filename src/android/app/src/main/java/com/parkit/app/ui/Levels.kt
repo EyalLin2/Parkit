@@ -276,7 +276,7 @@ private fun PodiumSpot(entry: LeaderboardEntry, medal: Color, first: Boolean, is
             }
         }
         Text(
-            if (isMe) stringResource(R.string.profile_you) else entry.displayName,
+            if (isMe) stringResource(R.string.profile_you) else isolate(entry.displayName),
             style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -313,7 +313,7 @@ private fun LeagueRow(rank: String, name: String, level: ParkItLevel, points: In
             Avatar(name, level.color, size = 34.dp, avatarId = avatar)
         }
         Text(
-            if (isMe) "$name · ${stringResource(R.string.profile_you)}" else name,
+            if (isMe) "${isolate(name)} · ${stringResource(R.string.profile_you)}" else isolate(name),
             style = MaterialTheme.typography.bodyLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

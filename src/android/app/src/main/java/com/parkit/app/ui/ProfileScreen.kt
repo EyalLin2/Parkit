@@ -395,7 +395,7 @@ private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit) {
                 Icon(androidx.compose.material.icons.Icons.Filled.Edit, contentDescription = stringResource(R.string.avatar_pick_title), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(13.dp))
             }
         }
-        Text(p.displayName, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
+        Text(isolate(p.displayName), style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
         LevelChip(level, modifier = Modifier.padding(top = 4.dp))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
             HeroStat(p.points.toString(), stringResource(R.string.hero_points), Modifier.weight(1f))
@@ -403,6 +403,16 @@ private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit) {
             HeroStat(p.successfulReports.toString(), stringResource(R.string.hero_helped), Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outline))
             HeroStat(p.weeklyRank?.let { "#$it" } ?: "—", stringResource(R.string.hero_rank), Modifier.weight(1f))
+        }
+        if (p.successfulReports == 0) {
+            // How "drivers helped" goes up — a zero shouldn't look like a dead number.
+            Text(
+                stringResource(R.string.hero_helped_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(top = 10.dp, start = 12.dp, end = 12.dp),
+            )
         }
     }
 }
@@ -480,3 +490,9 @@ internal fun Avatar(name: String?, background: Color, size: Dp = 40.dp, textColo
     }
 }
 
+
+
+/** Wraps a user-written name in Unicode first-strong isolates, so a Latin
+ * name like "Noa L." keeps its punctuation in place inside Hebrew UI
+ * (it used to render as ".Noa L"). */
+internal fun isolate(text: String): String = "\u2068$text\u2069"

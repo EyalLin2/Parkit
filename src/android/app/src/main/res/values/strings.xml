@@ -380,4 +380,10 @@
     <string name="intro_climb_body">Badges, a weekly league in your city and a pin frame of your own as you help more drivers park.</string>
     <string name="intro_next">Next</string>
     <string name="intro_start">Let\'s go</string>
+    <string name="intro_welcome_body">Free street parking in Tel Aviv, reported live by drivers like you.</string>
+    <string name="intro_choose_language">Choose your language</string>
+    <string name="intro_how_it_works">How it works</string>
+    <string name="intro_go_title">Tap, navigate, go</string>
+    <string name="intro_go_body">See how fresh it is and what car it fits. Tap On my way — we hold it for you for 2 minutes. 🔥 means spots there go fast.</string>
+    <string name="hero_helped_hint">Every time a driver taps "I parked here" on a spot you reported, this goes up.</string>
 </resources>
