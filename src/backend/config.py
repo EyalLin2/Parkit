@@ -6,6 +6,11 @@ class Settings(BaseSettings):
 
     app_env: str = "local"
     database_url: str
+    # TLS to Postgres: "require" for hosted databases (Supabase), "disable" when
+    # Postgres runs next to the API on a private network (our production
+    # compose). Empty = require everywhere except local dev.
+    database_ssl: str = ""
+    db_pool_size: int = 10
     redis_url: str
     jwt_secret: str = "dev-secret-change-me"
     # "dev" logs codes instead of texting them; a real provider plugs in via sms.py.
@@ -21,6 +26,8 @@ class Settings(BaseSettings):
     # Signed out after this long without using the app (sign in again by SMS).
     # The app renews the session while it's open, so active use never expires.
     session_idle_minutes: int = 30
+    # Requests per minute per client IP (0 = off). See ratelimit.py.
+    rate_limit_per_minute: int = 240
     # SMS_PROVIDER=twilio: credentials from the Twilio console. TWILIO_FROM is
     # the sending number (+1…) or a Messaging Service SID (MG…).
     twilio_account_sid: str = ""
@@ -39,3 +46,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def postgres_ssl() -> str | None:
+    """The asyncpg ssl mode to use, or None for a plain connection."""
+    mode = settings.database_ssl or ("disable" if settings.app_env == "local" else "require")
+    return None if mode == "disable" else mode

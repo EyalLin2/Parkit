@@ -50,7 +50,7 @@
     <string name="spot_status">Status: %1$s</string>
     <string name="spot_fits">Fits a %1$s car</string>
     <string name="spot_navigate">Navigate</string>
-    <string name="spot_claim">I\'m heading there</string>
+    <string name="spot_claim">On my way</string>
     <string name="spot_i_took_it">I parked here</string>
     <string name="spot_flag_taken">Already taken</string>
     <string name="spot_cancel_report">Cancel my report</string>
@@ -266,7 +266,7 @@
     <string name="parked_pango_prompt">Parked! Blue-white? Start parking in Pango</string>
     <string name="parked_pango_action">Pango</string>
     <string name="spot_no_photo_cd">No photo for this spot</string>
-    <string name="spot_age_short">%1$s ago</string>
+    <string name="spot_age_short">%1$s\u00A0ago</string>
     <string name="profile_tab_overview">Overview</string>
     <string name="profile_tab_league">League</string>
     <string name="profile_tab_reports">My reports</string>

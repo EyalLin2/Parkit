@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import check_postgres
 from media import MEDIA_DIR
+from ratelimit import RateLimitMiddleware
 from redis_client import check_redis
 from routers.auth import router as auth_router
 from routers.geocode import router as geocode_router
@@ -28,6 +29,7 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 app = FastAPI(title="ParkIt API")
 # Spot lists and geocoder answers are JSON that compresses ~5×.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(RateLimitMiddleware)
 
 app.include_router(auth_router)
 app.include_router(spots_router)

@@ -33,7 +33,7 @@ from pathlib import Path
 import asyncpg
 import osmium
 
-from config import settings
+from config import postgres_ssl, settings
 
 EXTRACT_URL = "https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf"
 
@@ -241,7 +241,7 @@ def _download(dest: Path) -> None:
 
 async def _load(ex: Extractor) -> None:
     dsn = settings.database_url.replace("+asyncpg", "")
-    conn = await asyncpg.connect(dsn, ssl="require" if settings.app_env != "local" else None)
+    conn = await asyncpg.connect(dsn, ssl=postgres_ssl())
     try:
         async with conn.transaction():
             for table, cols, rows in (

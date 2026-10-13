@@ -226,7 +226,7 @@ fun SpotActionsSheet(
                     Text(
                         androidx.compose.ui.text.buildAnnotatedString {
                             append("$meta · ")
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = dotColor)) { append("● ") }
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = dotColor)) { append("●\u00A0") } // dot stays with the age
                             append(age)
                         },
                         style = MaterialTheme.typography.bodyMedium,
@@ -285,7 +285,7 @@ fun SpotActionsSheet(
                     modifier = Modifier.weight(1f).height(48.dp),
                 ) {
                     Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(stringResource(R.string.spot_navigate), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.spot_navigate), style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
                 }
                 if (spot.status == "active" && !isMine) {
                     androidx.compose.material3.FilledTonalButton(
@@ -307,7 +307,7 @@ fun SpotActionsSheet(
                         modifier = Modifier.weight(1f).height(48.dp),
                     ) {
                         Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.spot_claim), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
+                        Text(stringResource(R.string.spot_claim), style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
@@ -472,7 +472,7 @@ private fun FeedbackOption(label: String, icon: ImageVector, color: Color, enabl
         modifier = modifier.height(44.dp),
     ) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(start = 8.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
