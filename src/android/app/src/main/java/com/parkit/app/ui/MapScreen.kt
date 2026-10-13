@@ -142,21 +142,34 @@ private const val SERVICE_AREA_RADIUS_M = 350_000.0
 // the user is in Tel Aviv.
 private val ISRAEL_OVERVIEW = LatLng(31.6, 34.95)
 private const val OVERVIEW_ZOOM = 6.6
-private const val FIX_TIMEOUT_MS = 10_000L
+private const val FIX_TIMEOUT_MS = 12_000L
 private const val LAST_KNOWN_MAX_AGE_MS = 30 * 60_000L
 
 private fun inServiceArea(p: LatLng) = p.distanceTo(SERVICE_AREA_CENTER) <= SERVICE_AREA_RADIUS_M
 
-private fun hasFineLocation(context: android.content.Context) =
+/** Precise *or* approximate — Android 12+ lets the user grant only
+ * approximate, and that's still plenty to centre the map on them. */
+private fun hasAnyLocation(context: android.content.Context) =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+private fun hasPreciseLocation(context: android.content.Context) =
     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+private val LOCATION_PERMISSIONS = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+
+private fun locationServicesOn(context: android.content.Context): Boolean {
+    val lm = context.getSystemService(LocationManager::class.java) ?: return false
+    return androidx.core.location.LocationManagerCompat.isLocationEnabled(lm)
+}
 
 /** The freshest cached fix any provider has, if it's recent and in Israel —
  * lets the map open where the user actually is with zero wait. On a real
  * phone this is often empty (nothing used GPS lately), which is exactly why
- * it can't be the only source, as it used to be. */
+ * it can't be the only source. */
 @SuppressLint("MissingPermission")
 private fun recentLastKnown(context: android.content.Context): LatLng? {
-    if (!hasFineLocation(context)) return null
+    if (!hasAnyLocation(context)) return null
     val lm = context.getSystemService(LocationManager::class.java) ?: return null
     val best = lm.getProviders(true)
         .mapNotNull { runCatching { lm.getLastKnownLocation(it) }.getOrNull() }
@@ -165,30 +178,71 @@ private fun recentLastKnown(context: android.content.Context): LatLng? {
     return LatLng(best.latitude, best.longitude).takeIf { inServiceArea(it) }
 }
 
-/** Asks every enabled provider (GPS, network, fused) for a FRESH fix and
- * returns the first one that arrives, or null after [FIX_TIMEOUT_MS]. */
+/** A fresh fix: Google's fused provider first (Wi-Fi + cell + GPS — seconds,
+ * even indoors), then the plain Android providers for phones without Google
+ * services, then a recent cached fix. Null after [FIX_TIMEOUT_MS]. */
 @SuppressLint("MissingPermission")
 private suspend fun freshFix(context: android.content.Context): LatLng? {
-    if (!hasFineLocation(context)) return null
+    if (!hasAnyLocation(context)) return null
+    return kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) { fusedFix(context) }
+        ?: kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) { platformFix(context) }
+        ?: fusedLastKnown(context)
+        ?: recentLastKnown(context)
+}
+
+@SuppressLint("MissingPermission")
+private suspend fun fusedFix(context: android.content.Context): LatLng? = try {
+    val client = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+    val priority = if (hasPreciseLocation(context)) {
+        com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY
+    } else {
+        com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY
+    }
+    val cts = com.google.android.gms.tasks.CancellationTokenSource()
+    kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        cont.invokeOnCancellation { cts.cancel() }
+        client.getCurrentLocation(priority, cts.token)
+            .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc?.let { LatLng(it.latitude, it.longitude) }) { } }
+            .addOnFailureListener { if (cont.isActive) cont.resume(null) { } }
+    }
+} catch (_: Exception) {
+    null // no Google Play services on this phone
+}
+
+@SuppressLint("MissingPermission")
+private suspend fun fusedLastKnown(context: android.content.Context): LatLng? = try {
+    val client = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+    kotlinx.coroutines.withTimeoutOrNull(3_000) {
+        kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+            client.lastLocation
+                .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc?.let { LatLng(it.latitude, it.longitude) }) { } }
+                .addOnFailureListener { if (cont.isActive) cont.resume(null) { } }
+        }
+    }
+} catch (_: Exception) {
+    null
+}
+
+/** Asks every enabled Android provider for a fix; first one wins. */
+@SuppressLint("MissingPermission")
+private suspend fun platformFix(context: android.content.Context): LatLng? {
     val lm = context.getSystemService(LocationManager::class.java) ?: return null
     val providers = listOf(LocationManager.FUSED_PROVIDER, LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
         .filter { runCatching { lm.isProviderEnabled(it) }.getOrDefault(false) }
     if (providers.isEmpty()) return null
-    return kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) {
-        kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-            val signal = android.os.CancellationSignal()
-            cont.invokeOnCancellation { signal.cancel() }
-            providers.forEach { provider ->
-                androidx.core.location.LocationManagerCompat.getCurrentLocation(
-                    lm,
-                    provider,
-                    signal,
-                    ContextCompat.getMainExecutor(context),
-                ) { loc ->
-                    if (loc != null && cont.isActive) {
-                        signal.cancel()
-                        cont.resume(LatLng(loc.latitude, loc.longitude)) { }
-                    }
+    return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        val signal = android.os.CancellationSignal()
+        cont.invokeOnCancellation { signal.cancel() }
+        providers.forEach { provider ->
+            androidx.core.location.LocationManagerCompat.getCurrentLocation(
+                lm,
+                provider,
+                signal,
+                ContextCompat.getMainExecutor(context),
+            ) { loc ->
+                if (loc != null && cont.isActive) {
+                    signal.cancel()
+                    cont.resume(LatLng(loc.latitude, loc.longitude)) { }
                 }
             }
         }
@@ -305,7 +359,12 @@ fun MapScreen(
     var mapRendered by remember { mutableStateOf(false) }
     // Where to open the map: a recent cached fix if there is one; otherwise
     // the country overview until a fresh fix arrives (see locate()).
-    val startFix = remember { recentLastKnown(context) }
+    // Open where the phone is (cached fix) or was last time — never on a
+    // made-up spot while the fresh fix is still coming.
+    val startFix = remember {
+        recentLastKnown(context)
+            ?: sessionStore.lastFix?.let { (lat, lng) -> LatLng(lat, lng) }?.takeIf { inServiceArea(it) }
+    }
     var deviceLocation by remember { mutableStateOf(startFix) }
     var locating by remember { mutableStateOf(true) }
     var userTookOver by remember { mutableStateOf(false) }
@@ -394,8 +453,7 @@ fun MapScreen(
         map?.animateCamera(CameraUpdateFactory.newLatLngZoom(target, zoom), 650)
     }
 
-    fun hasLocationPermission() =
-        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    fun hasLocationPermission() = hasAnyLocation(context)
 
     @SuppressLint("MissingPermission")
     fun enableLocationPuck() {
@@ -429,7 +487,7 @@ fun MapScreen(
         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) PangoLink.open(context)
     }
 
-    /** No usable GPS: open on the driver's preferred city, else Tel Aviv. */
+    /** No usable fix: open on the driver's preferred city, else Tel Aviv. */
     fun showTelAvivFallback(message: Int?) {
         if (deviceLocation == null && !userTookOver) {
             val target = homeCentre ?: TEL_AVIV
@@ -443,6 +501,22 @@ fun MapScreen(
      * already started panning; from the locate button it always flies. */
     fun locate(fromButton: Boolean = false) {
         enableLocationPuck()
+        if (!locationServicesOn(context)) {
+            // Permission is fine but the phone's location switch is off —
+            // no provider will ever answer, so say so and offer the switch.
+            showTelAvivFallback(null)
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.location_off),
+                    actionLabel = context.getString(R.string.location_turn_on),
+                    duration = androidx.compose.material3.SnackbarDuration.Long,
+                )
+                if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                    context.startActivity(android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                }
+            }
+            return
+        }
         scope.launch {
             locating = true
             val fix = freshFix(context)
@@ -450,6 +524,7 @@ fun MapScreen(
             when {
                 fix != null && inServiceArea(fix) -> {
                     deviceLocation = fix
+                    sessionStore.lastFix = fix.latitude to fix.longitude
                     if (fromButton || !userTookOver) {
                         geocodeTarget = fix
                         flyTo(fix)
@@ -464,8 +539,10 @@ fun MapScreen(
         }
     }
 
-    val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
+    // Ask for precise and approximate together: on Android 12+ asking for
+    // precise alone is ignored, and "approximate" must count as a yes.
+    val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        if (result.values.any { it } || hasAnyLocation(context)) {
             locate()
         } else {
             locating = false
@@ -490,7 +567,21 @@ fun MapScreen(
         }
     }
     LaunchedEffect(Unit) {
-        if (hasFineLocation(context)) locate() else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (hasAnyLocation(context)) locate() else locationPermission.launch(LOCATION_PERMISSIONS)
+    }
+    // Back from Settings (permission granted / location switched on there)?
+    // Try again by itself instead of leaving the map on the fallback.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && deviceLocation == null && !locating &&
+                hasAnyLocation(context) && locationServicesOn(context)
+            ) {
+                locate()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     fun refreshSpotsNow() {
@@ -780,7 +871,7 @@ fun MapScreen(
                     }
                     .size(buttonSize)
                     .clickable {
-                        if (hasLocationPermission()) locate(fromButton = true) else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        if (hasLocationPermission()) locate(fromButton = true) else locationPermission.launch(LOCATION_PERMISSIONS)
                     },
             ) {
                 Box(contentAlignment = Alignment.Center) {

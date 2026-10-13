@@ -260,7 +260,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                     ) {
-                        TextButton(onClick = { sentTo = null; error = null }) { Text(stringResource(R.string.login_change_number)) }
+                        TextButton(onClick = { sentTo = null; error = null }) { Text(stringResource(if (byEmail) R.string.login_change_email else R.string.login_change_number)) }
                         TextButton(onClick = ::sendCode, enabled = resendIn == 0 && !loading) {
                             Text(if (resendIn > 0) stringResource(R.string.login_resend_in, resendIn) else stringResource(R.string.login_resend))
                         }

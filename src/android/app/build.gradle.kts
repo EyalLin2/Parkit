@@ -139,6 +139,8 @@ dependencies {
     // newest line built against Kotlin 2.0 (13.x needs Kotlin 2.2) and still
     // defaults to the OpenGL ES renderer, which every emulator supports.
     implementation("org.maplibre.gl:android-sdk:12.3.1")
+    // Google's fused location — what actually gets a fix fast on real phones.
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 

@@ -54,6 +54,20 @@ class SessionStore(context: Context) {
         get() = device.getBoolean("intro_seen", false)
         set(value) = device.edit().putBoolean("intro_seen", value).apply()
 
+    /** Where the phone last was (any successful fix), so the next launch opens
+     * there instead of on a default spot while a fresh fix is on its way. */
+    var lastFix: Pair<Double, Double>?
+        get() = if (device.contains("last_lat")) {
+            Pair(device.getFloat("last_lat", 0f).toDouble(), device.getFloat("last_lng", 0f).toDouble())
+        } else {
+            null
+        }
+        set(value) {
+            val e = device.edit()
+            if (value == null) e.remove("last_lat").remove("last_lng") else e.putFloat("last_lat", value.first.toFloat()).putFloat("last_lng", value.second.toFloat())
+            e.apply()
+        }
+
     /** The post-sign-up "how ParkIt works" tips were shown on this install. */
     var tipsSeen: Boolean
         get() = device.getBoolean("tips_seen", false)

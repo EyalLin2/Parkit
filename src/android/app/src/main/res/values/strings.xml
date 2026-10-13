@@ -185,7 +185,7 @@
     <string name="spot_photo_taken">Photo from the reporter · %1$s</string>
     <string name="spot_photo_expand_cd">Open photo full screen</string>
     <string name="map_locating_you">Finding your location…</string>
-    <string name="map_location_unavailable">Couldn\'t get your location — showing Tel Aviv</string>
+    <string name="map_location_unavailable">Couldn\'t get your location yet — tap ◎ to try again, or drag the pin</string>
     <string name="map_outside_service_area">ParkIt currently works in Israel only</string>
     <string name="level_newbie">Newbie</string>
     <string name="level_bronze">Bronze</string>
@@ -294,6 +294,7 @@
     <string name="login_code_body">We sent it to %1$s</string>
     <string name="login_verify">Sign in</string>
     <string name="login_change_number">Change number</string>
+    <string name="login_change_email">Change email</string>
     <string name="login_resend">Send again</string>
     <string name="login_resend_in">Send again in %1$d s</string>
     <string name="login_dev_code_title">📩 Beta version — your code</string>
@@ -384,7 +385,7 @@
     <string name="intro_climb_body">Badges, a weekly league in your city and a pin frame of your own as you help more drivers park.</string>
     <string name="intro_next">Next</string>
     <string name="intro_start">Let\'s go</string>
-    <string name="intro_welcome_body">Free street parking in Tel Aviv, reported live by drivers like you.</string>
+    <string name="intro_welcome_body">Free street parking all over Israel, reported live by drivers like you.</string>
     <string name="intro_choose_language">Choose your language</string>
     <string name="intro_how_it_works">How it works</string>
     <string name="intro_go_title">Tap, navigate, go</string>
@@ -409,4 +410,6 @@
     <string name="tip_close_title">Close the loop, level up</string>
     <string name="tip_close_body">When you get there, tap I parked here or Already taken — it keeps the map honest. Every report and answer earns points, and each level gets a new pin frame.</string>
     <string name="settings_tips">How ParkIt works</string>
+    <string name="location_off">Location is turned off on your phone</string>
+    <string name="location_turn_on">Turn on</string>
 </resources>

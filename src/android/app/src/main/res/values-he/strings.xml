@@ -191,7 +191,7 @@
     <string name="spot_photo_taken">צילום המדווח · %1$s</string>
     <string name="spot_photo_expand_cd">פתיחת התמונה במסך מלא</string>
     <string name="map_locating_you">מאתר את מיקומך…</string>
-    <string name="map_location_unavailable">לא הצלחנו לאתר את המיקום — מוצגת תל אביב</string>
+    <string name="map_location_unavailable">עדיין לא הצלחנו לאתר את המיקום — לחצו ◎ כדי לנסות שוב, או גררו את הסיכה</string>
     <string name="map_outside_service_area">ParkIt פועלת כרגע רק בישראל</string>
     <string name="level_newbie">חדש</string>
     <string name="level_bronze">ארד</string>
@@ -302,6 +302,7 @@
     <string name="login_code_body">שלחנו אותו ל-%1$s</string>
     <string name="login_verify">כניסה</string>
     <string name="login_change_number">שינוי מספר</string>
+    <string name="login_change_email">שינוי מייל</string>
     <string name="login_resend">שליחה חוזרת</string>
     <string name="login_resend_in">שליחה חוזרת בעוד %1$d שנ׳</string>
     <string name="login_dev_code_title">📩 גרסת בטא — הקוד שלך</string>
@@ -393,7 +394,7 @@
     <string name="intro_climb_body">תגים, ליגה שבועית בעיר שלכם ומסגרת משלכם לפין, ככל שעוזרים ליותר נהגים לחנות.</string>
     <string name="intro_next">הבא</string>
     <string name="intro_start">יאללה</string>
-    <string name="intro_welcome_body">חניות רחוב פנויות בתל אביב, מדווחות בזמן אמת על ידי נהגים כמוך.</string>
+    <string name="intro_welcome_body">חניות רחוב פנויות בכל הארץ, מדווחות בזמן אמת על ידי נהגים כמוך.</string>
     <string name="intro_choose_language">בחרו שפה</string>
     <string name="intro_how_it_works">איך זה עובד</string>
     <string name="intro_go_title">לוחצים, מנווטים, נוסעים</string>
@@ -418,4 +419,6 @@
     <string name="tip_close_title">סוגרים מעגל, עולים רמה</string>
     <string name="tip_close_body">כשמגיעים, לוחצים \"חניתי כאן\" או \"כבר תפוסה\" — ככה המפה נשארת אמינה. כל דיווח ותשובה שווים נקודות, וכל רמה מקבלת מסגרת חדשה לסיכה.</string>
     <string name="settings_tips">איך משתמשים ב-ParkIt</string>
+    <string name="location_off">המיקום בטלפון כבוי</string>
+    <string name="location_turn_on">להפעלה</string>
 </resources>
