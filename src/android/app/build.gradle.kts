@@ -11,10 +11,10 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.parkit.app"
+        applicationId = "com.parkit.israel"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
+        versionCode = 3
         versionName = "0.3.0-beta"
 
         // MapLibre ships a native renderer per ABI (~13MB each). Real phones
