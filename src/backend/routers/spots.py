@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from geoalchemy2.functions import ST_Distance, ST_DWithin, ST_MakePoint, ST_SetSRID
 from redis.asyncio import Redis
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
@@ -108,6 +109,13 @@ async def report_spot(
     address = address or (payload.address or "").strip() or None
 
     origin = ST_SetSRID(ST_MakePoint(payload.lng, payload.lat), 4326)
+    # Serialise reports around the same place (≈100 m cell) for the rest of
+    # this transaction, so two simultaneous reports of one spot can't both
+    # miss each other and create a duplicate (found by the load test).
+    await db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:cell))"),
+        {"cell": f"report:{round(payload.lat, 3)}:{round(payload.lng, 3)}"},
+    )
     existing = (
         await db.execute(
             select(Spot)
@@ -230,11 +238,15 @@ async def submit_feedback(
 ) -> None:
     await reconcile_weekly_points(db)
 
-    spot = await db.get(Spot, spot_id)
+    # Row lock: feedback on one spot is handled one at a time, so two
+    # simultaneous "already taken" flags can't both close the spot and
+    # penalise the reporter twice (found by the load test).
+    spot = (await db.execute(select(Spot).where(Spot.id == spot_id).with_for_update())).scalar_one_or_none()
     if spot is None:
         raise HTTPException(404, "Spot not found")
     if spot.reporter_id == user_id:
         raise HTTPException(400, "Cannot leave feedback on your own report")
+    still_open = spot.status in (SpotStatus.active, SpotStatus.claimed)
 
     already_voted = (
         await db.execute(select(SpotFeedback).where(SpotFeedback.spot_id == spot_id, SpotFeedback.user_id == user_id))
@@ -247,7 +259,10 @@ async def submit_feedback(
     reporter = await db.get(User, spot.reporter_id)
     now = datetime.now(timezone.utc)
 
-    if payload.type == FeedbackType.confirmed_taken:
+    # Points and penalties only on the transition that closes the spot.
+    if not still_open:
+        pass
+    elif payload.type == FeedbackType.confirmed_taken:
         spot.status = SpotStatus.removed
         spot.removed_reason = RemovedReason.taken_confirmed
         spot.removed_at = now
@@ -273,7 +288,12 @@ async def submit_feedback(
             if reporter.consecutive_bad_reports >= BAD_REPORT_BLOCK_THRESHOLD:
                 reporter.reporting_blocked_until = now + timedelta(hours=BAD_REPORT_BLOCK_HOURS)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Same driver, two simultaneous votes: the database kept one.
+        await db.rollback()
+        raise HTTPException(409, "Feedback already submitted for this spot") from None
 
 
 @router.delete("/{spot_id}", status_code=204)

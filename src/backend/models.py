@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from geoalchemy2 import Geography
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -122,6 +122,9 @@ class Spot(Base):
 
 class SpotFeedback(Base):
     __tablename__ = "spot_feedback"
+    # One vote per driver per spot — enforced by the database too, so two
+    # simultaneous requests can't slip past the "already voted" check.
+    __table_args__ = (UniqueConstraint("spot_id", "user_id", name="uq_spot_feedback_spot_user"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     spot_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("spots.id"))
