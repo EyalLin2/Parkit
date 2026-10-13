@@ -90,7 +90,7 @@ fun SettingsScreen(
         },
     )
     val version = remember {
-        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()?.let { "\u2066$it\u2069" } ?: ""
     }
 
     Column(

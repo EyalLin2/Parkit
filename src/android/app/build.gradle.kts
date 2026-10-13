@@ -14,8 +14,8 @@ android {
         applicationId = "com.parkit.israel"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0-beta"
+        versionCode = 4
+        versionName = "0.3.1-beta"
 
         // MapLibre ships a native renderer per ABI (~13MB each). Real phones
         // are arm64; x86_64 covers the emulator — the 32-bit ABIs only
@@ -52,7 +52,8 @@ android {
         }
         release {
             signingConfigs.findByName("release")?.let { signingConfig = it }
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
