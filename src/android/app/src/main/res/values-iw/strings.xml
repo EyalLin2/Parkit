@@ -366,4 +366,19 @@
     <string name="map_offline_retry">נסו שוב</string>
     <string name="location_denied">בלי מיקום, ParkIt לא יכולה להראות חניות לידך</string>
     <string name="location_open_settings">לאפשר</string>
+    <string name="error_timeout">השרת עונה לאט. נסו שוב בעוד רגע.</string>
+    <string name="error_session">החיבור הסתיים — היכנסו שוב.</string>
+    <string name="error_blocked">הדיווח מושהה לזמן מה אחרי כמה דיווחים שסומנו כשגויים.</string>
+    <string name="error_photo_large">התמונה גדולה מדי.</string>
+    <string name="error_invalid">חלק מהפרטים לא תקינים — בדקו ונסו שוב.</string>
+    <string name="error_too_many">יותר מדי ניסיונות — חכו דקה ונסו שוב.</string>
+    <string name="error_unavailable">השירות לא זמין כרגע. נסו שוב בקרוב.</string>
+    <string name="error_with_code">%1$s (%2$s)</string>
+    <string name="feedback_title">שליחת משוב</string>
+    <string name="feedback_subtitle">באג, רעיון, משהו לא ברור — ספרו לנו</string>
+    <string name="feedback_hint">מה קרה? מה היה עושה את ParkIt טובה יותר?</string>
+    <string name="feedback_attached">גרסת האפליקציה, דגם הטלפון וקודי השגיאה האחרונים מצורפים אוטומטית.</string>
+    <string name="feedback_send">שליחה</string>
+    <string name="feedback_thanks_title">תודה!</string>
+    <string name="feedback_thanks_body">אנחנו קוראים כל הודעה.</string>
 </resources>

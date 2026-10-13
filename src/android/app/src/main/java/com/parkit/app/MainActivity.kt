@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
         MapLibre.getInstance(this)
 
         ThemeManager.init(this)
+        com.parkit.app.api.CrashReporter.install(this)
         val sessionStore = SessionStore(this)
 
         setContent {
@@ -85,6 +86,10 @@ fun ParkItApp(sessionStore: SessionStore) {
     // Hebrew/RTL instead of always sliding the same physical direction.
     val motionSpec = tween<Float>(280)
     val offsetSpec = tween<androidx.compose.ui.unit.IntOffset>(280)
+
+    // A crash on the previous run left a report on disk: send it now.
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    androidx.compose.runtime.LaunchedEffect(Unit) { com.parkit.app.api.CrashReporter.sendPending(appContext, api) }
 
     // Sessions end after SESSION_IDLE_MINUTES away from the app (the server
     // enforces the same window). While the app is open the session is
@@ -229,6 +234,17 @@ fun ParkItApp(sessionStore: SessionStore) {
                 onOpenDetails = { navController.navigate("details-edit") },
                 onOpenDriver = { navController.navigate("driver") },
                 carLabel = sessionStore.driver.value.preferences.carLabel,
+                onSendFeedback = { text ->
+                    val recent = com.parkit.app.api.RecentErrors.summary()
+                    api.sendFeedback(
+                        com.parkit.app.api.FeedbackIn(
+                            kind = "feedback",
+                            message = if (recent.isBlank()) text else "$text\n\n[recent errors: $recent]",
+                            appVersion = com.parkit.app.api.CrashReporter.appVersion(appContext),
+                            device = com.parkit.app.api.CrashReporter.device(),
+                        ),
+                    )
+                },
             )
         }
     }

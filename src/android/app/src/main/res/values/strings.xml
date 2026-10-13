@@ -357,4 +357,19 @@
     <string name="map_offline_retry">Try again</string>
     <string name="location_denied">Without location, ParkIt can\'t show spots near you</string>
     <string name="location_open_settings">Allow</string>
+    <string name="error_timeout">The server is taking too long. Try again in a moment.</string>
+    <string name="error_session">Your session ended — please sign in again.</string>
+    <string name="error_blocked">Reporting is paused for a while after several reports were flagged.</string>
+    <string name="error_photo_large">That photo is too large.</string>
+    <string name="error_invalid">Some details aren\'t valid — check and try again.</string>
+    <string name="error_too_many">Too many attempts — wait a minute and try again.</string>
+    <string name="error_unavailable">This service isn\'t available right now. Try again soon.</string>
+    <string name="error_with_code">%1$s (%2$s)</string>
+    <string name="feedback_title">Send feedback</string>
+    <string name="feedback_subtitle">A bug, an idea, something unclear — tell us</string>
+    <string name="feedback_hint">What happened? What would make ParkIt better?</string>
+    <string name="feedback_attached">App version, phone model and recent error codes are attached automatically.</string>
+    <string name="feedback_send">Send</string>
+    <string name="feedback_thanks_title">Thank you!</string>
+    <string name="feedback_thanks_body">We read every message.</string>
 </resources>

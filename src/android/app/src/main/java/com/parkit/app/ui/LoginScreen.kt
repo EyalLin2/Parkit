@@ -74,14 +74,19 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    fun explain(e: Exception): String = when {
+    fun explainText(e: Exception): String = when {
         e is HttpException && e.code() == 422 -> context.getString(if (byEmail) R.string.details_email_invalid else R.string.login_phone_invalid)
         e is HttpException && e.code() == 503 -> context.getString(R.string.login_send_failed)
         e is HttpException && e.code() == 429 -> context.getString(R.string.login_too_many)
         e is HttpException && e.code() == 400 && e.response()?.errorBody()?.string()?.contains("expired") == true ->
             context.getString(R.string.login_code_expired)
         e is HttpException && e.code() == 400 -> context.getString(R.string.login_code_wrong)
-        else -> context.getString(R.string.login_error_backend, com.parkit.app.api.BASE_URL, e.message)
+        else -> context.getString(com.parkit.app.api.ParkItError.of(e).messageRes)
+    }
+
+    fun explain(e: Exception): String {
+        val code = com.parkit.app.api.ParkItError.of(e).also { com.parkit.app.api.RecentErrors.record(it) }.code
+        return context.getString(R.string.error_with_code, explainText(e), code)
     }
 
     fun sendCode() {

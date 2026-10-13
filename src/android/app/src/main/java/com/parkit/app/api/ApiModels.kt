@@ -194,4 +194,12 @@ data class LeaderboardEntry(
 data class AvatarUpdate(val avatar: String?)
 
 @JsonClass(generateAdapter = true)
+data class FeedbackIn(
+    val kind: String,
+    val message: String,
+    @Json(name = "app_version") val appVersion: String?,
+    val device: String?,
+)
+
+@JsonClass(generateAdapter = true)
 data class ApiErrorBody(val detail: String? = null)

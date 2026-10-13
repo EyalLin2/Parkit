@@ -15,6 +15,9 @@ interface ApiService {
     @POST("auth/dev-login")
     suspend fun devLogin(@Body body: DevLoginRequest): TokenOut
 
+    @POST("feedback")
+    suspend fun sendFeedback(@Body body: FeedbackIn)
+
     @POST("auth/refresh")
     suspend fun refreshToken(): TokenOut
 

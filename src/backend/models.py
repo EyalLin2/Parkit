@@ -203,3 +203,20 @@ class OsmParkingLot(Base):
     fee: Mapped[str | None] = mapped_column(String(40), nullable=True)  # "yes" / "no" / unknown
     capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     operator: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+
+class AppFeedback(Base):
+    """What testers send from the app: written feedback, and crash reports
+    the app files on its next launch after crashing."""
+
+    __tablename__ = "app_feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    kind: Mapped[str] = mapped_column(String(16))  # "feedback" | "crash"
+    message: Mapped[str] = mapped_column(String(8000))
+    app_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    device: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

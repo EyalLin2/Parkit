@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Face
@@ -68,6 +69,7 @@ fun SettingsScreen(
     onOpenDetails: () -> Unit,
     onOpenDriver: () -> Unit,
     carLabel: String?,
+    onSendFeedback: suspend (String) -> Unit,
 ) {
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout" | "delete"
@@ -116,14 +118,18 @@ fun SettingsScreen(
 
         SectionTitle(stringResource(R.string.settings_section_community))
         SectionCard {
+            Column {
             val shareTitle = stringResource(R.string.profile_share_title)
             val shareMessage = stringResource(R.string.profile_share_message)
+            SettingsRow(Icons.Filled.Feedback, stringResource(R.string.feedback_title), subtitle = stringResource(R.string.feedback_subtitle)) { dialog = "feedback" }
+            RowDivider()
             SettingsRow(Icons.Filled.PersonAdd, stringResource(R.string.profile_share_button), subtitle = stringResource(R.string.settings_invite_subtitle)) {
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_TEXT, shareMessage)
                 }
                 context.startActivity(Intent.createChooser(intent, shareTitle))
+            }
             }
         }
 
@@ -199,6 +205,7 @@ fun SettingsScreen(
             },
             dismissButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(R.string.settings_cancel)) } },
         )
+        "feedback" -> FeedbackDialog(onSend = onSendFeedback, onDismiss = { dialog = null })
         "delete" -> AlertDialog(
             onDismissRequest = { if (!deleting) dialog = null },
             title = { Text(stringResource(R.string.settings_delete_title)) },
@@ -294,5 +301,68 @@ private fun <T> ChoiceDialog(title: String, options: List<Pair<T, String>>, sele
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_cancel)) } },
+    )
+}
+
+
+/** Free-text feedback for testers. The app version, device and the last
+ * error codes are attached automatically. */
+@Composable
+private fun FeedbackDialog(onSend: suspend (String) -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var text by remember { mutableStateOf("") }
+    var sending by remember { mutableStateOf(false) }
+    var sent by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = { if (!sending) onDismiss() },
+        title = { Text(stringResource(if (sent) R.string.feedback_thanks_title else R.string.feedback_title)) },
+        text = {
+            if (sent) {
+                Text(stringResource(R.string.feedback_thanks_body))
+            } else {
+                Column {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it.take(4000) },
+                        placeholder = { Text(stringResource(R.string.feedback_hint)) },
+                        minLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        stringResource(R.string.feedback_attached),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 6.dp)) }
+                }
+            }
+        },
+        confirmButton = {
+            if (sent) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.driver_close)) }
+            } else {
+                TextButton(
+                    enabled = text.isNotBlank() && !sending,
+                    onClick = {
+                        sending = true
+                        error = null
+                        scope.launch {
+                            try {
+                                onSend(text.trim())
+                                sent = true
+                            } catch (e: Exception) {
+                                error = e.friendlyMessage(context)
+                            } finally {
+                                sending = false
+                            }
+                        }
+                    },
+                ) { Text(stringResource(R.string.feedback_send)) }
+            }
+        },
+        dismissButton = { if (!sent) TextButton(enabled = !sending, onClick = onDismiss) { Text(stringResource(R.string.settings_cancel)) } },
     )
 }

@@ -10,6 +10,7 @@ from media import MEDIA_DIR
 from ratelimit import RateLimitMiddleware
 from redis_client import check_redis
 from routers.auth import router as auth_router
+from routers.feedback import router as feedback_router
 from routers.geocode import router as geocode_router
 from routers.lots import router as lots_router
 from routers.me import router as me_router
@@ -38,6 +39,7 @@ app.include_router(photos_router)
 app.include_router(geocode_router)
 app.include_router(me_router)
 app.include_router(lots_router)
+app.include_router(feedback_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 
