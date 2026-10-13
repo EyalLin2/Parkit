@@ -146,23 +146,17 @@ fun ProfileScreen(
                 item { Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
             }
         } else {
-            item { ProfileHero(p, onChangeAvatar = { pickAvatar = true }, onReport = onBack) }
-            item { LevelHeroCard(p, dark = com.parkit.app.ui.theme.isDarkThemeActive()) }
+            item { ProfileHero(p, onChangeAvatar = { pickAvatar = true }) }
+            item { NextLevelCard(p, onReport = onBack) }
             // Three tabs instead of one endless scroll: what you have, how
             // you rank, what you reported. The tab bar sticks under the top.
             @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
             stickyHeader { ProfileTabs(tab) { tab = it } }
             when (tab) {
                 0 -> {
-                    item { StatsCard(p) }
+                    // Progress only — account details and the car live in Settings.
                     item { SectionTitle(stringResource(R.string.badges_title)) }
                     item { BadgesCard(p) }
-                    p.account?.let { account ->
-                        item { SectionTitle(stringResource(R.string.details_title)) }
-                        item { AccountCard(account, onOpenDetails) }
-                    }
-                    item { SectionTitle(stringResource(R.string.driver_title)) }
-                    item { DriverSummaryCard(sessionStore.driver.value.preferences, onOpenDriver) }
                     item { SectionTitle(stringResource(R.string.levels_title)) }
                     item { LevelLadder(points = p.points, current = ParkItLevel.of(p.level)) }
                 }
@@ -249,7 +243,7 @@ private fun PickCityCard(onOpenDriver: () -> Unit) {
 
 @Composable
 private fun ProfileTabs(selected: Int, onSelect: (Int) -> Unit) {
-    val titles = listOf(R.string.profile_tab_overview, R.string.profile_tab_league, R.string.profile_tab_reports)
+    val titles = listOf(R.string.profile_tab_progress, R.string.profile_tab_league, R.string.profile_tab_reports)
     androidx.compose.material3.TabRow(
         selectedTabIndex = selected,
         containerColor = MaterialTheme.colorScheme.background,
@@ -303,87 +297,6 @@ internal fun SectionCard(modifier: Modifier = Modifier, content: @Composable () 
     ) { content() }
 }
 
-
-@Composable
-private fun StatsCard(p: ProfileOut) {
-    SectionCard(modifier = Modifier.padding(top = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Stat(p.successfulReports.toString(), stringResource(R.string.profile_successful_reports), Modifier.weight(1f))
-            Box(Modifier.width(1.dp).height(40.dp).background(MaterialTheme.colorScheme.outline))
-            Stat(p.activity.size.toString(), stringResource(R.string.profile_total_reports), Modifier.weight(1f))
-            Box(Modifier.width(1.dp).height(40.dp).background(MaterialTheme.colorScheme.outline))
-            Stat(p.weeklyPoints.toString(), stringResource(R.string.profile_this_week), Modifier.weight(1f))
-        }
-    }
-}
-
-/** Name, phone and email — only you see these (others see "first name +
- * last initial"). Tapping edits them. */
-@Composable
-private fun AccountCard(account: com.parkit.app.api.AccountOut, onClick: () -> Unit) {
-    val name = listOfNotNull(account.firstName, account.lastName).joinToString(" ").ifBlank { null }
-    SectionCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(name ?: stringResource(R.string.details_missing), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    listOfNotNull(account.phone?.let { "\u2066$it\u2069" }, account.email).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-/** One-glance summary of the car and permits; the whole card opens the editor. */
-@Composable
-private fun DriverSummaryCard(prefs: com.parkit.app.api.Preferences, onClick: () -> Unit) {
-    val sizeRes = when (prefs.vehicleSize) {
-        "compact" -> R.string.report_size_compact
-        "large" -> R.string.report_size_large
-        "regular" -> R.string.report_size_regular
-        else -> null
-    }
-    val lines = listOfNotNull(
-        prefs.carLabel ?: sizeRes?.let { stringResource(R.string.driver_summary_size, stringResource(it)) },
-        stringResource(R.string.driver_disabled_permit).takeIf { prefs.hasDisabledPermit },
-        prefs.homeCity,
-    )
-    SectionCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
-            Box(
-                modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(androidx.compose.material.icons.Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-            }
-            Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                if (lines.isEmpty()) {
-                    Text(stringResource(R.string.driver_summary_empty_title), style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.driver_summary_empty_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    Text(lines.first(), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (lines.size > 1) {
-                        Text(lines.drop(1).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-            }
-            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.driver_edit_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun Stat(value: String, label: String, modifier: Modifier) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.padding(vertical = 16.dp, horizontal = 4.dp)) {
-        Text(value, style = MaterialTheme.typography.titleLarge)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
 
 @Composable
 private fun MyReportsCard(activity: List<ActivityItem>) {
@@ -454,17 +367,17 @@ private fun MyReportRow(item: ActivityItem) {
     }
 }
 
-/** The top of "you": your avatar in a ring that fills toward the next
- * level (tap to change it), your name and level, the drivers you've
- * actually helped — the number that makes reporting feel worth it — and a
- * one-tap way back to report. */
+/** The top of "you": avatar in a ring that fills toward the next level
+ * (tap to change it), name and level, then three numbers that say how
+ * you're doing — total points, drivers you helped park, your place this
+ * week. */
 @Composable
-private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit, onReport: () -> Unit) {
+private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit) {
     val level = ParkItLevel.of(p.level)
     val progress = levelProgress(p)
     val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(116.dp).clip(CircleShape).clickable(onClick = onChangeAvatar)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(108.dp).clip(CircleShape).clickable(onClick = onChangeAvatar)) {
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 val stroke = 5.dp.toPx()
                 val arc = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
@@ -472,33 +385,77 @@ private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit, onReport: () 
                 drawArc(track, 0f, 360f, false, tl, arc, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
                 drawArc(level.color, -90f, 360f * progress, false, tl, arc, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
             }
-            Avatar(p.displayName, MaterialTheme.colorScheme.primary, size = 98.dp, textColor = MaterialTheme.colorScheme.onPrimary, avatarId = p.avatar)
+            Avatar(p.displayName, MaterialTheme.colorScheme.primary, size = 92.dp, textColor = MaterialTheme.colorScheme.onPrimary, avatarId = p.avatar)
             Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).size(30.dp)
+                modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).size(28.dp)
                     .background(MaterialTheme.colorScheme.surface, CircleShape).padding(3.dp)
                     .background(MaterialTheme.colorScheme.primary, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(androidx.compose.material.icons.Icons.Filled.Edit, contentDescription = stringResource(R.string.avatar_pick_title), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(14.dp))
+                Icon(androidx.compose.material.icons.Icons.Filled.Edit, contentDescription = stringResource(R.string.avatar_pick_title), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(13.dp))
             }
         }
         Text(p.displayName, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
         LevelChip(level, modifier = Modifier.padding(top = 4.dp))
-        Text(
-            if (p.successfulReports > 0) androidx.compose.ui.res.pluralStringResource(R.plurals.profile_helped, p.successfulReports, p.successfulReports)
-            else stringResource(R.string.profile_helped_none),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        androidx.compose.material3.Button(
-            onClick = onReport,
-            shape = RoundedCornerShape(50),
-            modifier = Modifier.padding(top = 14.dp).height(46.dp),
-        ) {
-            Icon(androidx.compose.material.icons.Icons.Filled.AddLocationAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.profile_report_cta), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
+            HeroStat(p.points.toString(), stringResource(R.string.hero_points), Modifier.weight(1f))
+            Box(Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outline))
+            HeroStat(p.successfulReports.toString(), stringResource(R.string.hero_helped), Modifier.weight(1f))
+            Box(Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outline))
+            HeroStat(p.weeklyRank?.let { "#$it" } ?: "—", stringResource(R.string.hero_rank), Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun HeroStat(value: String, label: String, modifier: Modifier) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+        Text(value, style = MaterialTheme.typography.titleLarge)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** One compact card instead of a second hero: how far to the next level,
+ * what it unlocks (its pin), and a one-tap way to earn points. */
+@Composable
+private fun NextLevelCard(p: ProfileOut, onReport: () -> Unit) {
+    val level = ParkItLevel.of(p.level)
+    val next = p.nextLevel?.let { ParkItLevel.of(it) }
+    SectionCard(modifier = Modifier.padding(top = 16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            if (next == null || p.nextLevelPoints == null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LevelEmblem(level, 36.dp)
+                    Text(stringResource(R.string.level_max), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 12.dp))
+                }
+                return@Column
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.level_to_next, p.nextLevelPoints - p.points, stringResource(next.nameRes)),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        stringResource(next.perkRes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                LevelPinPreview(next, 40.dp)
+            }
+            LinearProgressIndicator(
+                progress = { levelProgress(p) },
+                color = next.color,
+                trackColor = next.color.copy(alpha = 0.15f),
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(8.dp).clip(RoundedCornerShape(4.dp)),
+            )
+            androidx.compose.material3.TextButton(onClick = onReport, modifier = Modifier.padding(top = 4.dp).align(Alignment.End)) {
+                Icon(androidx.compose.material.icons.Icons.Filled.AddLocationAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                Text(stringResource(R.string.profile_report_cta), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 6.dp))
+            }
         }
     }
 }

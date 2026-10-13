@@ -19,6 +19,8 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Face
 import com.parkit.app.api.friendlyMessage
 import kotlinx.coroutines.launch
@@ -59,7 +61,14 @@ import com.parkit.app.ui.theme.ThemeManager
  * already knows how to use — instead of a stack of cards with chips
  * squeezed into each one. */
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit, onDeleteAccount: suspend () -> Unit) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    onLogout: () -> Unit,
+    onDeleteAccount: suspend () -> Unit,
+    onOpenDetails: () -> Unit,
+    onOpenDriver: () -> Unit,
+    carLabel: String?,
+) {
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout" | "delete"
     var deleting by remember { mutableStateOf(false) }
@@ -85,6 +94,16 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit, onDeleteAccount: su
             .verticalScroll(rememberScrollState()),
     ) {
         ScreenTopBar(title = stringResource(R.string.settings_title), onBack = onBack)
+
+        // Account things live here, not in the profile (which is about progress).
+        SectionTitle(stringResource(R.string.settings_section_account))
+        SectionCard {
+            Column {
+                SettingsRow(Icons.Filled.Person, stringResource(R.string.details_title), subtitle = stringResource(R.string.settings_details_sub), onClick = onOpenDetails)
+                RowDivider()
+                SettingsRow(Icons.Filled.DirectionsCar, stringResource(R.string.driver_title), subtitle = carLabel ?: stringResource(R.string.driver_summary_empty_body), onClick = onOpenDriver)
+            }
+        }
 
         SectionTitle(stringResource(R.string.settings_section_preferences))
         SectionCard {
@@ -115,12 +134,13 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit, onDeleteAccount: su
                 RowDivider()
                 SettingsRow(Icons.Filled.Map, stringResource(R.string.settings_map_data), value = stringResource(R.string.settings_map_data_value), showChevron = false)
                 RowDivider()
-                SettingsRow(Icons.Filled.Face, stringResource(R.string.settings_avatars), value = stringResource(R.string.settings_avatars_value), showChevron = false)
+                SettingsRow(Icons.Filled.Face, stringResource(R.string.settings_avatars), subtitle = stringResource(R.string.settings_avatars_value), showChevron = false)
             }
         }
 
         Spacer(Modifier.height(24.dp))
         SectionCard {
+            Column {
             SettingsRow(
                 Icons.AutoMirrored.Filled.Logout,
                 stringResource(R.string.map_logout_cd),
@@ -135,6 +155,7 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit, onDeleteAccount: su
                 tint = MaterialTheme.colorScheme.error,
                 showChevron = false,
             ) { dialog = "delete" }
+            }
         }
         Spacer(Modifier.navigationBarsPadding().height(24.dp))
     }

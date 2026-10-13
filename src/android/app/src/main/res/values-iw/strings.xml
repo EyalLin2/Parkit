@@ -355,4 +355,10 @@
         <item>סטודנטית</item>
         <item>בריסטה</item>
     </string-array>
+    <string name="settings_section_account">חשבון</string>
+    <string name="settings_details_sub">שם, אימייל וטלפון</string>
+    <string name="hero_points">נקודות</string>
+    <string name="hero_helped">נהגים שעזרת</string>
+    <string name="hero_rank">השבוע</string>
+    <string name="profile_tab_progress">התקדמות</string>
 </resources>

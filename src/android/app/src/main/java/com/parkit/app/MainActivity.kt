@@ -226,6 +226,9 @@ fun ParkItApp(sessionStore: SessionStore) {
                     api.deleteAccount()
                     goToLogin()
                 },
+                onOpenDetails = { navController.navigate("details-edit") },
+                onOpenDriver = { navController.navigate("driver") },
+                carLabel = sessionStore.driver.value.preferences.carLabel,
             )
         }
     }

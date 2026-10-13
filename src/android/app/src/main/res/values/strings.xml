@@ -15,7 +15,7 @@
     <string name="map_filter_regular">Regular</string>
     <string name="map_filter_disabled">Disabled</string>
     <string name="map_profile_cd">Profile</string>
-    <string name="map_logout_cd">Logout</string>
+    <string name="map_logout_cd">Log out</string>
     <string name="map_zoom_in_cd">Zoom in</string>
     <string name="map_zoom_out_cd">Zoom out</string>
     <string name="map_my_location_cd">My location</string>
@@ -346,4 +346,10 @@
         <item>Student</item>
         <item>Barista</item>
     </string-array>
+    <string name="settings_section_account">Account</string>
+    <string name="settings_details_sub">Name, email and phone</string>
+    <string name="hero_points">Points</string>
+    <string name="hero_helped">Drivers helped</string>
+    <string name="hero_rank">This week</string>
+    <string name="profile_tab_progress">Progress</string>
 </resources>
