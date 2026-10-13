@@ -41,3 +41,18 @@ async def test_inbox_is_closed_without_the_admin_token(client, monkeypatch):
     page = await client.get("/admin/feedback", params={"token": "s3cret"})
     assert page.status_code == 200
     assert "&lt;script&gt;" in page.text and "<script>alert" not in page.text  # escaped
+
+
+async def test_undelivered_codes_page_shows_beta_codes_to_the_admin_only(client, monkeypatch):
+    from config import settings
+
+    monkeypatch.setattr(settings, "email_provider", "dev")
+    r = await client.post("/auth/email/request", json={"email": "beta.tester@example.com"})
+    assert r.status_code == 200
+    assert (await client.get("/admin/codes")).status_code == 404  # no token configured
+    monkeypatch.setattr(settings, "admin_token", "s3cret")
+    assert (await client.get("/admin/codes", params={"token": "wrong"})).status_code == 404
+    page = await client.get("/admin/codes", params={"token": "s3cret"})
+    assert page.status_code == 200
+    assert "beta.tester@example.com" in page.text
+    assert r.json()["dev_code"] is None or r.json()["dev_code"] in page.text

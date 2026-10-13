@@ -178,7 +178,7 @@ async def report_spot(
 async def nearby_spots(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
-    radius_m: int = Query(1000, gt=0, le=5000),
+    radius_m: int = Query(800, gt=0, le=5000),
     spot_type: list[SpotType] | None = Query(None),
     payment: Payment | None = Query(None),
     db: AsyncSession = Depends(get_db),

@@ -8,7 +8,9 @@ be used to flood the table.
 import hmac
 import html
 import uuid
+from datetime import datetime
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse
@@ -18,6 +20,7 @@ from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import otp
 from auth import get_current_user_id
 from config import settings
 from database import get_db
@@ -95,5 +98,32 @@ async def feedback_inbox(token: str = Query(""), db: AsyncSession = Depends(get_
         f"<title>ParkIt — tester inbox</title><style>{_INBOX_CSS}</style>"
         f"<h1>ParkIt — tester inbox ({len(rows)})</h1><table><tr><th>When</th><th>Kind</th><th>Who</th>"
         f"<th>Message</th><th>App / device</th></tr>{body}</table>"
+    )
+    return HTMLResponse(page)
+
+
+_ISRAEL = ZoneInfo("Asia/Jerusalem")
+
+
+@router.get("/admin/codes", response_class=HTMLResponse, include_in_schema=False)
+async def undelivered_codes(token: str = Query(""), redis: Redis = Depends(get_redis)) -> HTMLResponse:
+    """Login codes that had no real SMS/email provider to go out through
+    (closed beta) — so the admin can pass them on. Same ADMIN_TOKEN gate as
+    the inbox; refreshes itself every 5 seconds."""
+    if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
+        raise HTTPException(404, "Not found")
+    rows = await otp.undelivered(redis)
+    body = "".join(
+        f"<tr><td>{datetime.fromtimestamp(r['at'], _ISRAEL):%H:%M:%S}</td>"
+        f"<td>{html.escape(r['to'])}</td><td class=code>{html.escape(r['code'])}</td></tr>"
+        for r in rows
+    ) or "<tr><td colspan=3>No codes in the last 5 minutes.</td></tr>"
+    page = (
+        "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
+        "<meta http-equiv=refresh content=5>"
+        "<title>ParkIt — login codes</title>"
+        f"<style>{_INBOX_CSS} .code{{font:700 1.6rem monospace;letter-spacing:.15em}}</style>"
+        "<h1>ParkIt — login codes</h1><p>Valid 5 minutes. Refreshes every 5 seconds.</p>"
+        f"<table><tr><th>When</th><th>To</th><th>Code</th></tr>{body}</table>"
     )
     return HTMLResponse(page)

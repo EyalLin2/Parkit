@@ -79,3 +79,15 @@ async def test_failed_email_frees_the_address(client):
     finally:
         app.dependency_overrides.pop(mailer.get_mailer)
     assert (await client.post("/auth/email/request", json={"email": EMAIL})).status_code == 200
+
+
+async def test_beta_flag_shows_the_code_only_while_nothing_delivers_it(client, monkeypatch):
+    from config import settings
+
+    monkeypatch.setattr(settings, "app_env", "production")
+    monkeypatch.setattr(settings, "email_provider", "dev")
+    r = await client.post("/auth/email/request", json={"email": "a.beta@example.com"})
+    assert r.json()["dev_code"] is None  # off by default in production
+    monkeypatch.setattr(settings, "beta_show_codes", True)
+    r = await client.post("/auth/email/request", json={"email": "b.beta@example.com"})
+    assert r.json()["dev_code"] and len(r.json()["dev_code"]) == 6

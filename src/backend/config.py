@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 240
     # Photo blurs running at once per worker process (see routers/photos.py).
     blur_concurrency: int = 1
+    # Closed beta with no real SMS/email provider yet: hand the code back to
+    # the app as if it had been sent, so testers can sign in on their own.
+    # Anyone who types an address could then sign in as it — switch OFF
+    # before the public launch (and once a real provider is set up).
+    beta_show_codes: bool = False
     # Opens /admin/feedback (tester feedback + crash reports). Empty = closed.
     admin_token: str = ""
     # SMS_PROVIDER=twilio: credentials from the Twilio console. TWILIO_FROM is

@@ -42,6 +42,12 @@ class TokenOut(BaseModel):
     needs_profile: bool = False
 
 
+def _echo_code(provider: str) -> bool:
+    """Show the code in the app: always in local dev, and in a closed beta
+    (BETA_SHOW_CODES) only while nothing really delivers it."""
+    return settings.app_env == "local" or (settings.beta_show_codes and provider == "dev")
+
+
 class OtpRequest(BaseModel):
     phone: str = Field(min_length=9, max_length=20)
 
@@ -85,7 +91,9 @@ async def request_code(
     except SmsError:
         await otp.forget(redis, phone)  # nothing was delivered — let them retry right away
         raise HTTPException(503, "Couldn't send the SMS right now — try again in a moment") from None
-    return OtpRequested(phone=phone, dev_code=code if settings.app_env == "local" else None)
+    if settings.sms_provider == "dev":
+        await otp.remember_undelivered(redis, phone, code)
+    return OtpRequested(phone=phone, dev_code=code if _echo_code(settings.sms_provider) else None)
 
 
 @router.post("/otp/verify", response_model=TokenOut)
@@ -178,7 +186,9 @@ async def request_email_code(
     except MailError:
         await otp.forget(redis, email)
         raise HTTPException(503, "Couldn't send the email right now — try again in a moment") from None
-    return EmailOtpRequested(email=email, dev_code=code if settings.app_env == "local" else None)
+    if settings.email_provider == "dev":
+        await otp.remember_undelivered(redis, email, code)
+    return EmailOtpRequested(email=email, dev_code=code if _echo_code(settings.email_provider) else None)
 
 
 @router.post("/email/verify", response_model=TokenOut)

@@ -296,7 +296,8 @@
     <string name="login_change_number">Change number</string>
     <string name="login_resend">Send again</string>
     <string name="login_resend_in">Send again in %1$d s</string>
-    <string name="login_dev_code">Development server — code: %1$s</string>
+    <string name="login_dev_code_title">📩 Beta version — your code</string>
+    <string name="login_dev_code">Your code is %1$s · tap to fill it in</string>
     <string name="login_phone_invalid">Enter an Israeli mobile number (05X-XXXXXXX)</string>
     <string name="login_too_many">Too many tries — wait a minute and try again</string>
     <string name="login_code_wrong">Wrong code — check the SMS and try again</string>

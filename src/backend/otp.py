@@ -12,8 +12,10 @@ Security rules, all enforced in Redis so they hold across app servers:
 
 import hashlib
 import hmac
+import json
 import re
 import secrets
+import time
 
 from redis.asyncio import Redis
 
@@ -91,3 +93,22 @@ async def forget(redis: Redis, target: str) -> None:
     """Undo an issued code whose SMS never left (so the user isn't stuck in
     the resend cooldown for a message they never got)."""
     await redis.delete(f"otp:code:{target}", f"otp:cooldown:{target}")
+
+
+# While there's no real SMS/email provider (EMAIL_PROVIDER/SMS_PROVIDER=dev)
+# a code goes nowhere but the server log. For the closed beta the admin can
+# read the last few on /admin/codes instead. Kept 10 minutes, at most 50.
+ADMIN_CODES_KEY = "admin:undelivered_codes"
+
+
+async def remember_undelivered(redis: Redis, target: str, code: str) -> None:
+    entry = json.dumps({"to": target, "code": code, "at": int(time.time())})
+    await redis.lpush(ADMIN_CODES_KEY, entry)
+    await redis.ltrim(ADMIN_CODES_KEY, 0, 49)
+    await redis.expire(ADMIN_CODES_KEY, 600)
+
+
+async def undelivered(redis: Redis) -> list[dict]:
+    now = time.time()
+    rows = [json.loads(r) for r in await redis.lrange(ADMIN_CODES_KEY, 0, 49)]
+    return [r for r in rows if now - r["at"] < CODE_TTL_SECONDS]

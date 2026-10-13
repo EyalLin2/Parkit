@@ -304,7 +304,8 @@
     <string name="login_change_number">שינוי מספר</string>
     <string name="login_resend">שליחה חוזרת</string>
     <string name="login_resend_in">שליחה חוזרת בעוד %1$d שנ׳</string>
-    <string name="login_dev_code">שרת פיתוח — הקוד: %1$s</string>
+    <string name="login_dev_code_title">📩 גרסת בטא — הקוד שלך</string>
+    <string name="login_dev_code">הקוד שלך: %1$s · הקישו למילוי</string>
     <string name="login_phone_invalid">הזינו מספר נייד ישראלי (05X-XXXXXXX)</string>
     <string name="login_too_many">יותר מדי ניסיונות — חכו דקה ונסו שוב</string>
     <string name="login_code_wrong">הקוד שגוי — בדקו את ה-SMS ונסו שוב</string>

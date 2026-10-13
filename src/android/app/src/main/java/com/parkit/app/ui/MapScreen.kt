@@ -127,7 +127,7 @@ import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 
 private val TEL_AVIV = LatLng(32.0809, 34.7806)
-private const val DEFAULT_RADIUS_M = 1500
+private const val DEFAULT_RADIUS_M = 800 // ~10 min walk; drag the pin to search elsewhere
 // MapLibre zoom levels use 512px tiles — one level closer than osmdroid's
 // for the same number. 15 shows ~±400m across, matching the search radius feel.
 private const val STREET_LEVEL_ZOOM = 15.0

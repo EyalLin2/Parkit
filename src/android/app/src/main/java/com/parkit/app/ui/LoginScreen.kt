@@ -227,13 +227,24 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    // Closed beta (no real SMS/email yet): the server hands the
+                    // code back, shown like the message that would have arrived.
                     devCode?.let {
-                        Text(
-                            stringResource(R.string.login_dev_code, it),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 6.dp),
-                        )
+                        androidx.compose.material3.Surface(
+                            onClick = { code = it },
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                                Text(stringResource(R.string.login_dev_code_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    stringResource(R.string.login_dev_code, it),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
+                        }
                     }
                     Button(
                         onClick = ::verify,
