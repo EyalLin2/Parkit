@@ -46,3 +46,9 @@ def test_no_plate_no_blur():
 def test_yellow_road_line_is_not_a_plate():
     _, _, plates = blur_sensitive(_jpeg(_street(with_plate=False, with_line=True)))
     assert plates == 0
+
+
+def test_big_photos_are_shrunk_before_storing():
+    big = np.full((3000, 4000, 3), (120, 120, 120), np.uint8)
+    out, _, _ = blur_sensitive(_jpeg(big))
+    assert max(_decode(out).shape[:2]) == 1280

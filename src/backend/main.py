@@ -2,6 +2,7 @@ import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI, Response
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from database import check_postgres
@@ -25,6 +26,9 @@ mimetypes.add_type("application/vnd.android.package-archive", ".apk")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(title="ParkIt API")
+# Spot lists and geocoder answers are JSON that compresses ~5×.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.include_router(auth_router)
 app.include_router(spots_router)
 app.include_router(users_router)

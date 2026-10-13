@@ -22,6 +22,7 @@ import numpy as np
 _FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 _PLATE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_russian_plate_number.xml")
 _BLUR_KERNEL = (51, 51)
+MAX_SIDE_PX = 1280
 
 # Israeli plate yellow in OpenCV HSV (H is 0–180).
 _YELLOW_LO = np.array([15, 90, 90])
@@ -77,6 +78,12 @@ def blur_sensitive(image_bytes: bytes) -> tuple[bytes, int, int]:
     img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if img is None:
         raise ValueError("not a decodable image")
+    # A spot photo never needs more than this; shrinking first makes the blur
+    # several times faster and keeps staged photos small.
+    longest = max(img.shape[:2])
+    if longest > MAX_SIDE_PX:
+        scale = MAX_SIDE_PX / longest
+        img = cv2.resize(img, (round(img.shape[1] * scale), round(img.shape[0] * scale)), interpolation=cv2.INTER_AREA)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = _FACE_CASCADE.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
@@ -90,7 +97,7 @@ def blur_sensitive(image_bytes: bytes) -> tuple[bytes, int, int]:
     for x, y, w, h in plates:
         _blur(img, x, y, w, h, pad=0.15)
 
-    ok, buf = cv2.imencode(".jpg", img)
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 82])
     if not ok:
         raise ValueError("failed to encode image")
     return buf.tobytes(), len(faces), len(plates)

@@ -23,6 +23,8 @@ from schemas import FeedbackCreate, SpotCreate, SpotOut
 router = APIRouter(prefix="/spots", tags=["spots"])
 
 CLAIM_TTL_SECONDS = 120
+NEARBY_LIMIT = 50
+RECONCILE_EVERY_SECONDS = 15
 SPOT_TTL_MINUTES = 30  # the same for everyone: a stale spot helps no one
 REPORT_COOLDOWN_SECONDS = 120
 CANCEL_WINDOW_MINUTES = 2
@@ -180,16 +182,27 @@ async def nearby_spots(
     spot_type: list[SpotType] | None = Query(None),
     payment: Payment | None = Query(None),
     db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> list[Spot]:
-    await _reconcile_spot_states(db)
+    # The map's hot path. Persisting expiries (UPDATEs + photo deletes) runs
+    # at most once per RECONCILE_EVERY_SECONDS across all servers instead of
+    # on every map move (load-test bug #7); the query below filters expired
+    # spots itself, so results are exact in between.
+    if await redis.set("reconcile:spots", "1", nx=True, ex=RECONCILE_EVERY_SECONDS):
+        await _reconcile_spot_states(db)
 
+    now = datetime.now(timezone.utc)
     origin = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
     stmt = (
         select(Spot, User.points)
         .join(User, User.id == Spot.reporter_id)
         .where(Spot.status == SpotStatus.active)
+        .where(Spot.reported_at + func.make_interval(0, 0, 0, 0, 0, Spot.ttl_minutes) >= now)
         .where(ST_DWithin(Spot.location, origin, radius_m))
         .order_by(ST_Distance(Spot.location, origin))
+        # The nearest ones are what a driver can use; this also caps each
+        # map move's payload (load-test bug #6: ~145 KB before).
+        .limit(NEARBY_LIMIT)
     )
     if spot_type:
         stmt = stmt.where(Spot.spot_type.in_(spot_type))

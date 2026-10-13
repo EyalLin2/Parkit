@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import uuid
 
@@ -33,7 +34,10 @@ async def stage_photo(
         raise HTTPException(413, "Photo too large")
 
     try:
-        blurred, faces_blurred, plates_blurred = blur_sensitive(raw)
+        # CPU-heavy (OpenCV): run it in a worker thread so the event loop keeps
+        # serving everyone else meanwhile (load-test bug #3 — it used to stall
+        # every request for the duration of each blur).
+        blurred, faces_blurred, plates_blurred = await asyncio.to_thread(blur_sensitive, raw)
     except ValueError:
         raise HTTPException(400, "Could not process image") from None
 
