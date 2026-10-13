@@ -1,6 +1,9 @@
 """Sending SMS — one small interface so the provider is a config choice.
 
 - dev:    logs the message instead of sending it (local development).
+- smsgate: free — the open-source "SMS Gateway for Android" app sends from
+          your own phone's SIM (your plan's SMS). Good for testing and the
+          first users; a phone isn't a bulk gateway.
 - twilio: real SMS through Twilio's Messages API. We generate and check the
           codes ourselves (otp.py), so this is plain SMS — no Twilio Verify fee.
 Another provider (an Israeli SMS gateway, Firebase) is one more class here.
@@ -55,9 +58,31 @@ class TwilioSmsSender:
             raise SmsError(f"twilio {r.status_code}")
 
 
+class SmsGateSender:
+    def __init__(self, base_url: str, user: str, password: str) -> None:
+        if not (user and password):
+            raise RuntimeError("SMS_PROVIDER=smsgate needs SMSGATE_USER and SMSGATE_PASSWORD (from the app)")
+        self.url = base_url.rstrip("/") + "/messages"
+        self.auth = (user, password)
+
+    async def send(self, phone: str, text: str) -> None:
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                r = await client.post(
+                    self.url, auth=self.auth, json={"textMessage": {"text": text}, "phoneNumbers": [phone]}
+                )
+        except httpx.HTTPError as e:
+            raise SmsError(str(e)) from e
+        if r.status_code >= 400:
+            log.error("SMS gateway refused SMS to %s: %s %s", phone, r.status_code, r.text[:300])
+            raise SmsError(f"smsgate {r.status_code}")
+
+
 def get_sms_sender() -> SmsSender:
     if settings.sms_provider == "dev":
         return DevSmsSender()
+    if settings.sms_provider == "smsgate":
+        return SmsGateSender(settings.smsgate_url, settings.smsgate_user, settings.smsgate_password)
     if settings.sms_provider == "twilio":
         key = settings.twilio_api_key_sid, settings.twilio_api_key_secret
         return TwilioSmsSender(

@@ -165,3 +165,21 @@ async def test_twilio_prefers_the_api_key(monkeypatch):
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
     await sms.TwilioSmsSender("AC1", "", "+15550001111", api_key=("SK1", "s3cret")).send(E164, "hi")
     assert seen["auth"] == ("SK1", "s3cret")
+
+
+async def test_sms_gateway_sender_posts_to_the_phone_app(monkeypatch):
+    import httpx
+
+    import sms
+
+    sent = {}
+
+    async def fake_post(self, url, auth=None, json=None):
+        sent.update(url=url, auth=auth, json=json)
+        return httpx.Response(202, json={"id": "x"})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    await sms.SmsGateSender("https://api.sms-gate.app/3rdparty/v1", "USER", "PASS").send(E164, "code 123456")
+    assert sent["url"] == "https://api.sms-gate.app/3rdparty/v1/messages"
+    assert sent["auth"] == ("USER", "PASS")
+    assert sent["json"] == {"textMessage": {"text": "code 123456"}, "phoneNumbers": [E164]}

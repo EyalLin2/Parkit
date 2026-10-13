@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     # revoked on its own without touching the account's master credential.
     twilio_api_key_sid: str = ""
     twilio_api_key_secret: str = ""
+    # SMS_PROVIDER=smsgate: the free "SMS Gateway for Android" app (sms-gate.app)
+    # sends from your own phone's SIM. Username/password come from the app's
+    # Cloud Server section.
+    smsgate_url: str = "https://api.sms-gate.app/3rdparty/v1"
+    smsgate_user: str = ""
+    smsgate_password: str = ""
     twilio_from: str = ""
 
 
