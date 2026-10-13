@@ -66,6 +66,9 @@ class User(Base):
     first_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
     email: Mapped[str | None] = mapped_column(String(254), unique=True, nullable=True)
+    # One of the bundled illustrated avatars ("avatar_01".."avatar_16"); None
+    # = the initial-letter avatar. Shown to others in the league.
+    avatar: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     points: Mapped[int] = mapped_column(default=0)
     weekly_points: Mapped[int] = mapped_column(default=0)

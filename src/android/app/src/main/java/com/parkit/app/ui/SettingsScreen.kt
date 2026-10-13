@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
 import com.parkit.app.api.friendlyMessage
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.DeleteForever
@@ -113,6 +114,8 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit, onDeleteAccount: su
                 SettingsRow(Icons.Filled.Info, stringResource(R.string.settings_version), value = version, showChevron = false)
                 RowDivider()
                 SettingsRow(Icons.Filled.Map, stringResource(R.string.settings_map_data), value = stringResource(R.string.settings_map_data_value), showChevron = false)
+                RowDivider()
+                SettingsRow(Icons.Filled.Face, stringResource(R.string.settings_avatars), value = stringResource(R.string.settings_avatars_value), showChevron = false)
             }
         }
 

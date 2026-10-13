@@ -324,4 +324,17 @@
     <string name="settings_delete_title">למחוק את החשבון?</string>
     <string name="settings_delete_body">החשבון, הנקודות, הדיווחים, התמונות והפרטים שלך יימחקו לצמיתות. אי אפשר לבטל את זה.</string>
     <string name="settings_delete_confirm">מחיקה לצמיתות</string>
+    <string name="level_up_title">עלית לרמת %1$s!</string>
+    <string name="level_up_ok">מעולה</string>
+    <string name="avatar_pick_title">בחירת אווטאר</string>
+    <string name="profile_helped_none">דווח על החניה הראשונה שלך ועזור לנהג לחנות</string>
+    <string name="profile_report_cta">דיווח על חניה · ‎+10 נק׳</string>
+    <string name="settings_avatars">אווטארים</string>
+    <string name="settings_avatars_value">DiceBear "Personas" מאת Draftbit · CC BY 4.0</string>
+    <string name="details_pick_avatar">בחרו אווטאר</string>
+    <plurals name="profile_helped">
+        <item quantity="one">עזרת לנהג אחד לחנות 🙌</item>
+        <item quantity="two">עזרת ל-%d נהגים לחנות 🙌</item>
+        <item quantity="other">עזרת ל-%d נהגים לחנות 🙌</item>
+    </plurals>
 </resources>

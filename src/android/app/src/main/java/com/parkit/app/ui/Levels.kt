@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -253,12 +254,13 @@ fun LevelLadder(points: Int, current: ParkItLevel) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Icon(
-                        if (reached) Icons.Filled.Check else Icons.Filled.Lock,
-                        contentDescription = null,
-                        tint = if (reached) level.color else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.size(18.dp),
-                    )
+                    // The pin this level gives you on the map; locked ones are faded.
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        LevelPinPreview(level, 34.dp, dimmed = !reached)
+                        if (!reached) {
+                            Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                        }
+                    }
                 }
                 if (index < ParkItLevel.entries.lastIndex && !isCurrent && ParkItLevel.entries[index + 1] != current) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(start = 68.dp, end = 16.dp))
@@ -302,7 +304,7 @@ fun LeagueSection(entries: List<LeaderboardEntry>, me: ProfileOut, myRank: Int?)
                 Column {
                     rest.forEachIndexed { index, entry ->
                         if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), modifier = Modifier.padding(start = 92.dp))
-                        LeagueRow(entry.rank.toString(), entry.displayName, ParkItLevel.of(entry.level), entry.weeklyPoints, isMe = entry.userId == me.userId)
+                        LeagueRow(entry.rank.toString(), entry.displayName, ParkItLevel.of(entry.level), entry.weeklyPoints, isMe = entry.userId == me.userId, avatar = entry.avatar)
                     }
                 }
             }
@@ -329,7 +331,7 @@ fun LeagueSection(entries: List<LeaderboardEntry>, me: ProfileOut, myRank: Int?)
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         ) {
             if (myRank != null) {
-                LeagueRow(myRank.toString(), me.displayName, level, me.weeklyPoints, isMe = true, highlight = false)
+                LeagueRow(myRank.toString(), me.displayName, level, me.weeklyPoints, isMe = true, highlight = false, avatar = me.avatar)
             } else {
                 Text(
                     stringResource(R.string.league_not_ranked),
@@ -351,7 +353,7 @@ private fun PodiumSpot(entry: LeaderboardEntry, medal: Color, first: Boolean, is
                 modifier = Modifier.size(ring).border(2.5.dp, level.color, CircleShape).padding(4.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Avatar(entry.displayName, level.color, size = ring - 8.dp)
+                Avatar(entry.displayName, level.color, size = ring - 8.dp, avatarId = entry.avatar)
             }
             // Medal with the place number, on the avatar's shoulder.
             Box(
@@ -380,7 +382,7 @@ private fun PodiumSpot(entry: LeaderboardEntry, medal: Color, first: Boolean, is
 
 /** One slim league line: place · avatar · name with a small level mark · points. */
 @Composable
-private fun LeagueRow(rank: String, name: String, level: ParkItLevel, points: Int, isMe: Boolean, highlight: Boolean = true) {
+private fun LeagueRow(rank: String, name: String, level: ParkItLevel, points: Int, isMe: Boolean, highlight: Boolean = true, avatar: String? = null) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
@@ -398,7 +400,7 @@ private fun LeagueRow(rank: String, name: String, level: ParkItLevel, points: In
             modifier = Modifier.padding(start = 8.dp).size(40.dp).border(2.dp, level.color, CircleShape).padding(3.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Avatar(name, level.color, size = 34.dp)
+            Avatar(name, level.color, size = 34.dp, avatarId = avatar)
         }
         Text(
             if (isMe) "$name · ${stringResource(R.string.profile_you)}" else name,
@@ -415,4 +417,71 @@ private fun LeagueRow(rank: String, name: String, level: ParkItLevel, points: In
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+
+/** 0..1 toward the next level (1 at the top of the ladder). */
+fun levelProgress(p: ProfileOut): Float {
+    val next = p.nextLevelPoints ?: return 1f
+    return ((p.points - p.levelMinPoints).toFloat() / (next - p.levelMinPoints).coerceAtLeast(1)).coerceIn(0f, 1f)
+}
+
+/** What a level's pin looks like on the map — the frame you unlock. */
+fun levelPinFrame(level: ParkItLevel): String? = when (level) {
+    ParkItLevel.Bronze -> "#B0703C"
+    ParkItLevel.Silver -> "#9AA7B8"
+    ParkItLevel.Gold -> "#D4A017"
+    else -> null
+}
+
+@Composable
+fun LevelPinPreview(level: ParkItLevel, size: Dp, dimmed: Boolean = false) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val bitmap = androidx.compose.runtime.remember(level) {
+        val fill = if (level == ParkItLevel.Legend) "#7B3FE4" else "#188038"
+        MarkerBitmaps.pin(context, fill, "", disabled = false, hot = false, frameHex = levelPinFrame(level)).asImageBitmap()
+    }
+    androidx.compose.foundation.Image(
+        bitmap = bitmap,
+        contentDescription = null,
+        alpha = if (dimmed) 0.4f else 1f,
+        modifier = Modifier.size(size),
+    )
+}
+
+/** Shown once when the driver reaches a new level: the emblem, the new pin
+ * and what it unlocks — the moment that makes climbing feel worth it. */
+@Composable
+fun LevelUpDialog(level: ParkItLevel, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            androidx.compose.material3.Button(onClick = onDismiss, shape = RoundedCornerShape(50)) {
+                Text(stringResource(R.string.level_up_ok))
+            }
+        },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(132.dp)) {
+                    Box(Modifier.size(132.dp).background(Brush.radialGradient(listOf(level.color.copy(alpha = 0.35f), Color.Transparent)), CircleShape))
+                    LevelEmblem(level, 96.dp)
+                }
+                Text(
+                    stringResource(R.string.level_up_title, stringResource(level.nameRes)),
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 14.dp)) {
+                    LevelPinPreview(level, 44.dp)
+                    Text(
+                        stringResource(level.perkRes),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 10.dp),
+                    )
+                }
+            }
+        },
+    )
 }

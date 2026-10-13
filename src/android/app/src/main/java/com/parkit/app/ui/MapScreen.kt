@@ -277,6 +277,18 @@ fun MapScreen(
     var activeClaim by remember { mutableStateOf<SpotOut?>(null) }
     var claimEndsAt by remember { mutableStateOf(0L) }
     var showReportFlow by remember { mutableStateOf(false) }
+    // The driver's own level/points, for the avatar ring and level-up moments.
+    var myProfile by remember { mutableStateOf<com.parkit.app.api.ProfileOut?>(null) }
+    var levelUp by remember { mutableStateOf<ParkItLevel?>(null) }
+    suspend fun refreshMyProfile() {
+        val p = runCatching { api.myProfile() }.getOrNull() ?: return
+        myProfile = p
+        val reached = ParkItLevel.of(p.level)
+        val seen = sessionStore.lastSeenLevel?.let { ParkItLevel.of(it) }
+        if (seen != null && reached.minPoints > seen.minPoints) levelUp = reached
+        sessionStore.lastSeenLevel = reached.key
+    }
+    LaunchedEffect(Unit) { refreshMyProfile() }
     var typeFilter by remember { mutableStateOf<String?>(null) } // null = All
     // Paid car parks: off by default — the map is about free street parking,
     // lots only appear when the driver asks for them.
@@ -660,6 +672,9 @@ fun MapScreen(
                     loading = addressLoading,
                     failed = addressFailed,
                     displayName = sessionStore.displayName.value,
+                    avatarId = myProfile?.avatar,
+                    level = myProfile?.let { ParkItLevel.of(it.level) },
+                    levelProgress = myProfile?.let(::levelProgress),
                     onOpenProfile = onOpenProfile,
                     modifier = Modifier.padding(horizontal = 12.dp),
                 )
@@ -756,11 +771,14 @@ fun MapScreen(
             onReported = {
                 showReportFlow = false
                 scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.map_reported_snackbar)) }
+                scope.launch { refreshMyProfile() }
                 refreshSpotsNow()
             },
             onSessionExpired = onLoggedOut,
         )
     }
+
+    levelUp?.let { level -> LevelUpDialog(level, onDismiss = { levelUp = null }) }
 
     selectedLot?.let { lot ->
         LotSheet(lot = lot, onDismiss = { selectedLot = null })
@@ -851,7 +869,17 @@ private fun installSpotLayers(context: android.content.Context, style: Style, da
 /** Google-Maps-style floating search bar, repurposed as "where the pin
  * is" — the address you'd be reporting, plus your avatar (profile). */
 @Composable
-private fun LocationBar(address: String?, loading: Boolean, failed: Boolean, displayName: String?, onOpenProfile: () -> Unit, modifier: Modifier = Modifier) {
+private fun LocationBar(
+    address: String?,
+    loading: Boolean,
+    failed: Boolean,
+    displayName: String?,
+    avatarId: String?,
+    level: ParkItLevel?,
+    levelProgress: Float?,
+    onOpenProfile: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -879,15 +907,26 @@ private fun LocationBar(address: String?, loading: Boolean, failed: Boolean, dis
                     }
                 }
             }
+            // Avatar in a ring that fills toward the next level, in the level's
+            // colour — progress is visible every time the map is open.
+            val ringColor = level?.color ?: MaterialTheme.colorScheme.primary
+            val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
             Box(
-                modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primary, CircleShape).clickable(onClick = onOpenProfile),
+                modifier = Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onOpenProfile),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    initialOf(displayName),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                    val stroke = 3.dp.toPx()
+                    val inset = stroke / 2
+                    val arcSize = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
+                    val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+                    drawArc(track, 0f, 360f, false, topLeft, arcSize, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    drawArc(
+                        ringColor, -90f, 360f * (levelProgress ?: 0f), false, topLeft, arcSize,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                    )
+                }
+                Avatar(displayName, MaterialTheme.colorScheme.primary, size = 38.dp, textColor = MaterialTheme.colorScheme.onPrimary, avatarId = avatarId)
             }
         }
     }

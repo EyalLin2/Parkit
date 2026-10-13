@@ -70,6 +70,7 @@ async def my_profile(
         display_name=user.display_name,
         points=user.points,
         weekly_points=user.weekly_points,
+        avatar=user.avatar,
         weekly_rank=weekly_rank,
         weekly_city_rank=weekly_city_rank,
         successful_reports=successful_reports,
@@ -117,6 +118,7 @@ async def leaderboard(
             display_name=u.display_name,
             weekly_points=u.weekly_points,
             level=level_for(u.points).key,
+            avatar=u.avatar,
         )
         for i, u in enumerate(rows, start=1)
     ]

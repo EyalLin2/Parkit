@@ -54,6 +54,7 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
     var first by remember { mutableStateOf("") }
     var last by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var avatar by remember { mutableStateOf<String?>(avatarId((0..15).random())) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val emailOk = EMAIL.matches(email.trim())
@@ -76,6 +77,7 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
         scope.launch {
             try {
                 api.updateDetails(DetailsUpdate(first.trim(), last.trim(), email.trim()))
+                if (firstTime) avatar?.let { runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(it)) } }
                 val token = sessionStore.token.value
                 val userId = sessionStore.userId.value
                 if (token != null && userId != null) sessionStore.save(token, userId, "${first.trim()} ${last.trim().first()}.")
@@ -98,8 +100,10 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
                     stringResource(R.string.details_welcome_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 20.dp),
+                    modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
                 )
+                Text(stringResource(R.string.details_pick_avatar), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(bottom = 10.dp))
+                AvatarGrid(selected = avatar, onPick = { avatar = it }, modifier = Modifier.padding(bottom = 20.dp))
             } else {
                 Spacer(Modifier.height(8.dp))
             }

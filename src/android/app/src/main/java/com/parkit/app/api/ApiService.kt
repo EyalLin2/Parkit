@@ -59,6 +59,9 @@ interface ApiService {
     @DELETE("users/me")
     suspend fun deleteAccount()
 
+    @retrofit2.http.PUT("users/me/avatar")
+    suspend fun setAvatar(@Body body: AvatarUpdate)
+
     @GET("users/me")
     suspend fun myProfile(): ProfileOut
 

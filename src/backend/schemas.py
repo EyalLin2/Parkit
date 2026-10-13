@@ -56,6 +56,7 @@ class ProfileOut(BaseModel):
     display_name: str
     points: int
     weekly_points: int
+    avatar: str | None = None
     weekly_rank: int | None = None  # place in this week's league; None = no points yet
     weekly_city_rank: int | None = None  # same, among drivers with the same preferred city
     successful_reports: int
@@ -76,6 +77,7 @@ class LeaderboardEntry(BaseModel):
     display_name: str
     weekly_points: int
     level: str
+    avatar: str | None = None
 
 
 class ReverseGeocodeOut(BaseModel):
@@ -132,3 +134,7 @@ class AccountOut(BaseModel):
 
 
 ProfileOut.model_rebuild()
+
+
+class AvatarUpdate(BaseModel):
+    avatar: str | None = Field(default=None, pattern=r"^avatar_(0[1-9]|1[0-6])$")

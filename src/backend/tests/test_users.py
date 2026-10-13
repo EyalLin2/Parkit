@@ -108,3 +108,14 @@ async def test_profile_counts_all_reports(client, make_user):
     await _report(client, headers)
     me = (await client.get("/users/me", headers=headers)).json()
     assert (me["total_reports"], me["successful_reports"]) == (1, 0)
+
+
+async def test_avatar_is_saved_and_shown_in_the_league(client, make_user):
+    _, headers = await make_user("artist")
+    assert (await client.put("/users/me/avatar", json={"avatar": "avatar_07"}, headers=headers)).status_code == 204
+    assert (await client.get("/users/me", headers=headers)).json()["avatar"] == "avatar_07"
+    await _report(client, headers)
+    board = (await client.get("/leaderboard", headers=headers)).json()
+    assert next(e for e in board if e["display_name"] == "artist")["avatar"] == "avatar_07"
+    assert (await client.put("/users/me/avatar", json={"avatar": "avatar_99"}, headers=headers)).status_code == 422
+    assert (await client.put("/users/me/avatar", json={"avatar": None}, headers=headers)).status_code == 204

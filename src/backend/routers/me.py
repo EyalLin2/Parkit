@@ -11,7 +11,7 @@ from auth import get_current_user_id
 from database import get_db
 from models import User
 from redis_client import get_redis
-from schemas import AccountOut, CityOut, DetailsUpdate, Preferences, PreferencesUpdate, VehicleLookupOut
+from schemas import AccountOut, AvatarUpdate, CityOut, DetailsUpdate, Preferences, PreferencesUpdate, VehicleLookupOut
 from vehicles import lookup, normalise_plate
 
 router = APIRouter(tags=["driver profile"])
@@ -40,6 +40,19 @@ async def update_preferences(
         setattr(user, field, value)
     await db.commit()
     return preferences_of(user)
+
+
+@router.put("/users/me/avatar", status_code=204)
+async def set_avatar(
+    payload: AvatarUpdate,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(404, "Unknown user")
+    user.avatar = payload.avatar
+    await db.commit()
 
 
 @router.patch("/users/me/details", response_model=AccountOut)

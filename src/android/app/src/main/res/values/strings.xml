@@ -316,4 +316,16 @@
     <string name="settings_delete_title">Delete your account?</string>
     <string name="settings_delete_body">Your account, points, reports, photos and details will be deleted for good. This can\'t be undone.</string>
     <string name="settings_delete_confirm">Delete for good</string>
+    <string name="level_up_title">You reached %1$s!</string>
+    <string name="level_up_ok">Awesome</string>
+    <string name="avatar_pick_title">Choose your avatar</string>
+    <string name="profile_helped_none">Report your first spot and help a driver park</string>
+    <string name="profile_report_cta">Report a spot · +10 pts</string>
+    <string name="settings_avatars">Avatars</string>
+    <string name="settings_avatars_value">DiceBear "Personas" by Draftbit · CC BY 4.0</string>
+    <string name="details_pick_avatar">Pick an avatar</string>
+    <plurals name="profile_helped">
+        <item quantity="one">You helped 1 driver park 🙌</item>
+        <item quantity="other">You helped %d drivers park 🙌</item>
+    </plurals>
 </resources>

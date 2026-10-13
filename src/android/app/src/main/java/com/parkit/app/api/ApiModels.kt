@@ -118,6 +118,7 @@ data class ProfileOut(
     @Json(name = "display_name") val displayName: String,
     val points: Int,
     @Json(name = "weekly_points") val weeklyPoints: Int,
+    val avatar: String? = null,
     @Json(name = "weekly_rank") val weeklyRank: Int? = null,
     @Json(name = "weekly_city_rank") val weeklyCityRank: Int? = null,
     @Json(name = "successful_reports") val successfulReports: Int,
@@ -186,7 +187,11 @@ data class LeaderboardEntry(
     @Json(name = "display_name") val displayName: String,
     @Json(name = "weekly_points") val weeklyPoints: Int,
     val level: String = "newbie",
+    val avatar: String? = null,
 )
+
+@JsonClass(generateAdapter = true)
+data class AvatarUpdate(val avatar: String?)
 
 @JsonClass(generateAdapter = true)
 data class ApiErrorBody(val detail: String? = null)

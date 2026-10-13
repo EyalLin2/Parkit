@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddLocationAlt
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -71,6 +73,7 @@ import com.parkit.app.api.LeaderboardEntry
 import com.parkit.app.api.ProfileOut
 import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
+import kotlinx.coroutines.launch
 
 private val Gold = Color(0xFFC9971C)
 private val Silver = Color(0xFF8C97A6)
@@ -119,6 +122,8 @@ fun ProfileScreen(
 
     val p = profile
     var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
+    var pickAvatar by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding(),
     ) {
@@ -141,7 +146,7 @@ fun ProfileScreen(
                 item { Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
             }
         } else {
-            item { IdentityHeader(p) }
+            item { ProfileHero(p, onChangeAvatar = { pickAvatar = true }, onReport = onBack) }
             item { LevelHeroCard(p, dark = com.parkit.app.ui.theme.isDarkThemeActive()) }
             // Three tabs instead of one endless scroll: what you have, how
             // you rank, what you reported. The tab bar sticks under the top.
@@ -192,6 +197,16 @@ fun ProfileScreen(
             }
         }
         item { Spacer(Modifier.navigationBarsPadding().height(24.dp)) }
+    }
+    if (pickAvatar) {
+        AvatarPickerDialog(
+            selected = profile?.avatar,
+            onPick = { id ->
+                profile = profile?.copy(avatar = id)
+                scope.launch { runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(id)) } }
+            },
+            onDismiss = { pickAvatar = false },
+        )
     }
 }
 
@@ -439,25 +454,66 @@ private fun MyReportRow(item: ActivityItem) {
     }
 }
 
+/** The top of "you": your avatar in a ring that fills toward the next
+ * level (tap to change it), your name and level, the drivers you've
+ * actually helped — the number that makes reporting feel worth it — and a
+ * one-tap way back to report. */
 @Composable
-private fun IdentityHeader(p: ProfileOut) {
+private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit, onReport: () -> Unit) {
     val level = ParkItLevel.of(p.level)
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-        Box(
-            modifier = Modifier.size(72.dp).border(3.dp, level.color, CircleShape).padding(5.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Avatar(p.displayName, MaterialTheme.colorScheme.primary, size = 62.dp, textColor = MaterialTheme.colorScheme.onPrimary)
+    val progress = levelProgress(p)
+    val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(116.dp).clip(CircleShape).clickable(onClick = onChangeAvatar)) {
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                val stroke = 5.dp.toPx()
+                val arc = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
+                val tl = androidx.compose.ui.geometry.Offset(stroke / 2, stroke / 2)
+                drawArc(track, 0f, 360f, false, tl, arc, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                drawArc(level.color, -90f, 360f * progress, false, tl, arc, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+            }
+            Avatar(p.displayName, MaterialTheme.colorScheme.primary, size = 98.dp, textColor = MaterialTheme.colorScheme.onPrimary, avatarId = p.avatar)
+            Box(
+                modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).size(30.dp)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape).padding(3.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(androidx.compose.material.icons.Icons.Filled.Edit, contentDescription = stringResource(R.string.avatar_pick_title), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(14.dp))
+            }
         }
-        Column(modifier = Modifier.padding(start = 16.dp)) {
-            Text(p.displayName, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            LevelChip(level, modifier = Modifier.padding(top = 4.dp))
+        Text(p.displayName, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
+        LevelChip(level, modifier = Modifier.padding(top = 4.dp))
+        Text(
+            if (p.successfulReports > 0) androidx.compose.ui.res.pluralStringResource(R.plurals.profile_helped, p.successfulReports, p.successfulReports)
+            else stringResource(R.string.profile_helped_none),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        androidx.compose.material3.Button(
+            onClick = onReport,
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.padding(top = 14.dp).height(46.dp),
+        ) {
+            Icon(androidx.compose.material.icons.Icons.Filled.AddLocationAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.profile_report_cta), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
         }
     }
 }
 
 @Composable
-internal fun Avatar(name: String?, background: Color, size: Dp = 40.dp, textColor: Color = Color.White) {
+internal fun Avatar(name: String?, background: Color, size: Dp = 40.dp, textColor: Color = Color.White, avatarId: String? = null) {
+    avatarResource(avatarId)?.let { res ->
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(res),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.size(size).clip(CircleShape),
+        )
+        return
+    }
     Box(modifier = Modifier.size(size).background(background, CircleShape), contentAlignment = Alignment.Center) {
         Text(
             initialOf(name),
