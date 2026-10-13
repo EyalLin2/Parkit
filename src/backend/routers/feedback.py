@@ -113,11 +113,14 @@ async def undelivered_codes(token: str = Query(""), redis: Redis = Depends(get_r
     if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
         raise HTTPException(404, "Not found")
     rows = await otp.undelivered(redis)
-    body = "".join(
-        f"<tr><td>{datetime.fromtimestamp(r['at'], _ISRAEL):%H:%M:%S}</td>"
-        f"<td>{html.escape(r['to'])}</td><td class=code>{html.escape(r['code'])}</td></tr>"
-        for r in rows
-    ) or "<tr><td colspan=3>No codes in the last 5 minutes.</td></tr>"
+    body = (
+        "".join(
+            f"<tr><td>{datetime.fromtimestamp(r['at'], _ISRAEL):%H:%M:%S}</td>"
+            f"<td>{html.escape(r['to'])}</td><td class=code>{html.escape(r['code'])}</td></tr>"
+            for r in rows
+        )
+        or "<tr><td colspan=3>No codes in the last 5 minutes.</td></tr>"
+    )
     page = (
         "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
         "<meta http-equiv=refresh content=5>"
