@@ -44,3 +44,8 @@ src/backend/media/
 # Ad-hoc APK drops into the /demo static mount for sharing a build over a
 # tunnel — a distribution artifact, not source.
 src/backend/static/*.apk
+
+# Signing keys never belong in the repo (the real one lives in ~/.parkit/)
+*.jks
+*.keystore
+keystore.properties
