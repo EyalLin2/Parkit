@@ -5,18 +5,23 @@ before sign-in, so the token is optional. Throttled per client so it can't
 be used to flood the table.
 """
 
+import hmac
+import html
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
+from config import settings
 from database import get_db
-from models import AppFeedback
+from models import AppFeedback, User
 from redis_client import get_redis
 
 router = APIRouter(tags=["feedback"])
@@ -55,3 +60,40 @@ async def send_feedback(
     db.add(AppFeedback(user_id=user_id, **payload.model_dump()))
     await db.commit()
     return Response(status_code=204)
+
+
+_INBOX_CSS = (
+    "body{font:14px system-ui;margin:16px}table{border-collapse:collapse;width:100%}"
+    "td,th{border-top:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}"
+    "pre{white-space:pre-wrap;margin:0;font:13px ui-monospace,monospace}"
+    "tr.crash td:nth-child(2){color:#c5221f;font-weight:600}"
+)
+
+
+@router.get("/admin/feedback", response_class=HTMLResponse, include_in_schema=False)
+async def feedback_inbox(token: str = Query(""), db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    """The tester inbox: newest feedback and crash reports, one page.
+    Opened with ?token=ADMIN_TOKEN; closed entirely while it's unset."""
+    if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
+        raise HTTPException(404, "Not found")
+    rows = (
+        await db.execute(
+            select(AppFeedback, User.display_name)
+            .outerjoin(User, User.id == AppFeedback.user_id)
+            .order_by(AppFeedback.id.desc())
+            .limit(200)
+        )
+    ).all()
+    body = "".join(
+        f"<tr class='{html.escape(f.kind)}'><td>{f.created_at:%d/%m %H:%M}</td><td>{html.escape(f.kind)}</td>"
+        f"<td>{html.escape(name or '—')}</td><td><pre>{html.escape(f.message)}</pre></td>"
+        f"<td>{html.escape(f.app_version or '')}<br><small>{html.escape(f.device or '')}</small></td></tr>"
+        for f, name in rows
+    )
+    page = (
+        "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
+        f"<title>ParkIt — tester inbox</title><style>{_INBOX_CSS}</style>"
+        f"<h1>ParkIt — tester inbox ({len(rows)})</h1><table><tr><th>When</th><th>Kind</th><th>Who</th>"
+        f"<th>Message</th><th>App / device</th></tr>{body}</table>"
+    )
+    return HTMLResponse(page)

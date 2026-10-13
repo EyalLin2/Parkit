@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     session_idle_minutes: int = 30
     # Requests per minute per client IP (0 = off). See ratelimit.py.
     rate_limit_per_minute: int = 240
+    # Opens /admin/feedback (tester feedback + crash reports). Empty = closed.
+    admin_token: str = ""
     # SMS_PROVIDER=twilio: credentials from the Twilio console. TWILIO_FROM is
     # the sending number (+1…) or a Messaging Service SID (MG…).
     twilio_account_sid: str = ""

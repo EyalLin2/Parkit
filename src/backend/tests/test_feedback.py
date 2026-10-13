@@ -29,3 +29,15 @@ async def test_feedback_is_throttled(client, make_user):
         (await client.post("/feedback", json={"message": f"#{i}"}, headers=headers)).status_code for i in range(22)
     ]
     assert codes.count(204) == 20 and codes[-1] == 429
+
+
+async def test_inbox_is_closed_without_the_admin_token(client, monkeypatch):
+    from config import settings
+
+    await client.post("/feedback", json={"message": "<script>alert(1)</script>"})
+    assert (await client.get("/admin/feedback")).status_code == 404  # no token configured
+    monkeypatch.setattr(settings, "admin_token", "s3cret")
+    assert (await client.get("/admin/feedback", params={"token": "wrong"})).status_code == 404
+    page = await client.get("/admin/feedback", params={"token": "s3cret"})
+    assert page.status_code == 200
+    assert "&lt;script&gt;" in page.text and "<script>alert" not in page.text  # escaped
