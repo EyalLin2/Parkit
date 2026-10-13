@@ -263,7 +263,7 @@
         <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
         <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
-    <string name="map_filter_lots">חניונים</string>
+    <string name="map_filter_lots">חניונים בתשלום</string>
     <string name="lot_unnamed">חניון</string>
     <string name="lot_kind_underground">תת-קרקעי</string>
     <string name="lot_kind_multistorey">רב-קומות</string>
@@ -337,4 +337,22 @@
         <item quantity="two">עזרת ל-%d נהגים לחנות 🙌</item>
         <item quantity="other">עזרת ל-%d נהגים לחנות 🙌</item>
     </plurals>
+    <string-array name="avatar_names">
+        <item>הייטקיסט</item>
+        <item>גולש</item>
+        <item>היפסטר</item>
+        <item>גותית</item>
+        <item>חובב פלאפל</item>
+        <item>חובבת פלאפל</item>
+        <item>סבתא מהשוק</item>
+        <item>דוס</item>
+        <item>חיילת בחופש</item>
+        <item>רוכב קורקינט</item>
+        <item>יוגית</item>
+        <item>אלוף מטקות</item>
+        <item>די־ג׳יי</item>
+        <item>גותי</item>
+        <item>סטודנטית</item>
+        <item>בריסטה</item>
+    </string-array>
 </resources>

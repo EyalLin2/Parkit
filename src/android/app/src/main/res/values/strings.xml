@@ -255,7 +255,7 @@
         <item quantity="one">1 face or plate blurred</item>
         <item quantity="other">%1$d faces or plates blurred</item>
     </plurals>
-    <string name="map_filter_lots">Parking lots</string>
+    <string name="map_filter_lots">Paid parking</string>
     <string name="lot_unnamed">Parking lot</string>
     <string name="lot_kind_underground">Underground</string>
     <string name="lot_kind_multistorey">Multi-storey</string>
@@ -328,4 +328,22 @@
         <item quantity="one">You helped 1 driver park 🙌</item>
         <item quantity="other">You helped %d drivers park 🙌</item>
     </plurals>
+    <string-array name="avatar_names">
+        <item>Tech guy</item>
+        <item>Surfer</item>
+        <item>Hipster</item>
+        <item>Goth</item>
+        <item>Falafel lover</item>
+        <item>Falafel fan</item>
+        <item>Market savta</item>
+        <item>Dati</item>
+        <item>Soldier off duty</item>
+        <item>Scooter rider</item>
+        <item>Yogi</item>
+        <item>Matkot pro</item>
+        <item>DJ</item>
+        <item>Goth</item>
+        <item>Student</item>
+        <item>Barista</item>
+    </string-array>
 </resources>

@@ -23,8 +23,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.parkit.app.R
 
-/** The bundled illustrated avatars — DiceBear "Personas" by Draftbit
- * (CC BY 4.0; credited in Settings). Ids match the server's avatar_01..16. */
+/** Sixteen Tel Aviv types — the hipster from Florentin, the surfer from
+ * Gordon, falafel lovers at the Carmel market, goths, the DJ at Dizengoff…
+ * Characters are DiceBear "Personas" by Draftbit (CC BY 4.0, credited in
+ * Settings) set in hand-drawn Tel Aviv scenes with small props. Ids match
+ * the server's avatar_01..16. */
 private val AVATARS = listOf(
     R.drawable.avatar_01, R.drawable.avatar_02, R.drawable.avatar_03, R.drawable.avatar_04,
     R.drawable.avatar_05, R.drawable.avatar_06, R.drawable.avatar_07, R.drawable.avatar_08,
@@ -39,20 +42,33 @@ fun avatarId(index: Int): String = "avatar_%02d".format(index + 1)
 /** A 4×4 grid of avatars; the chosen one is ringed in the brand colour. */
 @Composable
 fun AvatarGrid(selected: String?, onPick: (String) -> Unit, modifier: Modifier = Modifier) {
+    val names = androidx.compose.ui.res.stringArrayResource(R.array.avatar_names)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = modifier) {
         AVATARS.indices.chunked(4).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 row.forEach { i ->
                     val id = avatarId(i)
                     val chosen = id == selected
-                    Image(
-                        painter = painterResource(AVATARS[i]),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.weight(1f).aspectRatio(1f).clip(CircleShape)
-                            .border(if (chosen) 3.dp else 0.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                            .clickable { onPick(id) },
-                    )
+                    Column(
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f).clickable { onPick(id) },
+                    ) {
+                        Image(
+                            painter = painterResource(AVATARS[i]),
+                            contentDescription = names.getOrNull(i),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(CircleShape)
+                                .border(if (chosen) 3.dp else 0.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        )
+                        Text(
+                            names.getOrNull(i).orEmpty(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
             }
         }
