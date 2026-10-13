@@ -211,7 +211,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
                 } else {
                     Text(stringResource(R.string.login_code_title), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        stringResource(R.string.login_code_body, "⁦$target⁩"),
+                        stringResource(R.string.login_code_body, "\u2066$target\u2069"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp, bottom = 14.dp),

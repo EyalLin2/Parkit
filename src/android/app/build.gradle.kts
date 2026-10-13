@@ -21,6 +21,10 @@ android {
         // are arm64; x86_64 covers the emulator — the 32-bit ABIs only
         // doubled the demo APK's download size.
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+
+        // Plain http only for the local dev server (10.0.2.2); release talks
+        // https to the real one and must never fall back to cleartext.
+        manifestPlaceholders["cleartext"] = "false"
     }
 
     // Play upload key: lives OUTSIDE the repo (~/.parkit/keystore.properties
@@ -43,6 +47,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["cleartext"] = "true"
+        }
         release {
             signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = false
@@ -61,6 +68,18 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    // Language is picked inside the app, so every install needs both
+    // Hebrew and English — don't let Play split them by device locale.
+    bundle {
+        language { enableSplit = false }
+    }
+
+    lint {
+        // Compose's own detector crashes lint on MapScreen.kt (a lint bug,
+        // not a finding); everything else still runs.
+        disable += "CoroutineCreationDuringComposition"
     }
 
     packaging {
