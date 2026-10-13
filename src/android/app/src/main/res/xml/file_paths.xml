@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Report photos are written to the app's private cache, then shared with
+     the camera app through this provider. -->
+<paths>
+    <cache-path name="report_photos" path="report_photos/" />
+</paths>

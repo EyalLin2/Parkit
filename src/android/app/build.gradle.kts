@@ -140,6 +140,7 @@ dependencies {
     // defaults to the OpenGL ES renderer, which every emulator supports.
     implementation("org.maplibre.gl:android-sdk:12.3.1")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

@@ -128,16 +128,24 @@ fun ReportFlowSheet(
         }
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
-        if (bitmap != null) scope.launch { uploadPhoto(bitmap) }
+    // Full-size photo (TakePicturePreview only returns a thumbnail, which made
+    // report photos small and blurry): the camera writes into our cache, we
+    // fix its rotation and scale it to ≤1600 px before uploading.
+    val photoFile = remember { java.io.File(context.cacheDir, "report_photos/report.jpg").apply { parentFile?.mkdirs() } }
+    val photoUri = remember { androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".photos", photoFile) }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+        if (saved) scope.launch {
+            val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadReportPhoto(photoFile) }
+            if (bitmap != null) uploadPhoto(bitmap) else error = context.getString(R.string.report_photo_upload_failed, "")
+        }
     }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) cameraLauncher.launch(null)
+        if (granted) cameraLauncher.launch(photoUri)
     }
 
     fun startCamera() {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-        if (granted) cameraLauncher.launch(null) else cameraPermission.launch(Manifest.permission.CAMERA)
+        if (granted) cameraLauncher.launch(photoUri) else cameraPermission.launch(Manifest.permission.CAMERA)
     }
 
     fun submit() {
@@ -359,4 +367,29 @@ private fun TypeOption(label: String, icon: ImageVector, selected: Boolean, onCl
             )
         }
     }
+}
+
+
+/** Decode the camera's full-size JPEG at a sensible size (≤ ~1600 px on the
+ * long side), upright according to its EXIF orientation. */
+private fun loadReportPhoto(file: java.io.File, maxSide: Int = 1600): Bitmap? {
+    if (!file.exists()) return null
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.path, bounds)
+    var sample = 1
+    while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxSide) sample *= 2
+    val decoded = BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
+    val rotation = when (androidx.exifinterface.media.ExifInterface(file.path).getAttributeInt(
+        androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION, androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL,
+    )) {
+        androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+        androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+        androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+        else -> 0f
+    }
+    val upright = if (rotation == 0f) decoded else Bitmap.createBitmap(
+        decoded, 0, 0, decoded.width, decoded.height, android.graphics.Matrix().apply { postRotate(rotation) }, true,
+    )
+    val scale = maxSide.toFloat() / maxOf(upright.width, upright.height)
+    return if (scale >= 1f) upright else Bitmap.createScaledBitmap(upright, (upright.width * scale).toInt(), (upright.height * scale).toInt(), true)
 }
