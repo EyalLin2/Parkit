@@ -48,6 +48,11 @@ val LEGEND_AVATARS = mapOf(
     "avatar_legend_trumpeldor" to R.drawable.avatar_legend_trumpeldor,
     "avatar_legend_rambam" to R.drawable.avatar_legend_rambam,
     "avatar_legend_dayan" to R.drawable.avatar_legend_dayan,
+    "avatar_legend_begin" to R.drawable.avatar_legend_begin,
+    "avatar_legend_rabin" to R.drawable.avatar_legend_rabin,
+    "avatar_legend_allon" to R.drawable.avatar_legend_allon,
+    "avatar_legend_aloni" to R.drawable.avatar_legend_aloni,
+    "avatar_legend_szenes" to R.drawable.avatar_legend_szenes,
 )
 
 fun avatarResource(id: String?): Int? =

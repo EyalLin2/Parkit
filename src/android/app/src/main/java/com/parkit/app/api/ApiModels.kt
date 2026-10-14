@@ -274,3 +274,11 @@ data class SignReading(
     @Json(name = "summary_en") val summaryEn: String,
 )
 
+/** What the report photo seems to show — pre-fills the form (advice only). */
+@JsonClass(generateAdapter = true)
+data class PhotoHints(
+    @Json(name = "looks_like_free_spot") val looksLikeFreeSpot: Boolean = true,
+    @Json(name = "blue_white_curb") val blueWhiteCurb: Boolean = false,
+    @Json(name = "disabled_spot") val disabledSpot: Boolean = false,
+)
+

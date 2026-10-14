@@ -58,6 +58,9 @@ interface ApiService {
     @DELETE("spots/{id}")
     suspend fun cancelSpot(@Path("id") spotId: String)
 
+    @POST("photos/{id}/analyze")
+    suspend fun analyzePhoto(@Path("id") stagingId: String): PhotoHints
+
     @Multipart
     @POST("signs/read")
     suspend fun readSign(@Part photo: MultipartBody.Part): SignReading

@@ -108,3 +108,29 @@ async def test_photo_file_is_deleted_on_self_cancel(client, make_user):
     cancel = await client.delete(f"/spots/{spot_id}", headers=headers)
     assert cancel.status_code == 204
     assert not photo_path.exists()
+
+
+async def test_photo_hints_off_without_a_key(client, make_user):
+    _, headers = await make_user("hinter")
+    staged = (await client.post("/photos/stage", files=_upload_files(), headers=headers)).json()
+    resp = await client.post(f"/photos/{staged['staging_id']}/analyze", headers=headers)
+    assert resp.status_code == 503
+
+
+async def test_photo_hints_fill_the_form(client, make_user, monkeypatch):
+    import ai
+
+    async def fake(image, media_type, prompt, max_tokens=400):
+        assert image  # the blurred staged photo
+        return {"looks_like_free_spot": True, "blue_white_curb": True, "disabled_spot": False}
+
+    monkeypatch.setattr(ai, "ask_json", fake)
+    _, headers = await make_user("hinter")
+    staged = (await client.post("/photos/stage", files=_upload_files(), headers=headers)).json()
+    hints = (await client.post(f"/photos/{staged['staging_id']}/analyze", headers=headers)).json()
+    assert hints == {"looks_like_free_spot": True, "blue_white_curb": True, "disabled_spot": False}
+
+
+async def test_photo_hints_need_a_staged_photo(client, make_user):
+    _, headers = await make_user("hinter")
+    assert (await client.post("/photos/nope/analyze", headers=headers)).status_code == 404

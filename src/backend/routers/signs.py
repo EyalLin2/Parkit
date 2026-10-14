@@ -6,8 +6,6 @@ stored. The answer is for a regular driver without a resident permit; the
 app always says to double-check the sign itself.
 """
 
-import base64
-import json
 import logging
 import uuid
 from datetime import datetime
@@ -19,6 +17,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from redis.asyncio import Redis
 
+import ai
 from auth import get_current_user_id
 from config import settings
 from redis_client import get_redis
@@ -61,36 +60,7 @@ async def _ask_claude(image: bytes, media_type: str, now: datetime) -> SignReadi
         date=now.strftime("%d/%m/%Y"),
         time=now.strftime("%H:%M"),
     )
-    body = {
-        "model": settings.sign_reader_model,
-        "max_tokens": 400,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": base64.b64encode(image).decode(),
-                        },
-                    },
-                    {"type": "text", "text": prompt},
-                ],
-            }
-        ],
-    }
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={"x-api-key": settings.anthropic_api_key, "anthropic-version": "2023-06-01"},
-            json=body,
-        )
-    resp.raise_for_status()
-    text = "".join(part.get("text", "") for part in resp.json().get("content", []))
-    start, end = text.find("{"), text.rfind("}")
-    return SignReading(**json.loads(text[start : end + 1]))
+    return SignReading(**await ai.ask_json(image, media_type, prompt))
 
 
 @router.post("/signs/read", response_model=SignReading)
@@ -114,6 +84,8 @@ async def read_sign(
     media_type = photo.content_type if photo.content_type in ("image/jpeg", "image/png", "image/webp") else "image/jpeg"
     try:
         return await _ask_claude(image, media_type, datetime.now(ISRAEL))
+    except ai.AiOff:
+        raise HTTPException(503, "The sign reader isn't switched on yet") from None
     except (httpx.HTTPError, ValueError, KeyError) as e:
         log.warning("sign reader failed: %s", e)
         raise HTTPException(503, "Couldn't read the sign right now — try again") from None

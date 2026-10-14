@@ -116,6 +116,11 @@ fun ReportFlowSheet(
     var blueWhite by remember { mutableStateOf(false) }
     // Optional heads-up for the next driver: a hazard, a low branch…
     var note by remember { mutableStateOf("") }
+    // AI hints from the photo: they fill only what the driver hasn't touched.
+    var typeTouched by remember { mutableStateOf(false) }
+    var blueWhiteTouched by remember { mutableStateOf(false) }
+    var autoFilled by remember { mutableStateOf(false) }
+    var notASpot by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -129,6 +134,17 @@ fun ReportFlowSheet(
             val part = MultipartBody.Part.createFormData("file", "photo.jpg", body)
             val staged = api.stagePhoto(part)
             stagingId = staged.stagingId
+            // Ask what the photo shows in the background; the form never waits for it.
+            val id = staged.stagingId
+            scope.launch {
+                val hints = runCatching { api.analyzePhoto(id) }.getOrNull() ?: return@launch
+                if (stagingId != id) return@launch // a newer photo was taken meanwhile
+                notASpot = !hints.looksLikeFreeSpot
+                var filled = false
+                if (!typeTouched && hints.disabledSpot) { selectedType = "disabled"; filled = true }
+                if (!blueWhiteTouched && hints.blueWhiteCurb && selectedType == "street") { blueWhite = true; filled = true }
+                autoFilled = filled
+            }
             facesBlurred = staged.facesBlurred + staged.platesBlurred
             val previewBytes = Base64.decode(staged.previewBase64, Base64.DEFAULT)
             blurredPreview = BitmapFactory.decodeByteArray(previewBytes, 0, previewBytes.size)
@@ -238,27 +254,43 @@ fun ReportFlowSheet(
                 )
             }
 
+            if (autoFilled) {
+                Text(
+                    stringResource(R.string.report_auto_filled),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+            if (notASpot) {
+                Text(
+                    stringResource(R.string.report_not_a_spot),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFB06000),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
             FieldLabel(stringResource(R.string.report_type_question))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TypeOption(
                     label = stringResource(R.string.map_spot_kind_regular),
                     icon = Icons.Filled.DirectionsCar,
                     selected = selectedType == "street",
-                    onClick = { selectedType = "street" },
+                    onClick = { selectedType = "street"; typeTouched = true },
                     modifier = Modifier.weight(1f),
                 )
                 TypeOption(
                     label = stringResource(R.string.map_spot_kind_disabled),
                     icon = Icons.AutoMirrored.Filled.Accessible,
                     selected = selectedType == "disabled",
-                    onClick = { selectedType = "disabled" },
+                    onClick = { selectedType = "disabled"; typeTouched = true },
                     modifier = Modifier.weight(1f),
                 )
             }
             if (selectedType == "street") {
                 androidx.compose.material3.FilterChip(
                     selected = blueWhite,
-                    onClick = { blueWhite = !blueWhite },
+                    onClick = { blueWhite = !blueWhite; blueWhiteTouched = true },
                     label = { Text(stringResource(R.string.report_blue_white)) },
                     leadingIcon = {
                         Icon(

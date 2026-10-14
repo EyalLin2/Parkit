@@ -496,4 +496,6 @@
     <string name="sign_until">until %1$s</string>
     <string name="sign_paid">Paid parking</string>
     <string name="sign_disclaimer">An AI answer for a driver without a permit — it can be wrong. Always check the sign itself.</string>
+    <string name="report_auto_filled">✨ Filled in from the photo — change anything</string>
+    <string name="report_not_a_spot">This photo doesn\'t look like a free spot. If that\'s wrong, carry on — or retake it.</string>
 </resources>
