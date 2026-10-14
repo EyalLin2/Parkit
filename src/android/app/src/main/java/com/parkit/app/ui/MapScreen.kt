@@ -43,17 +43,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.DoNotDisturbOn
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalParking
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetDefaults
@@ -93,6 +97,10 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -106,6 +114,7 @@ import com.parkit.app.api.GeocodingClient
 import com.parkit.app.api.SpotOut
 import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
+import com.parkit.app.api.localAddress
 import com.parkit.app.auth.SessionStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -293,7 +302,16 @@ private const val COLOR_CLAIMED = "#E8710A"
 private const val COLOR_LEGEND = "#7B3FE4"
 
 private val SHEET_PEEK = 114.dp
+// Empty map: tall enough to show the "car parks / invite friends" buttons.
+private val SHEET_PEEK_EMPTY = 178.dp
 private const val CLAIM_HOLD_MS = 120_000L // matches the backend's CLAIM_TTL_SECONDS
+
+private val claimAdapter = com.squareup.moshi.Moshi.Builder()
+    .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory()).build().adapter(SpotOut::class.java)
+private val ClaimSaver = androidx.compose.runtime.saveable.Saver<SpotOut?, String>(
+    save = { spot -> spot?.let { claimAdapter.toJson(it) } },
+    restore = { json -> runCatching<SpotOut?> { claimAdapter.fromJson(json) }.getOrNull() },
+)
 
 private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
     spot.status == "claimed" -> COLOR_CLAIMED
@@ -360,8 +378,10 @@ fun MapScreen(
     // claimed spots from everyone (so nobody else is sent there), so the
     // claimer keeps it locally — on the map and in a trip card — until they
     // report what happened or the 2-minute hold runs out.
-    var activeClaim by remember { mutableStateOf<SpotOut?>(null) }
-    var claimEndsAt by remember { mutableStateOf(0L) }
+    // Saveable: "I'm on my way" opens a navigation app, and Android may
+    // recreate (or kill) ParkIt meanwhile — coming back must still show the trip.
+    var activeClaim by androidx.compose.runtime.saveable.rememberSaveable(stateSaver = ClaimSaver) { mutableStateOf<SpotOut?>(null) }
+    var claimEndsAt by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0L) }
     var showReportFlow by remember { mutableStateOf(false) }
     // The driver's own level/points, for the avatar ring and level-up moments.
     var myProfile by remember { mutableStateOf<com.parkit.app.api.ProfileOut?>(null) }
@@ -428,7 +448,7 @@ fun MapScreen(
         for (spot in sortedSpots) {
             // Reports carry their own address now; only older ones (made
             // before the backend stored it) still need a lookup.
-            if (spot.address != null || spotAddresses.containsKey(spot.id)) continue
+            if (spot.localAddress != null || spotAddresses.containsKey(spot.id)) continue
             val cached = com.parkit.app.api.SpotAddressCache.get(spot.id)
             if (cached != null) {
                 spotAddresses[spot.id] = cached
@@ -480,6 +500,28 @@ fun MapScreen(
     }
 
     fun hasLocationPermission() = hasAnyLocation(context)
+
+    var parkedCar by remember { mutableStateOf(sessionStore.parkedCar) }
+
+    fun rememberCar(at: LatLng, address: String?, spotType: String = "street") {
+        val car = com.parkit.app.auth.ParkedCar(at.latitude, at.longitude, System.currentTimeMillis(), address, spotType)
+        parkedCar = car
+        sessionStore.parkedCar = car
+        if (address == null) {
+            scope.launch {
+                val label = com.parkit.app.api.Geocoder.reverse(at.latitude, at.longitude)?.shortLabel() ?: return@launch
+                if (parkedCar?.at == car.at) {
+                    parkedCar = car.copy(address = label)
+                    sessionStore.parkedCar = parkedCar
+                }
+            }
+        }
+    }
+
+    fun forgetCar() {
+        parkedCar = null
+        sessionStore.parkedCar = null
+    }
 
     /** The phone's position right now: the blue dot keeps updating while the
      * map is open, so prefer it over the fix taken at launch. */
@@ -650,8 +692,32 @@ fun MapScreen(
             }
         }
     }
+    // Say why before Android's own prompt: a bare "allow location?" with no
+    // reason is the most common way drivers end up on a useless map.
+    var showLocationWhy by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (hasAnyLocation(context)) locate() else locationPermission.launch(LOCATION_PERMISSIONS)
+        if (hasAnyLocation(context)) locate() else showLocationWhy = true
+    }
+    if (showLocationWhy) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {},
+            icon = { Icon(Icons.Filled.MyLocation, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text(stringResource(R.string.location_why_title)) },
+            text = { Text(stringResource(R.string.location_why_body)) },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = {
+                    showLocationWhy = false
+                    locationPermission.launch(LOCATION_PERMISSIONS)
+                }) { Text(stringResource(R.string.location_why_continue)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showLocationWhy = false
+                    locating = false
+                    showTelAvivFallback(null)
+                }) { Text(stringResource(R.string.location_why_not_now)) }
+            },
+        )
     }
     // Back from Settings (permission granted / location switched on there)?
     // Try again by itself instead of leaving the map on the fallback.
@@ -674,6 +740,34 @@ fun MapScreen(
                 spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
             } catch (_: Exception) {
                 // next camera-idle pass will retry
+            }
+        }
+    }
+
+    /** "I'm leaving": the driver's own spot becomes a report in one tap — no
+     * photo, they're standing right at it (the distance check still runs). */
+    fun leaveSpot(car: com.parkit.app.auth.ParkedCar) {
+        scope.launch {
+            val fix = currentFix()
+            try {
+                api.reportSpot(
+                    com.parkit.app.api.SpotCreate(
+                        lat = car.lat,
+                        lng = car.lng,
+                        spotType = car.spotType,
+                        payment = "free",
+                        address = car.address,
+                        reporterLat = fix?.latitude,
+                        reporterLng = fix?.longitude,
+                        reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
+                    ),
+                )
+                forgetCar()
+                refreshSpotsNow()
+                refreshMyProfile()
+                snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
+            } catch (e: Exception) {
+                if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
             }
         }
     }
@@ -715,7 +809,7 @@ fun MapScreen(
                 isRotateGesturesEnabled = true
                 isTiltGesturesEnabled = false
                 setCompassMargins(0, with(density) { 150.dp.roundToPx() }, with(density) { 16.dp.roundToPx() }, 0)
-                setAttributionMargins(with(density) { 12.dp.roundToPx() }, 0, 0, with(density) { (SHEET_PEEK + 56.dp).roundToPx() })
+                setAttributionMargins(with(density) { 12.dp.roundToPx() }, 0, 0, with(density) { (SHEET_PEEK + 120.dp).roundToPx() })
             }
             m.addOnCameraMoveStartedListener { reason ->
                 if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE && locating) userTookOver = true
@@ -826,7 +920,7 @@ fun MapScreen(
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetPeekHeight = SHEET_PEEK + with(density) { WindowInsets.navigationBars.getBottom(density).toDp() },
+        sheetPeekHeight = (if (spotsLoaded && !spotsFailed && sortedSpots.isEmpty()) SHEET_PEEK_EMPTY else SHEET_PEEK) + with(density) { WindowInsets.navigationBars.getBottom(density).toDp() },
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetContainerColor = MaterialTheme.colorScheme.surface,
         sheetTonalElevation = 0.dp,
@@ -843,6 +937,9 @@ fun MapScreen(
                 reference = reference,
                 myUserId = myUserId,
                 prefs = driverPrefs.preferences,
+                lotsShown = showLots,
+                onShowLots = { showLots = true },
+                onInvite = { inviteFriends(context) },
                 onSpotClick = { spot ->
                     flyTo(LatLng(spot.lat, spot.lng), 16.5)
                     selectedSpot = spot
@@ -890,7 +987,7 @@ fun MapScreen(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     MapChip(stringResource(R.string.map_filter_all), Icons.Filled.LocalParking, typeFilter == null) { typeFilter = null }
                     MapChip(stringResource(R.string.map_filter_regular), Icons.Filled.DirectionsCar, typeFilter == "street") { typeFilter = "street" }
@@ -900,18 +997,27 @@ fun MapScreen(
                         if (!showLots) selectedLot = null
                     }
                 }
+                parkedCar?.takeIf { activeClaim == null }?.let { car ->
+                    ParkedCarCard(
+                        car = car,
+                        onNavigate = { walkTo(context, car.lat, car.lng) },
+                        onLeaving = { leaveSpot(car) },
+                        onForget = { forgetCar() },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
+                }
                 activeClaim?.let { claim ->
                     ClaimTripCard(
                         spot = claim,
                         endsAt = claimEndsAt,
                         onNavigate = {
-                            val uri = android.net.Uri.parse("geo:${claim.lat},${claim.lng}?q=${claim.lat},${claim.lng}")
-                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri))
+                            DriveTo.open(context, claim.lat, claim.lng)
                         },
                         onFeedback = { type ->
                             scope.launch {
                                 try {
                                     api.submitFeedback(claim.id, com.parkit.app.api.FeedbackCreate(type))
+                                    if (type == "confirmed_taken") rememberCar(LatLng(claim.lat, claim.lng), claim.localAddress, claim.spotType)
                                     activeClaim = null
                                     refreshSpotsNow()
                                     if (type == "confirmed_taken") offerPango() else snackbarHostState.showSnackbar(context.getString(R.string.claim_taken_thanks))
@@ -931,7 +1037,7 @@ fun MapScreen(
             }
 
             androidx.compose.animation.AnimatedVisibility(
-                visible = locating && !userTookOver,
+                visible = locating && !userTookOver && (deviceLocation == null || (activeClaim == null && parkedCar == null)),
                 enter = androidx.compose.animation.fadeIn(),
                 exit = androidx.compose.animation.fadeOut(),
                 // Centre while there's nothing to see; once a first fix is on
@@ -966,6 +1072,36 @@ fun MapScreen(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(Icons.Filled.MyLocation, contentDescription = stringResource(R.string.map_my_location_cd), tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+            // Parked without a ParkIt spot? Save where the car is anyway, so
+            // "where did I park" and the one-tap "I'm leaving" still work.
+            if (parkedCar == null && activeClaim == null) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset {
+                            val top = sheetTopPx?.toInt() ?: 0
+                            IntOffset(20.dp.roundToPx(), top - buttonSize.roundToPx() - 16.dp.roundToPx())
+                        }
+                        .height(buttonSize)
+                        .clickable {
+                            val fix = currentFix()
+                            if (fix == null) {
+                                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_needs_location)) }
+                            } else {
+                                rememberCar(LatLng(fix.latitude, fix.longitude), null)
+                                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.car_saved)) }
+                            }
+                        },
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Text(stringResource(R.string.car_park_here), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
+                    }
                 }
             }
         }
@@ -1012,7 +1148,10 @@ fun MapScreen(
                 selectedSpot = null
                 refreshSpotsNow()
             },
-            onParked = { scope.launch { offerPango() } },
+            onParked = {
+                rememberCar(LatLng(spot.lat, spot.lng), spot.localAddress, spot.spotType)
+                scope.launch { offerPango() }
+            },
             onClaimed = { claimed ->
                 selectedSpot = null
                 activeClaim = claimed
@@ -1124,8 +1263,10 @@ private fun LocationBar(
             // colour — progress is visible every time the map is open.
             val ringColor = level?.color ?: MaterialTheme.colorScheme.primary
             val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+            val profileLabel = stringResource(R.string.map_open_profile_cd)
             Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onOpenProfile),
+                modifier = Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onOpenProfile)
+                    .semantics(mergeDescendants = true) { contentDescription = profileLabel; role = Role.Button },
                 contentAlignment = Alignment.Center,
             ) {
                 androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1185,7 +1326,7 @@ private fun MapChip(label: String, icon: ImageVector, selected: Boolean, onClick
         shadowElevation = 3.dp,
         modifier = Modifier.height(36.dp).clickable(onClick = onClick),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 11.dp)) {
             Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
             Text(label, style = MaterialTheme.typography.labelLarge, color = content, modifier = Modifier.padding(start = 6.dp))
         }
@@ -1203,7 +1344,7 @@ private fun LotsChip(checked: Boolean, onClick: () -> Unit) {
         shadowElevation = 3.dp,
         modifier = Modifier.height(36.dp).clickable(onClick = onClick),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 11.dp)) {
             Icon(
                 if (checked) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
                 contentDescription = null,
@@ -1266,6 +1407,9 @@ private fun NearbySheet(
     prefs: com.parkit.app.api.Preferences,
     failed: Boolean,
     onRetry: () -> Unit,
+    lotsShown: Boolean,
+    onShowLots: () -> Unit,
+    onInvite: () -> Unit,
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1317,11 +1461,31 @@ private fun NearbySheet(
                 )
             }
         }
+        // An empty map is where a new driver gives up: offer the car parks
+        // that are always there, and the one thing that fills the map —
+        // more drivers nearby.
+        if (loaded && spots.isEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+            ) {
+                if (!lotsShown) {
+                    androidx.compose.material3.FilledTonalButton(onClick = onShowLots, shape = RoundedCornerShape(50), modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.LocalParking, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(stringResource(R.string.map_empty_show_lots), maxLines = 1, modifier = Modifier.padding(start = 6.dp))
+                    }
+                }
+                androidx.compose.material3.Button(onClick = onInvite, shape = RoundedCornerShape(50), modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text(stringResource(R.string.map_empty_invite), maxLines = 1, modifier = Modifier.padding(start = 6.dp))
+                }
+            }
+        }
         if (spots.isNotEmpty()) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             LazyColumn(modifier = Modifier.fillMaxWidth().height(360.dp)) {
                 items(spots, key = { it.id }) { spot ->
-                    SpotRow(spot, spot.address ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
+                    SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
                 }
             }
         }
@@ -1343,13 +1507,17 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
-            if (spot.photoUrl != null) {
+            // A photo that fails to load (already deleted) shows the icon,
+            // never an empty tile.
+            var photoFailed by remember(spot.id) { mutableStateOf(false) }
+            if (spot.photoUrl != null && !photoFailed) {
                 // The reporter's photo, when there is one — the quickest
                 // read of "is this spot real and will my car fit".
                 coil.compose.AsyncImage(
                     model = com.parkit.app.ApiConfig.BASE_URL.trimEnd('/') + spot.photoUrl,
                     contentDescription = null,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    onError = { photoFailed = true },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
@@ -1373,6 +1541,7 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
             Text(
                 listOfNotNull(
                     stringResource(if (disabled) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
+                    if (spot.payment == "paid") stringResource(R.string.spot_blue_white_short) else null,
                     MarkerBitmaps.relativeTimeLong(context, spot.reportedAt),
                     spot.hotMinutes?.let { stringResource(R.string.hot_short) },
                     when {
@@ -1568,6 +1737,67 @@ private fun ClaimTripCard(
     }
 }
 
+/** Where the car is, a walk back to it, and "I'm leaving" — which hands the
+ * spot to the next driver in one tap. */
+@Composable
+private fun ParkedCarCard(
+    car: com.parkit.app.auth.ParkedCar,
+    onNavigate: () -> Unit,
+    onLeaving: () -> Unit,
+    onForget: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val green = Color(0xFF188038)
+    val primary = MaterialTheme.colorScheme.primary
+    val now = System.currentTimeMillis()
+    val since = if (now - car.at < android.text.format.DateUtils.MINUTE_IN_MILLIS) {
+        stringResource(R.string.car_just_now)
+    } else {
+        android.text.format.DateUtils.getRelativeTimeSpanString(car.at, now, android.text.format.DateUtils.MINUTE_IN_MILLIS).toString()
+    }
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).background(primary.copy(alpha = 0.12f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = primary)
+                }
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text(stringResource(R.string.car_card_title, since), style = MaterialTheme.typography.labelMedium, color = primary)
+                    Text(
+                        car.address ?: stringResource(R.string.map_locating),
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                androidx.compose.material3.IconButton(onClick = onForget) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.car_forget_cd), modifier = Modifier.size(18.dp))
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+                TripAction(stringResource(R.string.car_navigate), Icons.AutoMirrored.Filled.DirectionsWalk, primary, Modifier.weight(1f), onNavigate)
+                TripAction(stringResource(R.string.car_leaving), Icons.AutoMirrored.Filled.Logout, green, Modifier.weight(1f), onLeaving)
+            }
+        }
+    }
+}
+
+/** Walking directions back to the car; any maps app that takes a geo: link
+ * if Google Maps isn't there. */
+private fun walkTo(context: android.content.Context, lat: Double, lng: Double) {
+    val walk = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("google.navigation:q=$lat,$lng&mode=w"))
+    try {
+        context.startActivity(walk)
+    } catch (_: android.content.ActivityNotFoundException) {
+        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("geo:$lat,$lng?q=$lat,$lng")))
+    }
+}
+
 @Composable
 private fun TripAction(label: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = RoundedCornerShape(14.dp), color = color.copy(alpha = 0.1f), modifier = modifier.height(44.dp)) {
@@ -1606,4 +1836,13 @@ private fun BrandedMapLoader() {
             Image(painter = painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.size(26.dp))
         }
     }
+}
+
+/** The same invite as Settings → "Invite friends", one tap from an empty map. */
+private fun inviteFriends(context: android.content.Context) {
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, context.getString(R.string.profile_share_message))
+    }
+    context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.profile_share_title)))
 }

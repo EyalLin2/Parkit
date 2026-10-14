@@ -2,8 +2,6 @@
 
 package com.parkit.app.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,6 +9,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -77,6 +76,7 @@ import com.parkit.app.api.SpotAddressCache
 import com.parkit.app.api.SpotOut
 import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
+import com.parkit.app.api.localAddress
 import kotlinx.coroutines.launch
 
 private val Free = Color(0xFF188038)
@@ -104,7 +104,7 @@ fun SpotActionsSheet(
     val context = LocalContext.current
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var address by remember { mutableStateOf(spot.address ?: SpotAddressCache.get(spot.id)) }
+    var address by remember { mutableStateOf(spot.localAddress ?: SpotAddressCache.get(spot.id)) }
     val scope = rememberCoroutineScope()
     val isMine = spot.reporterId == myUserId
     val isClaimed = spot.status == "claimed"
@@ -143,14 +143,7 @@ fun SpotActionsSheet(
 
     // Claim and navigate are one tap: saying "on my way" is the reason you
     // open navigation, so they shouldn't be two buttons to choose between.
-    fun navigate() {
-        val uri = Uri.parse("geo:${spot.lat},${spot.lng}?q=${spot.lat},${spot.lng}")
-        try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-        } catch (_: android.content.ActivityNotFoundException) {
-            // No maps app — the claim still holds the spot.
-        }
-    }
+    fun navigate() = DriveTo.open(context, spot.lat, spot.lng)
     val canClaim = spot.status == "active" && !isMine
 
     ModalBottomSheet(
@@ -287,6 +280,7 @@ fun SpotActionsSheet(
                     add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.spot_fits, label.lowercase()), null))
                 }
                 if (isDisabledSpot) add(Triple(Icons.AutoMirrored.Filled.Accessible, stringResource(R.string.map_spot_kind_disabled), null))
+                if (spot.payment == "paid") add(Triple(Icons.Filled.Payments, stringResource(R.string.spot_blue_white), null))
                 ParkItLevel.of(spot.reporterLevel).takeIf { it != ParkItLevel.Newbie }?.let { level ->
                     add(Triple(level.icon, stringResource(R.string.spot_reported_by_level, stringResource(level.nameRes)), level.color))
                 }
@@ -304,7 +298,7 @@ fun SpotActionsSheet(
                     error = null
                     scope.launch {
                         try {
-                            val claimed = api.claimSpot(spot.id).copy(address = spot.address ?: address, reporterLevel = spot.reporterLevel)
+                            val claimed = api.claimSpot(spot.id).copy(address = spot.localAddress ?: address, reporterLevel = spot.reporterLevel)
                             navigate()
                             onClaimed(claimed)
                         } catch (e: Exception) {

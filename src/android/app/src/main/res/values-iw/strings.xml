@@ -169,7 +169,7 @@
     <string name="settings_map_data">נתוני מפה</string>
     <string name="settings_map_data_value">© OpenStreetMap</string>
     <string name="settings_logout_confirm_title">להתנתק?</string>
-    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם השם שלך.</string>
+    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם קוד לטלפון או למייל.</string>
     <string name="settings_cancel">ביטול</string>
     <string name="map_spot_kind_regular">חניה רגילה</string>
     <string name="map_spot_kind_disabled">חניית נכים</string>
@@ -430,4 +430,25 @@
     <string name="content_report_user">שם המשתמש פוגעני</string>
     <string name="content_report_other">משהו אחר</string>
     <string name="content_report_sent">תודה, הדיווח נשלח ונבדוק אותו</string>
+    <string name="map_empty_show_lots">הצג חניונים</string>
+    <string name="map_empty_invite">הזמן חברים</string>
+    <string name="map_open_profile_cd">הפרופיל שלי</string>
+    <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>
+    <string name="spot_blue_white">כחול־לבן · בתשלום, אפשר דרך פנגו</string>
+    <string name="spot_blue_white_short">כחול־לבן</string>
+    <string name="car_park_here">חניתי כאן</string>
+    <string name="car_saved">שמרנו איפה חנית</string>
+    <string name="car_card_title">הרכב שלך · %1$s</string>
+    <string name="car_navigate">ללכת לרכב</string>
+    <string name="car_leaving">אני יוצא מהחניה</string>
+    <string name="car_leaving_thanks">תודה! החניה שלך מופיעה עכשיו לנהגים אחרים</string>
+    <string name="car_forget_cd">לשכוח את מיקום הרכב</string>
+    <string name="car_just_now">עכשיו</string>
+    <string name="legal_privacy">מדיניות פרטיות</string>
+    <string name="legal_terms">תנאי שימוש</string>
+    <string name="login_agree">בכניסה את/ה מסכים/ה לתנאי השימוש ולמדיניות הפרטיות</string>
+    <string name="location_why_title">איפה את/ה עכשיו?</string>
+    <string name="location_why_body">ParkIt משתמשת במיקום רק כשהאפליקציה פתוחה: כדי להראות חניות פנויות לידך, ולוודא שדיווחים מגיעים ממי שבאמת נמצא ליד החניה. איננו עוקבים אחריך ברקע.</string>
+    <string name="location_why_continue">המשך</string>
+    <string name="location_why_not_now">לא עכשיו</string>
 </resources>

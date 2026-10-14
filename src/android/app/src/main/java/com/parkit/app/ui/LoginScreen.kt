@@ -211,7 +211,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
                 } else {
                     Text(stringResource(R.string.login_code_title), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        stringResource(R.string.login_code_body, "\u2066$target\u2069"),
+                        stringResource(R.string.login_code_body, "\u2066${displayTarget(target)}\u2069"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp, bottom = 14.dp),
@@ -279,6 +279,18 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 14.dp),
         )
+        val context = androidx.compose.ui.platform.LocalContext.current
+        Text(
+            stringResource(R.string.login_agree),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = { LegalLinks.open(context, LegalLinks.TERMS) }) { Text(stringResource(R.string.legal_terms), style = MaterialTheme.typography.labelMedium) }
+            TextButton(onClick = { LegalLinks.open(context, LegalLinks.PRIVACY) }) { Text(stringResource(R.string.legal_privacy), style = MaterialTheme.typography.labelMedium) }
+        }
     }
 }
 
@@ -298,4 +310,12 @@ private fun LoginMethodToggle(byEmail: Boolean, onSelect: (Boolean) -> Unit) {
             shape = SegmentedButtonDefaults.itemShape(1, 2),
         ) { Text(stringResource(R.string.login_by_phone)) }
     }
+}
+
+/** "+972501234567" → "050-123-4567", the way Israelis write their number;
+ * email addresses pass through unchanged. */
+internal fun displayTarget(target: String): String {
+    val m = Regex("""^\+972(5\d)(\d{3})(\d{4})$""").matchEntire(target) ?: return target
+    val (prefix, mid, end) = m.destructured
+    return "0$prefix-$mid-$end"
 }

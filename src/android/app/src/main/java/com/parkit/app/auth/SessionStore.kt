@@ -46,6 +46,30 @@ class SessionStore(context: Context) {
         get() = prefs.getString(KEY_LAST_LEVEL, null)
         set(value) = prefs.edit().putString(KEY_LAST_LEVEL, value).apply()
 
+    /** Where the driver left the car ("I parked"), so the map can walk them
+     * back to it and turn leaving into a one-tap report. Cleared on sign-out. */
+    var parkedCar: ParkedCar?
+        get() {
+            if (!prefs.contains(KEY_CAR_AT)) return null
+            return ParkedCar(
+                lat = prefs.getString(KEY_CAR_LAT, null)?.toDoubleOrNull() ?: return null,
+                lng = prefs.getString(KEY_CAR_LNG, null)?.toDoubleOrNull() ?: return null,
+                at = prefs.getLong(KEY_CAR_AT, 0L),
+                address = prefs.getString(KEY_CAR_ADDRESS, null),
+                spotType = prefs.getString(KEY_CAR_TYPE, null) ?: "street",
+            )
+        }
+        set(value) {
+            val e = prefs.edit()
+            if (value == null) {
+                e.remove(KEY_CAR_LAT).remove(KEY_CAR_LNG).remove(KEY_CAR_AT).remove(KEY_CAR_ADDRESS).remove(KEY_CAR_TYPE)
+            } else {
+                e.putString(KEY_CAR_LAT, value.lat.toString()).putString(KEY_CAR_LNG, value.lng.toString())
+                    .putLong(KEY_CAR_AT, value.at).putString(KEY_CAR_ADDRESS, value.address).putString(KEY_CAR_TYPE, value.spotType)
+            }
+            e.apply()
+        }
+
     /** When the app last went to the background (0 = never / signed out). */
     var leftAppAt: Long
         get() = prefs.getLong(KEY_LEFT_APP_AT, 0L)
@@ -137,6 +161,11 @@ class SessionStore(context: Context) {
         private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_ONBOARDING_SEEN = "onboarding_seen"
         private const val KEY_LEFT_APP_AT = "left_app_at"
+        private const val KEY_CAR_LAT = "car_lat"
+        private const val KEY_CAR_LNG = "car_lng"
+        private const val KEY_CAR_AT = "car_at"
+        private const val KEY_CAR_ADDRESS = "car_address"
+        private const val KEY_CAR_TYPE = "car_spot_type"
         private const val KEY_LAST_LEVEL = "last_seen_level"
         private const val KEY_VEHICLE_SIZE = "vehicle_size"
         private const val KEY_CAR_LABEL = "car_label"
@@ -146,3 +175,5 @@ class SessionStore(context: Context) {
         private const val KEY_HOME_LNG = "home_lng"
     }
 }
+
+data class ParkedCar(val lat: Double, val lng: Double, val at: Long, val address: String?, val spotType: String = "street")

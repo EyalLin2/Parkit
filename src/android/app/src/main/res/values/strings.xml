@@ -163,7 +163,7 @@
     <string name="settings_map_data">Map data</string>
     <string name="settings_map_data_value">© OpenStreetMap</string>
     <string name="settings_logout_confirm_title">Log out?</string>
-    <string name="settings_logout_confirm_body">You can log back in anytime with your name.</string>
+    <string name="settings_logout_confirm_body">You can sign back in any time with a code to your phone or email.</string>
     <string name="settings_cancel">Cancel</string>
     <string name="map_spot_kind_regular">Regular spot</string>
     <string name="map_spot_kind_disabled">Disabled parking</string>
@@ -421,4 +421,25 @@
     <string name="content_report_user">The user\'s name is offensive</string>
     <string name="content_report_other">Something else</string>
     <string name="content_report_sent">Thanks, your report was sent and we\'ll review it</string>
+    <string name="map_empty_show_lots">Show car parks</string>
+    <string name="map_empty_invite">Invite friends</string>
+    <string name="map_open_profile_cd">My profile</string>
+    <string name="report_blue_white">Blue-white curb (paid)</string>
+    <string name="spot_blue_white">Blue-white curb · paid, you can use Pango</string>
+    <string name="spot_blue_white_short">Blue-white</string>
+    <string name="car_park_here">I parked here</string>
+    <string name="car_saved">Saved where you parked</string>
+    <string name="car_card_title">Your car · %1$s</string>
+    <string name="car_navigate">Walk to car</string>
+    <string name="car_leaving">I\'m leaving</string>
+    <string name="car_leaving_thanks">Thanks! Your spot is now shown to other drivers</string>
+    <string name="car_forget_cd">Forget where the car is</string>
+    <string name="car_just_now">just now</string>
+    <string name="legal_privacy">Privacy policy</string>
+    <string name="legal_terms">Terms of use</string>
+    <string name="login_agree">By signing in you agree to the terms of use and privacy policy</string>
+    <string name="location_why_title">Where are you now?</string>
+    <string name="location_why_body">ParkIt uses your location only while the app is open: to show free spots near you, and to make sure reports come from someone actually at the spot. We never track you in the background.</string>
+    <string name="location_why_continue">Continue</string>
+    <string name="location_why_not_now">Not now</string>
 </resources>

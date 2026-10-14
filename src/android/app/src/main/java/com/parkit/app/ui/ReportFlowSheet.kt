@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.FaceRetouchingOff
 import androidx.compose.material.icons.filled.LocationOn
@@ -107,6 +109,9 @@ fun ReportFlowSheet(
     var uploading by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf("street") }
     var selectedVehicleSize by remember { mutableStateOf(defaultVehicleSize ?: "regular") }
+    // Optional, off by default: one tap if the curb is blue-white (paid).
+    // Deliberately not a required question — the form stays short.
+    var blueWhite by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -161,7 +166,7 @@ fun ReportFlowSheet(
                         lat = lat,
                         lng = lng,
                         spotType = selectedType,
-                        payment = "free",
+                        payment = if (blueWhite && selectedType == "street") "paid" else "free",
                         vehicleSize = selectedVehicleSize,
                         photoStagingId = stagingId,
                         address = streetAddress,
@@ -243,6 +248,21 @@ fun ReportFlowSheet(
                     selected = selectedType == "disabled",
                     onClick = { selectedType = "disabled" },
                     modifier = Modifier.weight(1f),
+                )
+            }
+            if (selectedType == "street") {
+                androidx.compose.material3.FilterChip(
+                    selected = blueWhite,
+                    onClick = { blueWhite = !blueWhite },
+                    label = { Text(stringResource(R.string.report_blue_white)) },
+                    leadingIcon = {
+                        Icon(
+                            if (blueWhite) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    modifier = Modifier.padding(top = 10.dp),
                 )
             }
 
