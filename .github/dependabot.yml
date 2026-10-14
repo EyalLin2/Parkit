@@ -1,0 +1,18 @@
+# Weekly pull requests for outdated dependencies. Each one runs the full CI,
+# so an update that breaks something is caught before it's merged.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /src/backend
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5
+  - package-ecosystem: gradle
+    directory: /src/android
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+  - package-ecosystem: docker
+    directory: /src/backend
+    schedule: {interval: weekly}

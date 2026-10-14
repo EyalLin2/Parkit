@@ -1,0 +1,42 @@
+name: Android CI
+
+# Only when the app changes: a backend-only PR shouldn't wait for Gradle.
+on:
+  push:
+    branches: [main]
+    paths: ["src/android/**", ".github/workflows/android-ci.yml"]
+  pull_request:
+    paths: ["src/android/**", ".github/workflows/android-ci.yml"]
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: src/android
+    steps:
+      - uses: actions/checkout@v4
+      # Gradle 8.14 runs on JDK 21 (25 is too new for it) — same as local builds.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      # Debug build: proves the app compiles. Lint: Android-specific bugs
+      # (missing translations, API-level misuse, accessibility).
+      - run: ./gradlew --no-daemon assembleDebug lintDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-report
+          path: src/android/app/build/reports/lint-results-debug.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parkit-debug-apk
+          path: src/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7

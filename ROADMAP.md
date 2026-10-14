@@ -20,7 +20,7 @@ testing and observability end-to-end. Day-to-day work is tracked in
 - [x] Load test + readiness review ([docs/scalability/readiness-1000.md](docs/scalability/readiness-1000.md))
 - [x] Self-hosted geocoder (no third-party rate limits)
 - [ ] Concurrency, photo-pipeline and database fixes (milestone "Ready for 1,000 users")
-- [ ] Always-on free hosting (milestone "Cloud launch")
+- [x] Always-on free hosting (Oracle Cloud VM, Caddy HTTPS)
 
 ## Phase 2 — Infrastructure as Code
 - [ ] Terraform modules (network, compute, database)
@@ -28,7 +28,10 @@ testing and observability end-to-end. Day-to-day work is tracked in
 
 ## Phase 3 — CI/CD
 - [x] Automated build & test pipeline
-- [ ] Automated deployment to dev environment
+- [x] Migrations, Docker image and Android build checked in CI
+- [x] Dependabot dependency updates
+- [ ] Automated deployment after CI passes, with health check and rollback
+- [ ] Signed release builds from tags
 
 ## Phase 4 — Orchestration
 - [ ] Kubernetes manifests / Helm chart
@@ -40,6 +43,7 @@ testing and observability end-to-end. Day-to-day work is tracked in
 - [ ] Alerting basics
 
 ## Phase 6 — Polish for presentation
-- [ ] Architecture diagrams
+- [x] Architecture diagrams
+- [x] CI/CD guide and runbooks
 - [x] README walkthrough
 - [ ] LinkedIn write-up
