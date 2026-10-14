@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.DoNotDisturbOn
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalParking
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetDefaults
@@ -293,6 +294,8 @@ private const val COLOR_CLAIMED = "#E8710A"
 private const val COLOR_LEGEND = "#7B3FE4"
 
 private val SHEET_PEEK = 114.dp
+// Empty map: tall enough to show the "car parks / invite friends" buttons.
+private val SHEET_PEEK_EMPTY = 178.dp
 private const val CLAIM_HOLD_MS = 120_000L // matches the backend's CLAIM_TTL_SECONDS
 
 private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
@@ -826,7 +829,7 @@ fun MapScreen(
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetPeekHeight = SHEET_PEEK + with(density) { WindowInsets.navigationBars.getBottom(density).toDp() },
+        sheetPeekHeight = (if (spotsLoaded && !spotsFailed && sortedSpots.isEmpty()) SHEET_PEEK_EMPTY else SHEET_PEEK) + with(density) { WindowInsets.navigationBars.getBottom(density).toDp() },
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetContainerColor = MaterialTheme.colorScheme.surface,
         sheetTonalElevation = 0.dp,
@@ -843,6 +846,9 @@ fun MapScreen(
                 reference = reference,
                 myUserId = myUserId,
                 prefs = driverPrefs.preferences,
+                lotsShown = showLots,
+                onShowLots = { showLots = true },
+                onInvite = { inviteFriends(context) },
                 onSpotClick = { spot ->
                     flyTo(LatLng(spot.lat, spot.lng), 16.5)
                     selectedSpot = spot
@@ -1266,6 +1272,9 @@ private fun NearbySheet(
     prefs: com.parkit.app.api.Preferences,
     failed: Boolean,
     onRetry: () -> Unit,
+    lotsShown: Boolean,
+    onShowLots: () -> Unit,
+    onInvite: () -> Unit,
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1315,6 +1324,26 @@ private fun NearbySheet(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+        // An empty map is where a new driver gives up: offer the car parks
+        // that are always there, and the one thing that fills the map —
+        // more drivers nearby.
+        if (loaded && spots.isEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+            ) {
+                if (!lotsShown) {
+                    androidx.compose.material3.FilledTonalButton(onClick = onShowLots, shape = RoundedCornerShape(50), modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.LocalParking, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(stringResource(R.string.map_empty_show_lots), maxLines = 1, modifier = Modifier.padding(start = 6.dp))
+                    }
+                }
+                androidx.compose.material3.Button(onClick = onInvite, shape = RoundedCornerShape(50), modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text(stringResource(R.string.map_empty_invite), maxLines = 1, modifier = Modifier.padding(start = 6.dp))
+                }
             }
         }
         if (spots.isNotEmpty()) {
@@ -1606,4 +1635,13 @@ private fun BrandedMapLoader() {
             Image(painter = painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.size(26.dp))
         }
     }
+}
+
+/** The same invite as Settings → "Invite friends", one tap from an empty map. */
+private fun inviteFriends(context: android.content.Context) {
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, context.getString(R.string.profile_share_message))
+    }
+    context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.profile_share_title)))
 }

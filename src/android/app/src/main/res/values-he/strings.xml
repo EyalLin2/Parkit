@@ -430,4 +430,6 @@
     <string name="content_report_user">שם המשתמש פוגעני</string>
     <string name="content_report_other">משהו אחר</string>
     <string name="content_report_sent">תודה, הדיווח נשלח ונבדוק אותו</string>
+    <string name="map_empty_show_lots">הצג חניונים</string>
+    <string name="map_empty_invite">הזמן חברים</string>
 </resources>

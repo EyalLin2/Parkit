@@ -421,4 +421,6 @@
     <string name="content_report_user">The user\'s name is offensive</string>
     <string name="content_report_other">Something else</string>
     <string name="content_report_sent">Thanks, your report was sent and we\'ll review it</string>
+    <string name="map_empty_show_lots">Show car parks</string>
+    <string name="map_empty_invite">Invite friends</string>
 </resources>
