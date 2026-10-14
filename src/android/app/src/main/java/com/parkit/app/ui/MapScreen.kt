@@ -59,7 +59,6 @@ import androidx.compose.material.icons.filled.DoNotDisturbOn
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.LocalCarWash
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.LocalCafe
@@ -1159,7 +1158,7 @@ fun MapScreen(
                     .clickable { showSignReader = true },
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.DocumentScanner, contentDescription = stringResource(R.string.sign_title), tint = MaterialTheme.colorScheme.primary)
+                    Box(Modifier.semantics { contentDescription = context.getString(R.string.sign_title) }) { SignScanIcon(30.dp, animate = false) }
                 }
             }
             // "AI" tag on the sign-reader button, so it reads as a smart feature.

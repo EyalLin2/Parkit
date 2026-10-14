@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DoNotDisturbOn
-import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,7 +40,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.drawText
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.parkit.app.R
 import com.parkit.app.api.ApiService
@@ -135,7 +137,7 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
                     )
                 }
                 else -> {
-                    Icon(Icons.Filled.DocumentScanner, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp))
+                    SignScanIcon(72.dp)
                     androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 10.dp)) {
                         Text(stringResource(R.string.sign_title), style = MaterialTheme.typography.titleLarge)
                         AiBadge(Modifier.padding(start = 8.dp))
@@ -179,5 +181,48 @@ fun AiBadge(modifier: Modifier = Modifier) {
             .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6))))
             .padding(horizontal = 7.dp, vertical = 2.dp),
     )
+}
+
+/** A blue parking sign with a "P", inside scanner corners, a scan line
+ * sweeping over it — "point the camera at the sign", at a glance. */
+@Composable
+fun SignScanIcon(size: androidx.compose.ui.unit.Dp, animate: Boolean = true) {
+    val sweep = if (animate) {
+        androidx.compose.animation.core.rememberInfiniteTransition(label = "scan").animateFloat(
+            initialValue = 0.2f,
+            targetValue = 0.8f,
+            animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                androidx.compose.animation.core.tween(1400),
+                androidx.compose.animation.core.RepeatMode.Reverse,
+            ),
+            label = "line",
+        ).value
+    } else {
+        0.5f
+    }
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val pStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontWeight = FontWeight.Black, fontSize = (size.value * 0.36f).sp)
+    androidx.compose.foundation.Canvas(Modifier.size(size)) {
+        val w = this.size.width
+        val corner = w * 0.26f
+        val stroke = w * 0.07f
+        val bracket = Color(0xFF1B4F91)
+        // Scanner corners.
+        for ((x, y, dx, dy) in listOf(
+            listOf(0f, 0f, 1f, 1f), listOf(w, 0f, -1f, 1f), listOf(0f, w, 1f, -1f), listOf(w, w, -1f, -1f),
+        )) {
+            drawLine(bracket, androidx.compose.ui.geometry.Offset(x, y + dy * stroke / 2), androidx.compose.ui.geometry.Offset(x + dx * corner, y + dy * stroke / 2), stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawLine(bracket, androidx.compose.ui.geometry.Offset(x + dx * stroke / 2, y), androidx.compose.ui.geometry.Offset(x + dx * stroke / 2, y + dy * corner), stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        }
+        // The parking sign.
+        val inset = w * 0.2f
+        val sign = w - 2 * inset
+        drawRoundRect(Color(0xFF1565C0), androidx.compose.ui.geometry.Offset(inset, inset), androidx.compose.ui.geometry.Size(sign, sign), androidx.compose.ui.geometry.CornerRadius(sign * 0.18f))
+        val text = measurer.measure("P", pStyle)
+        drawText(text, topLeft = androidx.compose.ui.geometry.Offset((w - text.size.width) / 2f, (w - text.size.height) / 2f))
+        // Scan line.
+        val y = w * sweep
+        drawLine(Color(0xFFE53935), androidx.compose.ui.geometry.Offset(w * 0.08f, y), androidx.compose.ui.geometry.Offset(w * 0.92f, y), w * 0.045f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
 }
 
