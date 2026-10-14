@@ -6,7 +6,9 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.parkit.app.R
 
@@ -80,14 +82,36 @@ fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
                         )
                         .padding(vertical = 22.dp, horizontal = 8.dp),
                 ) {
-                    androidx.compose.material3.Text(
-                        androidx.compose.ui.res.stringResource(app.label),
-                        style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        color = androidx.compose.ui.graphics.Color.White,
-                    )
+                    androidx.compose.foundation.layout.Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        androidx.compose.material3.Text(
+                            androidx.compose.ui.res.stringResource(app.label),
+                            style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = androidx.compose.ui.graphics.Color.White,
+                        )
+                        BlueWhiteCurb(androidx.compose.ui.Modifier.padding(top = 8.dp).fillMaxWidth(0.62f).height(7.dp))
+                    }
                 }
             }
+        }
+    }
+}
+
+/** A strip of blue-white painted curb — Israel's sign for paid street parking. */
+@androidx.compose.runtime.Composable
+fun BlueWhiteCurb(modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier) {
+    androidx.compose.foundation.Canvas(modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))) {
+        val segment = size.height * 2.2f
+        var x = 0f
+        var blue = true
+        while (x < size.width) {
+            drawRect(
+                if (blue) androidx.compose.ui.graphics.Color(0xFF0D3C9E) else androidx.compose.ui.graphics.Color.White,
+                topLeft = androidx.compose.ui.geometry.Offset(x, 0f),
+                size = androidx.compose.ui.geometry.Size(segment, size.height),
+            )
+            x += segment
+            blue = !blue
         }
     }
 }
