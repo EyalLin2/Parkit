@@ -465,4 +465,6 @@
     <string name="settings_pay_app">Parking payment app</string>
     <string name="settings_pay_ask">Ask every time</string>
     <string name="pay_chooser_remember">We\'ll remember your choice. Change it any time in Settings.</string>
+    <string name="pay_installed">Installed</string>
+    <string name="pay_get_app">Get the app</string>
 </resources>

@@ -194,16 +194,22 @@ fun SettingsScreen(
                 }
             },
         )
-        "pay" -> ChoiceDialog(
-            title = stringResource(R.string.settings_pay_app),
-            options = listOf<Pair<ParkingPay.App?, String>>(null to stringResource(R.string.settings_pay_ask)) +
-                ParkingPay.App.entries.map { it to stringResource(it.label) },
-            selected = payApp,
-            onDismiss = { dialog = null },
-            onSelect = { app ->
-                dialog = null
-                payApp = app
-                ParkingPay.setPreferred(context, app)
+        "pay" -> AlertDialog(
+            onDismissRequest = { dialog = null },
+            title = { Text(stringResource(R.string.settings_pay_app)) },
+            text = {
+                PayAppTiles(selected = payApp) { app ->
+                    dialog = null
+                    payApp = app
+                    ParkingPay.setPreferred(context, app)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    dialog = null
+                    payApp = null
+                    ParkingPay.setPreferred(context, null)
+                }) { Text(stringResource(R.string.settings_pay_ask)) }
             },
         )
         "theme" -> ChoiceDialog(

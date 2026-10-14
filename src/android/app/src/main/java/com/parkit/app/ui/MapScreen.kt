@@ -1178,35 +1178,28 @@ fun MapScreen(
     }
 
     if (showPayChooser) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showPayChooser = false },
-            title = { Text(stringResource(R.string.pay_chooser_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.pay_chooser_body))
-                    Text(
-                        stringResource(R.string.pay_chooser_remember),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showPayChooser = false }) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
+                Text(stringResource(R.string.pay_chooser_title), style = MaterialTheme.typography.titleLarge)
+                Text(
+                    stringResource(R.string.pay_chooser_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+                )
+                PayAppTiles(selected = null) { app ->
+                    showPayChooser = false
+                    ParkingPay.setPreferred(context, app) // remembered; changeable in Settings
+                    ParkingPay.open(context, app)
                 }
-            },
-            confirmButton = {
-                Row {
-                    ParkingPay.App.entries.forEach { app ->
-                        androidx.compose.material3.TextButton(onClick = {
-                            showPayChooser = false
-                            ParkingPay.setPreferred(context, app) // remembered; changeable in Settings
-                            ParkingPay.open(context, app)
-                        }) { Text(stringResource(app.label)) }
-                    }
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showPayChooser = false }) { Text(stringResource(R.string.settings_cancel)) }
-            },
-        )
+                Text(
+                    stringResource(R.string.pay_chooser_remember),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 14.dp),
+                )
+            }
+        }
     }
 
     if (showReportFlow) {
