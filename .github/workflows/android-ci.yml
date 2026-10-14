@@ -26,7 +26,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       # Debug build: proves the app compiles. Lint: Android-specific bugs
       # (missing translations, API-level misuse, accessibility).
       - run: ./gradlew --no-daemon assembleDebug lintDebug
