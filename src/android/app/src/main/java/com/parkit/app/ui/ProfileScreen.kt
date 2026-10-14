@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -88,6 +89,7 @@ private const val REPORTS_PREVIEW = 4
  * header (who you are), one hero card (where you stand + what's next), then
  * flat outlined sections. Settings no longer live here at all — they have
  * their own screen behind the gear, like every mainstream app. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(
     api: ApiService,
@@ -123,6 +125,8 @@ fun ProfileScreen(
     val p = profile
     var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
     var pickAvatar by remember { mutableStateOf(false) }
+    var pickPaint by remember { mutableStateOf(false) }
+    var carPaint by remember { mutableStateOf(sessionStore.carPaint) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding(),
@@ -146,7 +150,15 @@ fun ProfileScreen(
                 item { Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
             }
         } else {
-            item { ProfileHero(p, onChangeAvatar = { pickAvatar = true }) }
+            item {
+                ProfileHero(
+                    p,
+                    onChangeAvatar = { pickAvatar = true },
+                    car = p.preferences,
+                    paint = CarPaints[carPaint.coerceIn(0, CarPaints.lastIndex)],
+                    onCarClick = { if (p.preferences.vehicleSize == null) onOpenDriver() else pickPaint = true },
+                )
+            }
             item { NextLevelCard(p, onReport = onBack) }
             // Three tabs instead of one endless scroll: what you have, how
             // you rank, what you reported. The tab bar sticks under the top.
@@ -200,6 +212,34 @@ fun ProfileScreen(
                 scope.launch { runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(id)) } }
             },
             onDismiss = { pickAvatar = false },
+        )
+    }
+    if (pickPaint) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickPaint = false },
+            title = { Text(stringResource(R.string.car_art_pick_paint)) },
+            text = {
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                ) {
+                    CarPaints.forEachIndexed { i, c ->
+                        Box(
+                            Modifier.size(40.dp).clip(CircleShape)
+                                .background(c)
+                                .border(if (i == carPaint) 3.dp else 1.dp, if (i == carPaint) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
+                                .clickable {
+                                    carPaint = i
+                                    sessionStore.carPaint = i
+                                    pickPaint = false
+                                },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { pickPaint = false; onOpenDriver() }) { Text(stringResource(R.string.car_art_edit)) }
+            },
         )
     }
 }
@@ -372,11 +412,19 @@ private fun MyReportRow(item: ActivityItem) {
  * you're doing — total points, drivers you helped park, your place this
  * week. */
 @Composable
-private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit) {
+private fun ProfileHero(
+    p: ProfileOut,
+    onChangeAvatar: () -> Unit,
+    car: com.parkit.app.api.Preferences,
+    paint: Color,
+    onCarClick: () -> Unit,
+) {
     val level = ParkItLevel.of(p.level)
     val progress = levelProgress(p)
     val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+        // Avatar with "your car" parked beside it: a nudge to add the car.
+        Box(contentAlignment = Alignment.Center) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(108.dp).clip(CircleShape).clickable(onClick = onChangeAvatar)) {
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 val stroke = 5.dp.toPx()
@@ -395,8 +443,35 @@ private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit) {
                 Icon(androidx.compose.material.icons.Icons.Filled.Edit, contentDescription = stringResource(R.string.avatar_pick_title), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(13.dp))
             }
         }
+        CarArt(
+            size = car.vehicleSize,
+            paint = paint,
+            outline = MaterialTheme.colorScheme.outline,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(x = 86.dp, y = 4.dp)
+                .width(76.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onCarClick)
+                .semantics { contentDescription = car.carLabel ?: "" },
+        )
+        if (car.vehicleSize == null) {
+            Text(
+                "+",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.BottomCenter).offset(x = 86.dp, y = (-8).dp),
+            )
+        }
+        }
         Text(isolate(p.displayName), style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
         LevelChip(level, modifier = Modifier.padding(top = 4.dp))
+        Text(
+            car.carLabel?.let { isolate(it) } ?: stringResource(if (car.vehicleSize == null) R.string.car_art_add else R.string.car_art_pick_paint),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp).clip(RoundedCornerShape(50)).clickable(onClick = onCarClick).padding(horizontal = 8.dp, vertical = 2.dp),
+        )
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
             HeroStat(p.points.toString(), stringResource(R.string.hero_points), Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outline))

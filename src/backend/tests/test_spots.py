@@ -251,3 +251,18 @@ async def test_blue_white_tick_marks_an_existing_spot_paid_but_never_unmarks_it(
 
     again = await _report(client, third)  # no tick
     assert again.json()["payment"] == "paid"
+
+
+async def test_optional_note_is_tidied_and_shown(client, make_user):
+    _, headers = await make_user("noter")
+    resp = await _report(client, headers, note="  broken glass\n by the  curb ")
+    assert resp.status_code == 201
+    spot = next(
+        s for s in (await client.get("/spots", params={**TLV, "radius_m": 500})).json() if s["id"] == resp.json()["id"]
+    )
+    assert spot["note"] == "broken glass by the curb"
+
+
+async def test_note_is_limited_in_length(client, make_user):
+    _, headers = await make_user("long-noter")
+    assert (await _report(client, headers, note="x" * 121)).status_code == 422

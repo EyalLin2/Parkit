@@ -76,6 +76,8 @@ import java.io.ByteArrayOutputStream
 
 private val Gold = Color(0xFFC9971C)
 
+private const val NOTE_MAX = 120
+
 /**
  * Reporting stays the fewest possible decisions — photo (mandatory, it's
  * what makes reports trustworthy), Regular vs Disabled, car size, confirm —
@@ -112,6 +114,8 @@ fun ReportFlowSheet(
     // Optional, off by default: one tap if the curb is blue-white (paid).
     // Deliberately not a required question — the form stays short.
     var blueWhite by remember { mutableStateOf(false) }
+    // Optional heads-up for the next driver: a hazard, a low branch…
+    var note by remember { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -170,6 +174,7 @@ fun ReportFlowSheet(
                         vehicleSize = selectedVehicleSize,
                         photoStagingId = stagingId,
                         address = streetAddress,
+                        note = note.trim().ifEmpty { null },
                         reporterLat = fix?.latitude,
                         reporterLng = fix?.longitude,
                         reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
@@ -286,6 +291,17 @@ fun ReportFlowSheet(
                     ) { Text(label, style = MaterialTheme.typography.labelLarge) }
                 }
             }
+
+            FieldLabel(stringResource(R.string.report_note_label))
+            androidx.compose.material3.OutlinedTextField(
+                value = note,
+                onValueChange = { note = it.replace('\n', ' ').take(NOTE_MAX) },
+                placeholder = { Text(stringResource(R.string.report_note_hint)) },
+                supportingText = { Text("${note.length}/$NOTE_MAX") },
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp)) }
 

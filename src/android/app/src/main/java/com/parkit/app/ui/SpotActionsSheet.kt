@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.ui.graphics.graphicsLayer
@@ -269,6 +270,7 @@ fun SpotActionsSheet(
             // 4. Details — each on its own line with an icon, in one soft
             // panel, so nothing is lost and nothing competes with the button.
             val details = buildList {
+                spot.note?.let { add(Triple(Icons.Filled.Info, stringResource(R.string.spot_note, it), Color(0xFFE37400))) }
                 spot.vehicleSize?.let { size ->
                     val label = stringResource(
                         when (size) {
@@ -398,9 +400,10 @@ fun SpotActionsSheet(
                 Column {
                     listOf(
                         "photo" to R.string.content_report_photo,
+                        "note" to R.string.content_report_note,
                         "user" to R.string.content_report_user,
                         "other" to R.string.content_report_other,
-                    ).filter { (reason, _) -> reason != "photo" || photoUrl != null }.forEach { (reason, label) ->
+                    ).filter { (reason, _) -> (reason != "photo" || photoUrl != null) && (reason != "note" || spot.note != null) }.forEach { (reason, label) ->
                         TextButton(
                             onClick = {
                                 showContentReport = false

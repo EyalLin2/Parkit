@@ -69,6 +69,8 @@ data class SpotCreate(
     @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "photo_staging_id") val photoStagingId: String? = null,
     val address: String? = null,
+    /** Optional heads-up for the next driver (max 120 chars). */
+    val note: String? = null,
     // Where the phone is — the server only accepts reports made near the spot.
     @Json(name = "reporter_lat") val reporterLat: Double? = null,
     @Json(name = "reporter_lng") val reporterLng: Double? = null,
@@ -86,6 +88,7 @@ data class SpotOut(
     @Json(name = "vehicle_size") val vehicleSize: String?,
     @Json(name = "photo_url") val photoUrl: String?,
     val address: String? = null,
+    val note: String? = null,
     val status: String,
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
@@ -97,7 +100,7 @@ data class SpotOut(
 @JsonClass(generateAdapter = true)
 data class FeedbackCreate(val type: String)
 
-/** "This photo / name is offensive" — reason is photo, user or other. */
+/** "This photo / note / name is offensive" — reason is photo, note, user or other. */
 @JsonClass(generateAdapter = true)
 data class ContentReport(val reason: String, val note: String? = null)
 

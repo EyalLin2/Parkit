@@ -98,6 +98,11 @@ class SessionStore(context: Context) {
             e.apply()
         }
 
+    /** Paint picked for the car illustration in the profile (index into CarPaints). */
+    var carPaint: Int
+        get() = device.getInt("car_paint", 0)
+        set(value) = device.edit().putInt("car_paint", value).apply()
+
     /** The post-sign-up "how ParkIt works" tips were shown on this install. */
     var tipsSeen: Boolean
         get() = device.getBoolean("tips_seen", false)

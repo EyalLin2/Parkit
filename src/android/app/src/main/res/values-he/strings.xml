@@ -105,7 +105,7 @@
     </plurals>
     <string name="profile_leaderboard_title">ליגה שבועית</string>
     <string name="profile_leaderboard_empty">עדיין אין למישהו נקודות השבוע.</string>
-    <string name="profile_top_parker">המחנה המוביל השבוע</string>
+    <string name="profile_top_parker">החונה המוביל השבוע</string>
     <string name="profile_points_suffix">%1$d נק\'</string>
     <string name="profile_rank_prefix">#%1$d</string>
     <string name="profile_language_label">שפה</string>
@@ -176,7 +176,7 @@
     <string name="report_points_reward">⁦+10⁩ נק׳</string>
     <string name="report_needs_photo">צלם תמונה כדי להמשיך</string>
     <string name="report_take_photo">צלם את החניה</string>
-    <string name="report_blurring">מטשטש פנים לשמירה על פרטיות…</string>
+    <string name="report_blurring">מטשטש פנים ולוחיות רישוי…</string>
     <string name="report_privacy_checked">נבדק לפרטיות</string>
     <string name="report_retake">צלם שוב</string>
     <string name="spot_close_cd">סגירה</string>
@@ -238,7 +238,7 @@
     <string name="driver_section_permit">חניית נכים</string>
     <string name="driver_disabled_permit">יש לי תג נכה בתוקף</string>
     <string name="driver_disabled_permit_note">הצהרה עצמית. בלי תג, חניות נכים יופיעו בסוף הרשימה ויסומנו — חניה בהן ללא תג היא עבירה.</string>
-    <string name="driver_section_area">איפה אתה חונה</string>
+    <string name="driver_section_area">איפה חונים בדרך כלל</string>
     <string name="driver_home_city">עיר מועדפת</string>
     <string name="driver_home_city_hint">המפה תיפתח כאן כשהמיקום שלך לא זמין</string>
     <string name="driver_not_set">לא נבחר</string>
@@ -308,13 +308,13 @@
     <string name="login_dev_code_title">📩 גרסת בטא — הקוד שלך</string>
     <string name="login_dev_code">הקוד שלך: %1$s · הקישו למילוי</string>
     <string name="login_phone_invalid">הזינו מספר נייד ישראלי (05X-XXXXXXX)</string>
-    <string name="login_too_many">יותר מדי ניסיונות — חכו דקה ונסו שוב</string>
+    <string name="login_too_many">רגע… חכו כמה שניות ונסו שוב</string>
     <string name="login_code_wrong">הקוד שגוי — בדקו את ה-SMS ונסו שוב</string>
     <string name="login_code_expired">פג תוקף הקוד — שלחו קוד חדש</string>
     <string name="login_terms_note">הטלפון או המייל שלך משמשים רק לכניסה. נהגים אחרים לא רואים אותם.</string>
     <string name="details_title">הפרטים שלי</string>
     <string name="details_welcome_title">ברוכים הבאים ל-ParkIt!</string>
-    <string name="details_welcome_body">כמה פרטים כדי שנדע מי אתה</string>
+    <string name="details_welcome_body">כמה פרטים כדי שנכיר אותך</string>
     <string name="details_first_name">שם פרטי</string>
     <string name="details_last_name">שם משפחה</string>
     <string name="details_email">אימייל</string>
@@ -376,7 +376,7 @@
     <string name="error_blocked">הדיווח מושהה לזמן מה אחרי כמה דיווחים שסומנו כשגויים.</string>
     <string name="error_photo_large">התמונה גדולה מדי.</string>
     <string name="error_invalid">חלק מהפרטים לא תקינים — בדקו ונסו שוב.</string>
-    <string name="error_too_many">יותר מדי ניסיונות — חכו דקה ונסו שוב.</string>
+    <string name="error_too_many">רגע… חכו כמה שניות ונסו שוב.</string>
     <string name="error_unavailable">השירות לא זמין כרגע. נסו שוב בקרוב.</string>
     <string name="error_with_code">%1$s (%2$s)</string>
     <string name="feedback_title">שליחת משוב</string>
@@ -387,57 +387,57 @@
     <string name="feedback_thanks_title">תודה!</string>
     <string name="feedback_thanks_body">אנחנו קוראים כל הודעה.</string>
     <string name="intro_find_title">חניות רחוב פנויות, עכשיו</string>
-    <string name="intro_find_body">נהגים שעוזבים חניה מדווחים עליה — ואתם רואים אותה על המפה, הקרובות והטריות קודם.</string>
+    <string name="intro_find_body">נהגים שעוזבים חניה מדווחים — ואתם רואים אותה על המפה.</string>
     <string name="intro_report_title">עוזבים חניה? לחיצה אחת.</string>
-    <string name="intro_report_body">מצלמים — פנים ולוחיות מטושטשים אוטומטית — ומקבלים ‎+10 נקודות.</string>
+    <string name="intro_report_body">מצלמים, מדווחים, מקבלים ‎+10 נקודות.</string>
     <string name="intro_climb_title">עולים ברמות</string>
-    <string name="intro_climb_body">תגים, ליגה שבועית בעיר שלכם ומסגרת משלכם לפין, ככל שעוזרים ליותר נהגים לחנות.</string>
+    <string name="intro_climb_body">תגים, ליגה שבועית ומסגרת לפין.</string>
     <string name="intro_next">הבא</string>
     <string name="intro_start">יאללה</string>
-    <string name="intro_welcome_body">חניות רחוב פנויות בכל הארץ, מדווחות בזמן אמת על ידי נהגים כמוך.</string>
+    <string name="intro_welcome_body">חניות פנויות בכל הארץ, מנהגים כמוך.</string>
     <string name="intro_choose_language">בחרו שפה</string>
     <string name="intro_how_it_works">איך זה עובד</string>
     <string name="intro_go_title">לוחצים, מנווטים, נוסעים</string>
-    <string name="intro_go_body">רואים כמה החניה טרייה ולאיזה רכב היא מתאימה. לוחצים \"אני בדרך\" — הניווט נפתח ונהגים אחרים רואים שמישהו בדרך. 🔥 = אזור עמוס, ייתכן שהחניה תיתפס. אף פעם לא ממהרים.</string>
+    <string name="intro_go_body">לוחצים \"אני בדרך\" — והניווט נפתח.</string>
     <string name="hero_helped_hint">בכל פעם שנהג לוחץ "חניתי כאן" על חניה שדיווחת — המספר עולה.</string>
     <string name="tips_header">איך משתמשים ב-ParkIt</string>
     <string name="tips_done">הבנתי, יאללה</string>
     <string name="tip_map_title">קוראים את המפה</string>
-    <string name="tip_map_body">כל סיכה היא חניה פנויה. ירוק כהה = דווחה עכשיו, בהיר = מחכה כבר זמן מה. המספר הוא דקות מאז הדיווח. כתום = מישהו כבר בדרך.</string>
+    <string name="tip_map_body">כל סיכה = חניה פנויה. ירוק כהה = חדשה. כתום = מישהו בדרך.</string>
     <string name="tip_tag_fresh">2 דק׳</string>
     <string name="tip_tag_old">40 דק׳</string>
     <string name="tip_cap_fresh">טרייה</string>
     <string name="tip_cap_old">ותיקה</string>
     <string name="tip_cap_claimed">מישהו בדרך</string>
     <string name="tip_hot_title">🔥 אזור לוהט</string>
-    <string name="tip_hot_body">להבות אומרות שחניות שם נתפסות בדרך כלל תוך דקות, אז ייתכן שתיתפס עד שתגיעו. זה מידע — אף פעם לא סיבה למהר. סעו בבטחה.</string>
+    <string name="tip_hot_body">כאן חניות נתפסות מהר. זה רק מידע — אין צורך למהר.</string>
     <string name="tip_go_title">בדרך לחניה</string>
-    <string name="tip_go_body">לוחצים על סיכה ואז \"אני בדרך\". הניווט נפתח ונהגים אחרים רואים שמישהו בדרך. מכינים הכל לפני הנסיעה — לא נוגעים בטלפון בכביש.</string>
+    <string name="tip_go_body">לוחצים על סיכה ← \"אני בדרך\". הניווט נפתח לבד.</string>
     <string name="tip_report_title">יוצאים? דווחו</string>
-    <string name="tip_report_body">משחררים חניה פנויה? לוחצים \"דווח על חניה כאן\" — כשהרכב עומד. תמונה שווה נקודות נוספות; פנים ולוחיות רישוי מטושטשים אוטומטית.</string>
-    <string name="tip_photo_points">תמונה = נקודות נוספות</string>
-    <string name="tip_close_title">סוגרים מעגל, עולים רמה</string>
-    <string name="tip_close_body">כשמגיעים, לוחצים \"חניתי כאן\" או \"כבר תפוסה\" — ככה המפה נשארת אמינה. כל דיווח ותשובה שווים נקודות, וכל רמה מקבלת מסגרת חדשה לסיכה.</string>
+    <string name="tip_report_body">עוזבים חניה? מצלמים ומדווחים. ‎+10 נקודות.</string>
+    <string name="tip_photo_points">פנים ולוחיות מטושטשים</string>
+    <string name="tip_close_title">סוגרים מעגל</string>
+    <string name="tip_close_body">הגעתם? לחצו \"חניתי כאן\" או \"כבר תפוסה\".</string>
     <string name="settings_tips">איך משתמשים ב-ParkIt</string>
     <string name="location_off">המיקום בטלפון כבוי</string>
     <string name="location_turn_on">להפעלה</string>
     <string name="report_too_far">אפשר לדווח רק על חניה שנמצאת לידך</string>
     <string name="report_needs_location">כדי לדווח על חניה צריך להפעיל מיקום</string>
     <string name="report_go_to_me">למיקום שלי</string>
-    <string name="content_report_action">דיווח על תמונה או משתמש פוגעניים</string>
+    <string name="content_report_action">דיווח על תוכן או משתמש פוגעניים</string>
     <string name="content_report_title">מה הבעיה?</string>
     <string name="content_report_photo">התמונה פוגענית או לא מתאימה</string>
     <string name="content_report_user">שם המשתמש פוגעני</string>
     <string name="content_report_other">משהו אחר</string>
     <string name="content_report_sent">תודה, הדיווח נשלח ונבדוק אותו</string>
-    <string name="map_empty_show_lots">הצג חניונים</string>
+    <string name="map_empty_show_lots">הצג חניות בתשלום</string>
     <string name="map_empty_invite">הזמן חברים</string>
     <string name="map_open_profile_cd">הפרופיל שלי</string>
     <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>
     <string name="spot_blue_white">כחול־לבן · בתשלום, אפשר דרך פנגו</string>
     <string name="spot_blue_white_short">כחול־לבן</string>
-    <string name="car_park_here">חניתי כאן</string>
-    <string name="car_saved">שמרנו איפה חנית</string>
+    <string name="car_park_here">שמור איפה חניתי</string>
+    <string name="car_saved">הרכב סומן על המפה. כשתצא, לחץ \"אני יוצא מהחניה\" — והחניה תעבור לנהג הבא.</string>
     <string name="car_card_title">הרכב שלך · %1$s</string>
     <string name="car_navigate">ללכת לרכב</string>
     <string name="car_leaving">אני יוצא מהחניה</string>
@@ -451,4 +451,11 @@
     <string name="location_why_body">ParkIt משתמשת במיקום רק כשהאפליקציה פתוחה: כדי להראות חניות פנויות לידך, ולוודא שדיווחים מגיעים ממי שבאמת נמצא ליד החניה. איננו עוקבים אחריך ברקע.</string>
     <string name="location_why_continue">המשך</string>
     <string name="location_why_not_now">לא עכשיו</string>
+    <string name="report_note_label">הערה לנהג הבא (לא חובה)</string>
+    <string name="report_note_hint">למשל: זכוכית שבורה, ענף נמוך, חניה צרה</string>
+    <string name="spot_note">הערת המדווח: %1$s</string>
+    <string name="content_report_note">ההערה פוגענית</string>
+    <string name="car_art_add">הוסיפו את הרכב שלכם</string>
+    <string name="car_art_pick_paint">איזה צבע הרכב?</string>
+    <string name="car_art_edit">עריכת הרכב</string>
 </resources>

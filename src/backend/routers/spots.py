@@ -27,7 +27,7 @@ CLAIM_TTL_SECONDS = 120
 NEARBY_LIMIT = 50
 RECONCILE_EVERY_SECONDS = 15
 SPOT_TTL_MINUTES = 30  # the same for everyone: a stale spot helps no one
-REPORT_COOLDOWN_SECONDS = 120
+REPORT_COOLDOWN_SECONDS = 30
 CANCEL_WINDOW_MINUTES = 2
 DEDUP_RADIUS_M = 15
 SAME_SPOT_WINDOW_SECONDS = 600
@@ -130,6 +130,7 @@ async def report_spot(
     # label is only a fallback for areas our OSM tables don't cover.
     address = (await reverse_cached(db, redis, payload.lat, payload.lng, "he")).street
     address = address or (payload.address or "").strip() or None
+    note = " ".join((payload.note or "").split()) or None
 
     origin = ST_SetSRID(ST_MakePoint(payload.lng, payload.lat), 4326)
     # Serialise reports around the same place (≈100 m cell) for the rest of
@@ -154,6 +155,8 @@ async def report_spot(
         existing.hot_minutes = hot
         if existing.address is None and address:
             existing.address = address
+        if note:
+            existing.note = note  # the latest heads-up is the one that matters
         # "Blue-white" is an optional tick, so a report without it says
         # nothing about the curb: it can mark a spot paid, never un-mark it.
         if payload.payment == Payment.paid:
@@ -171,6 +174,7 @@ async def report_spot(
             payment=payload.payment,
             vehicle_size=payload.vehicle_size,
             address=address,
+            note=note,
             ttl_minutes=SPOT_TTL_MINUTES,
             hot_minutes=hot,
         )
@@ -297,11 +301,17 @@ async def report_content(
         delete_photo(spot.photo_url)
         spot.photo_url = None
         photo_removed = True
+    reported_note = spot.note
+    note_removed = False
+    if payload.reason == "note" and spot.note:
+        spot.note = None
+        note_removed = True
 
     who = (reporter.display_name or "?") if reporter else "deleted user"
     message = (
         f"Content report: {payload.reason}\nSpot {spot.id} ({spot.address or f'{spot.lat:.5f},{spot.lng:.5f}'})"
         f"\nPosted by: {who} ({spot.reporter_id})\nPhoto removed: {'yes' if photo_removed else 'no'}"
+        f"\nSpot note: {reported_note or '-'} (removed: {'yes' if note_removed else 'no'})"
     )
     if payload.note:
         message += f"\nNote: {payload.note.strip()}"

@@ -295,6 +295,9 @@ private const val LAYER_PINS = "spots-pins"
 private const val SOURCE_LOTS = "parking-lots"
 private const val LAYER_LOTS = "parking-lots-pins"
 private const val LOT_ICON = "lot-pin"
+private const val SOURCE_CAR = "parked-car"
+private const val LAYER_CAR = "parked-car-pin"
+private const val CAR_ICON = "car-pin"
 private const val LOTS_RADIUS_M = 1500
 private const val COLOR_FREE = "#188038"
 private const val COLOR_MINE = "#1B4F91"
@@ -880,6 +883,12 @@ fun MapScreen(
         s.getSourceAs<GeoJsonSource>(SOURCE_LOTS)?.setGeoJson(FeatureCollection.fromFeatures(features))
     }
 
+    LaunchedEffect(style, parkedCar) {
+        val s = style ?: return@LaunchedEffect
+        val features = parkedCar?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat))) } ?: emptyList()
+        s.getSourceAs<GeoJsonSource>(SOURCE_CAR)?.setGeoJson(FeatureCollection.fromFeatures(features))
+    }
+
     // Push spot data into the map whenever it, the filter, or the selection changes.
     LaunchedEffect(style, visibleSpots, selectedSpot?.id) {
         val s = style ?: return@LaunchedEffect
@@ -1094,6 +1103,7 @@ fun MapScreen(
                                 scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_needs_location)) }
                             } else {
                                 rememberCar(LatLng(fix.latitude, fix.longitude), null)
+                                flyTo(LatLng(fix.latitude, fix.longitude))
                                 scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.car_saved)) }
                             }
                         },
@@ -1214,6 +1224,16 @@ private fun installSpotLayers(context: android.content.Context, style: Style, da
             // Age is shown by the pin's shade of green (see freshnessGreen),
             // so pins stay fully opaque and readable.
             PropertyFactory.symbolSortKey(Expression.get("age")),
+        ),
+    )
+    // Your parked car, on top of everything.
+    style.addImage(CAR_ICON, MarkerBitmaps.carPin(context))
+    style.addSource(GeoJsonSource(SOURCE_CAR, FeatureCollection.fromFeatures(emptyList())))
+    style.addLayer(
+        SymbolLayer(LAYER_CAR, SOURCE_CAR).withProperties(
+            PropertyFactory.iconImage(CAR_ICON),
+            PropertyFactory.iconAllowOverlap(true),
+            PropertyFactory.iconIgnorePlacement(true),
         ),
     )
 }
@@ -1753,7 +1773,8 @@ private fun ParkedCarCard(
     val since = if (now - car.at < android.text.format.DateUtils.MINUTE_IN_MILLIS) {
         stringResource(R.string.car_just_now)
     } else {
-        android.text.format.DateUtils.getRelativeTimeSpanString(car.at, now, android.text.format.DateUtils.MINUTE_IN_MILLIS).toString()
+        // Our own plurals: the platform's Hebrew output reads "לפני דקה (1)".
+        MarkerBitmaps.relativeTimeLong(LocalContext.current, java.time.Instant.ofEpochMilli(car.at).toString())
     }
     Surface(
         shape = RoundedCornerShape(20.dp),

@@ -104,6 +104,8 @@ class Spot(Base):
     # client at report time — stored once so every viewer's nearby list can
     # show it without each client re-geocoding every spot.
     address: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Optional heads-up from the reporter ("broken glass", "low branch").
+    note: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     status: Mapped[SpotStatus] = mapped_column(Enum(SpotStatus, name="spot_status"), default=SpotStatus.active)
     # How long the report stays on the map; set from the reporter's level
