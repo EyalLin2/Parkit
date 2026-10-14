@@ -521,4 +521,13 @@
         <item quantity="two">At this hour a spot frees up here about every %d min</item>
         <item quantity="other">At this hour a spot frees up here about every %d min</item>
     </plurals>
+    <string name="car_bt_setting">Automatic parking detection</string>
+    <string name="car_bt_setting_sub">From your car\'s Bluetooth — no location tracking</string>
+    <string name="car_bt_off">Off</string>
+    <string name="car_bt_pick">Which device is your car?</string>
+    <string name="car_bt_channel">Parked / leaving</string>
+    <string name="car_bt_park_title">Parked? 🚗</string>
+    <string name="car_bt_park_text">One tap and we\'ll remember where your car is.</string>
+    <string name="car_bt_leave_title">Leaving your spot?</string>
+    <string name="car_bt_leave_text">One tap hands it to the next driver · +15</string>
 </resources>

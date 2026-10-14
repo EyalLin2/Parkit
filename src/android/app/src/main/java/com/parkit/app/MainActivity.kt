@@ -33,6 +33,18 @@ import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 
 class MainActivity : ComponentActivity() {
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        takeCarAction(intent)
+    }
+
+    private fun takeCarAction(intent: android.content.Intent?) {
+        intent?.getStringExtra(com.parkit.app.remind.CarBluetooth.EXTRA_ACTION)?.let {
+            com.parkit.app.remind.CarBluetooth.pendingAction.value = it
+            intent.removeExtra(com.parkit.app.remind.CarBluetooth.EXTRA_ACTION)
+        }
+    }
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleManager.wrap(newBase))
     }
@@ -49,6 +61,7 @@ class MainActivity : ComponentActivity() {
         ThemeManager.init(this)
         com.parkit.app.api.CrashReporter.install(this)
         val sessionStore = SessionStore(this)
+        takeCarAction(intent)
 
         setContent {
             ParkItTheme {

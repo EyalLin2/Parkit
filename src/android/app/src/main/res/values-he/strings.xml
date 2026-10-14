@@ -530,4 +530,13 @@
         <item quantity="two">בשעה הזו מתפנה כאן חניה בערך כל %d דק׳</item>
         <item quantity="other">בשעה הזו מתפנה כאן חניה בערך כל %d דק׳</item>
     </plurals>
+    <string name="car_bt_setting">זיהוי חניה אוטומטי</string>
+    <string name="car_bt_setting_sub">לפי ה-Bluetooth של הרכב — בלי מעקב מיקום</string>
+    <string name="car_bt_off">כבוי</string>
+    <string name="car_bt_pick">איזה מכשיר הוא הרכב שלך?</string>
+    <string name="car_bt_channel">חנית / יוצא</string>
+    <string name="car_bt_park_title">חנית? 🚗</string>
+    <string name="car_bt_park_text">לחיצה אחת ונשמור איפה הרכב.</string>
+    <string name="car_bt_leave_title">יוצא מהחניה?</string>
+    <string name="car_bt_leave_text">לחיצה אחת ומסרת אותה לנהג הבא · ‎+15</string>
 </resources>

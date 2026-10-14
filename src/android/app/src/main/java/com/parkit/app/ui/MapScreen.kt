@@ -901,6 +901,24 @@ fun MapScreen(
         openAd = ad
     }
 
+    // "Parked? / Leaving?" from the car's Bluetooth notification.
+    val carAction = com.parkit.app.remind.CarBluetooth.pendingAction.value
+    LaunchedEffect(carAction, deviceLocation != null) {
+        val action = carAction ?: return@LaunchedEffect
+        if (deviceLocation == null) return@LaunchedEffect // wait for a fix
+        com.parkit.app.remind.CarBluetooth.pendingAction.value = null
+        when (action) {
+            "leave" -> parkedCar?.let { leaveSpot(it) }
+            "park" -> if (parkedCar == null) {
+                currentFix()?.let { fix ->
+                    rememberCar(LatLng(fix.latitude, fix.longitude), null)
+                    flyTo(LatLng(fix.latitude, fix.longitude))
+                    snackbarHostState.showSnackbar(context.getString(R.string.car_saved))
+                }
+            }
+        }
+    }
+
     // Forecast for the area on screen (silent until there's enough history).
     var forecast by remember { mutableStateOf<com.parkit.app.api.AreaForecast?>(null) }
     LaunchedEffect(geocodeTarget) {
