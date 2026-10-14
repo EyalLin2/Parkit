@@ -282,3 +282,6 @@ data class PhotoHints(
     @Json(name = "disabled_spot") val disabledSpot: Boolean = false,
 )
 
+@JsonClass(generateAdapter = true)
+data class GoogleLogin(@Json(name = "id_token") val idToken: String)
+

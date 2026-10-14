@@ -24,6 +24,9 @@ interface ApiService {
     @POST("auth/email/request")
     suspend fun requestEmailOtp(@Body body: EmailOtpRequest): EmailOtpRequested
 
+    @POST("auth/google")
+    suspend fun googleLogin(@Body body: GoogleLogin): TokenOut
+
     @POST("auth/email/verify")
     suspend fun verifyEmailOtp(@Body body: EmailOtpVerify): TokenOut
 

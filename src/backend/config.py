@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     review_login: str = ""
     # Opens /admin/feedback (tester feedback + crash reports). Empty = closed.
     admin_token: str = ""
+    # "Sign in with Google": the OAuth *web* client ID the Android app asks
+    # Google for (the token's audience). Off while empty.
+    google_client_id: str = ""
     # Parking-sign reader (Claude vision). Off while the key is empty.
     anthropic_api_key: str = ""
     sign_reader_model: str = "claude-sonnet-5-5"

@@ -507,4 +507,7 @@
     <string name="sign_disclaimer">תשובה של AI לנהג בלי תו — היא עלולה לטעות. תמיד לבדוק את השלט עצמו.</string>
     <string name="report_auto_filled">✨ זוהה אוטומטית מהתמונה — אפשר לשנות</string>
     <string name="report_not_a_spot">נראה שבתמונה אין חניה פנויה. אם זו טעות — אפשר להמשיך, או לצלם שוב.</string>
+    <string name="login_google">המשך עם Google</string>
+    <string name="login_or">או עם קוד</string>
+    <string name="login_google_failed">הכניסה עם Google לא הצליחה. אפשר לנסות שוב, או להיכנס עם קוד.</string>
 </resources>
