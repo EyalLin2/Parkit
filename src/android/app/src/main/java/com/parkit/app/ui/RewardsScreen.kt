@@ -299,7 +299,7 @@ private fun LegendCard(
     onWear: () -> Unit,
 ) {
     SectionCard(modifier = modifier) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(10.dp).fillMaxWidth()) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(6.dp).fillMaxWidth()) {
             avatarResource(reward.key)?.let { res ->
                 androidx.compose.foundation.Image(
                     androidx.compose.ui.res.painterResource(res),
@@ -377,9 +377,12 @@ private fun PriceButton(cost: Int, balance: Int, owned: Boolean, onBuy: () -> Un
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable(enabled = false) {}.padding(horizontal = 12.dp, vertical = 8.dp),
+                .clickable(enabled = false) {}.padding(horizontal = if (compact) 10.dp else 12.dp, vertical = 8.dp),
         ) {
-            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            // No room for the lock in narrow cards — the price alone would get clipped.
+            if (!compact) {
+                Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Text(
                 // Narrow cards show just the price; wide ones say what's missing.
                 if (compact) stringResource(R.string.rewards_cost, cost) else stringResource(R.string.rewards_missing, cost - balance),
@@ -387,7 +390,7 @@ private fun PriceButton(cost: Int, balance: Int, owned: Boolean, onBuy: () -> Un
                 softWrap = false,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 6.dp),
+                modifier = Modifier.padding(start = if (compact) 0.dp else 6.dp),
             )
         }
     }
