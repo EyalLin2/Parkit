@@ -20,7 +20,7 @@ jobs:
       run:
         working-directory: src/android
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Gradle 8.14 runs on JDK 21 (25 is too new for it) — same as local builds.
       - uses: actions/setup-java@v4
         with:
