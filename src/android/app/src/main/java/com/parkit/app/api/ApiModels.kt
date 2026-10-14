@@ -285,3 +285,19 @@ data class PhotoHints(
 @JsonClass(generateAdapter = true)
 data class GoogleLogin(@Json(name = "id_token") val idToken: String)
 
+/** A local sponsored card ("ממומן"), picked by location only. */
+@JsonClass(generateAdapter = true)
+data class AdOut(
+    val id: Int,
+    val advertiser: String,
+    @Json(name = "title_he") val titleHe: String,
+    @Json(name = "title_en") val titleEn: String,
+    @Json(name = "body_he") val bodyHe: String?,
+    @Json(name = "body_en") val bodyEn: String?,
+    val category: String,
+    val lat: Double,
+    val lng: Double,
+    @Json(name = "distance_m") val distanceM: Double,
+    @Json(name = "link_url") val linkUrl: String?,
+)
+

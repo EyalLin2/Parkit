@@ -136,7 +136,10 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
                 }
                 else -> {
                     Icon(Icons.Filled.DocumentScanner, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp))
-                    Text(stringResource(R.string.sign_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 10.dp))
+                    androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 10.dp)) {
+                        Text(stringResource(R.string.sign_title), style = MaterialTheme.typography.titleLarge)
+                        AiBadge(Modifier.padding(start = 8.dp))
+                    }
                     Text(
                         stringResource(R.string.sign_intro),
                         style = MaterialTheme.typography.bodyMedium,
@@ -162,3 +165,19 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
         }
     }
 }
+
+/** "✨ AI" — marks what a model decided, so nobody mistakes it for a rule. */
+@Composable
+fun AiBadge(modifier: Modifier = Modifier) {
+    Text(
+        "✨ AI",
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = Color.White,
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6))))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
+}
+

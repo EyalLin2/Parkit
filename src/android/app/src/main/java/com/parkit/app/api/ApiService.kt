@@ -95,6 +95,12 @@ interface ApiService {
     @GET("vehicles/lookup")
     suspend fun lookupVehicle(@Query("plate") plate: String): VehicleLookupOut
 
+    @GET("ads/nearby")
+    suspend fun nearbyAd(@Query("lat") lat: Double, @Query("lng") lng: Double): AdOut?
+
+    @POST("ads/{id}/click")
+    suspend fun adClick(@Path("id") id: Int)
+
     @GET("parking-lots")
     suspend fun parkingLots(
         @Query("lat") lat: Double,

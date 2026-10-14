@@ -274,3 +274,27 @@ class Redemption(Base):
     code: Mapped[str] = mapped_column(String(12), unique=True)
     cost: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class Ad(Base):
+    """A local sponsored card ("ממומן"): a business near the driver. Chosen
+    by location only — no personal data — and sold directly to businesses
+    (added on /admin/ads)."""
+
+    __tablename__ = "ads"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    advertiser: Mapped[str] = mapped_column(String(120))
+    title_he: Mapped[str] = mapped_column(String(80))
+    title_en: Mapped[str] = mapped_column(String(80))
+    body_he: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    body_en: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    category: Mapped[str] = mapped_column(String(20), default="other")  # car_wash | garage | cafe | parking | other
+    geom: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326))
+    radius_m: Mapped[int] = mapped_column(Integer, default=1500)
+    link_url: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    active: Mapped[bool] = mapped_column(default=True)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    impressions: Mapped[int] = mapped_column(Integer, default=0)
+    clicks: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

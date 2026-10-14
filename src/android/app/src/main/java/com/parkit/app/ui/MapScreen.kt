@@ -18,6 +18,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +60,10 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.DocumentScanner
+import androidx.compose.material.icons.filled.LocalCarWash
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.BottomSheetScaffold
@@ -874,6 +879,12 @@ fun MapScreen(
         }
     }
 
+    // One sponsored card for the area on screen; nothing personal is sent.
+    var nearbyAd by remember { mutableStateOf<com.parkit.app.api.AdOut?>(null) }
+    LaunchedEffect(geocodeTarget) {
+        nearbyAd = runCatching { api.nearbyAd(geocodeTarget.latitude, geocodeTarget.longitude) }.getOrNull()
+    }
+
     LaunchedEffect(showLots, geocodeTarget) {
         if (!showLots) return@LaunchedEffect
         lots = try {
@@ -966,6 +977,16 @@ fun MapScreen(
                 lotsShown = showLots,
                 onShowLots = { showLots = true },
                 onInvite = { inviteFriends(context) },
+                ad = nearbyAd,
+                onAdClick = { ad ->
+                    scope.launch { runCatching { api.adClick(ad.id) } }
+                    val link = ad.linkUrl
+                    if (link != null) {
+                        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))) }
+                    } else {
+                        DriveTo.open(context, ad.lat, ad.lng)
+                    }
+                },
                 onSpotClick = { spot ->
                     flyTo(LatLng(spot.lat, spot.lng), 16.5)
                     selectedSpot = spot
@@ -1118,6 +1139,17 @@ fun MapScreen(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(Icons.Filled.DocumentScanner, contentDescription = stringResource(R.string.sign_title), tint = MaterialTheme.colorScheme.primary)
                 }
+            }
+            // "AI" tag on the sign-reader button, so it reads as a smart feature.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset {
+                        val top = sheetTopPx?.toInt() ?: 0
+                        IntOffset(-12.dp.roundToPx(), top - 2 * buttonSize.roundToPx() - 34.dp.roundToPx())
+                    },
+            ) {
+                AiBadge()
             }
             // Parked without a ParkIt spot? Save where the car is anyway, so
             // "where did I park" and the one-tap "I'm leaving" still work.
@@ -1542,6 +1574,8 @@ private fun NearbySheet(
     lotsShown: Boolean,
     onShowLots: () -> Unit,
     onInvite: () -> Unit,
+    ad: com.parkit.app.api.AdOut? = null,
+    onAdClick: (com.parkit.app.api.AdOut) -> Unit = {},
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1616,10 +1650,16 @@ private fun NearbySheet(
         if (spots.isNotEmpty()) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             LazyColumn(modifier = Modifier.fillMaxWidth().height(360.dp)) {
-                items(spots, key = { it.id }) { spot ->
-                    SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
+                // The card sits after the first two spots: seen, never in the way.
+                spots.forEachIndexed { index, spot ->
+                    item(key = spot.id) {
+                        SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
+                    }
+                    if (ad != null && index == minOf(1, spots.lastIndex)) item(key = "ad") { SponsoredCard(ad, onAdClick) }
                 }
             }
+        } else if (ad != null) {
+            SponsoredCard(ad, onAdClick)
         }
     }
 }
@@ -1996,4 +2036,55 @@ private fun myCarPaint(registryHex: String?, manual: Int): Color {
         ?: registryHex?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
         ?: CarPaints[0]
 }
+
+/** "ממומן": one local business, clearly labelled, one tap to go there. */
+@Composable
+private fun SponsoredCard(ad: com.parkit.app.api.AdOut, onClick: (com.parkit.app.api.AdOut) -> Unit) {
+    val context = LocalContext.current
+    val hebrew = context.resources.configuration.locales[0].language in setOf("he", "iw")
+    val icon = when (ad.category) {
+        "car_wash" -> Icons.Filled.LocalCarWash
+        "garage" -> Icons.Filled.Build
+        "cafe" -> Icons.Filled.LocalCafe
+        "parking" -> Icons.Filled.LocalParking
+        else -> Icons.Filled.Storefront
+    }
+    Surface(
+        onClick = { onClick(ad) },
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
+            Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF9AB00).copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = Color(0xFFE37400))
+            }
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (hebrew) ad.titleHe else ad.titleEn, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text(
+                        stringResource(R.string.ad_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 6.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)).padding(horizontal = 4.dp),
+                    )
+                }
+                (if (hebrew) ad.bodyHe else ad.bodyEn)?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Text(
+                    "${ad.advertiser} · ${stringResource(R.string.spot_distance_away, formatDistanceShort(context, ad.distanceM))}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+private fun formatDistanceShort(context: android.content.Context, meters: Double): String =
+    if (meters < 1000) context.getString(R.string.distance_m, (Math.round(meters / 10.0) * 10).toInt())
+    else context.getString(R.string.distance_km, meters / 1000.0)
 

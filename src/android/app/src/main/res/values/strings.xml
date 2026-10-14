@@ -501,4 +501,5 @@
     <string name="login_google">Continue with Google</string>
     <string name="login_or">or with a code</string>
     <string name="login_google_failed">Google sign-in didn\'t work. Try again, or sign in with a code.</string>
+    <string name="ad_label">Sponsored</string>
 </resources>

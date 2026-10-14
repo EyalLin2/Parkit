@@ -9,6 +9,7 @@ from database import check_postgres
 from media import MEDIA_DIR
 from ratelimit import RateLimitMiddleware
 from redis_client import check_redis
+from routers.ads import router as ads_router
 from routers.auth import router as auth_router
 from routers.feedback import router as feedback_router
 from routers.geocode import router as geocode_router
@@ -44,6 +45,7 @@ app.include_router(lots_router)
 app.include_router(feedback_router)
 app.include_router(rewards_router)
 app.include_router(signs_router)
+app.include_router(ads_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 
