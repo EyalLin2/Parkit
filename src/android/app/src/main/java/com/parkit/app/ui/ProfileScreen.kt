@@ -464,7 +464,7 @@ private fun ProfileHero(
         // Disabled permit: the blue tag on the windscreen, like the real one.
         if (car.hasDisabledPermit && car.vehicleSize != null) {
             Box(
-                modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX - 8.dp, y = -(carW / 2) + 16.dp).size(15.dp)
+                modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX - 8.dp, y = -(carW / 1.7f) + 18.dp).size(15.dp)
                     .background(Color(0xFF1565C0), RoundedCornerShape(3.dp)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -478,7 +478,7 @@ private fun ProfileHero(
         }
         // "+" when there's no car yet, a pencil once there is: the paint is editable.
         Box(
-            modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX + carW / 2, y = -(carW / 2) + 24.dp).size(22.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX + carW / 2, y = -(carW / 1.7f) + 26.dp).size(22.dp)
                 .background(MaterialTheme.colorScheme.surface, CircleShape).padding(2.dp)
                 .background(MaterialTheme.colorScheme.primary, CircleShape)
                 .clickable(onClick = onCarClick),

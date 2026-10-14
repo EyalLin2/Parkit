@@ -35,8 +35,13 @@ val CarPaints = listOf(
  */
 @Composable
 fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier.aspectRatio(2f)) {
-        if (size == null) drawGhostCar(outline) else drawCar(size, paint)
+    Canvas(modifier.aspectRatio(1.7f)) {
+        if (size == null) {
+            drawGhostCar(outline)
+        } else {
+            drawRoad()
+            drawCar(size, paint)
+        }
     }
 }
 
@@ -63,7 +68,7 @@ private fun shapeOf(kind: String) = when (kind) {
 
 private fun DrawScope.bodyPath(kind: String): Path {
     val w = size.width
-    val h = size.height
+    val h = size.height * CAR_H
     val k = shapeOf(kind)
     return Path().apply {
         moveTo(w * k.left, h * k.sill)
@@ -88,7 +93,7 @@ private fun DrawScope.bodyPath(kind: String): Path {
 
 private fun DrawScope.drawCar(kind: String, paint: Color) {
     val w = size.width
-    val h = size.height
+    val h = size.height * CAR_H
     val k = shapeOf(kind)
     val light = paint.luminance() > 0.7f
     drawOval(Color.Black.copy(alpha = 0.16f), topLeft = Offset(w * (k.left + 0.02f), h * 0.85f), size = Size(w * (k.right - k.left - 0.04f), h * 0.09f))
@@ -126,6 +131,22 @@ private fun DrawScope.drawCar(kind: String, paint: Color) {
         drawCircle(Color(0xFF202124), r * 1.02f, c)
         drawCircle(Color(0xFFBDC1C6), r * 0.52f, c)
         drawCircle(Color(0xFF5F6368), r * 0.18f, c)
+    }
+}
+
+/** The car's share of the canvas height; the road takes the strip below. */
+private const val CAR_H = 0.86f
+
+/** A short stretch of asphalt with a dashed centre line. */
+private fun DrawScope.drawRoad() {
+    val top = size.height * (CAR_H - 0.09f)
+    val roadH = size.height - top
+    drawRoundRect(Color(0xFF3C4043), Offset(0f, top), Size(size.width, roadH), CornerRadius(roadH / 2))
+    val dash = size.width * 0.09f
+    var x = size.width * 0.06f
+    while (x < size.width * 0.94f) {
+        drawRect(Color(0xFFF1F3F4), Offset(x, top + roadH * 0.62f), Size(dash, roadH * 0.12f))
+        x += dash * 1.9f
     }
 }
 
