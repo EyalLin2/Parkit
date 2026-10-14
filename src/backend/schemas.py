@@ -24,6 +24,8 @@ class SpotCreate(BaseModel):
     reporter_lat: float | None = Field(default=None, ge=-90, le=90)
     reporter_lng: float | None = Field(default=None, ge=-180, le=180)
     reporter_accuracy_m: float | None = Field(default=None, ge=0)
+    # Sent by "I'm leaving" (the driver's own saved car): +5 on top of a report.
+    handoff: bool = False
 
 
 class SpotOut(BaseModel):

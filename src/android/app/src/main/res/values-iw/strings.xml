@@ -441,7 +441,7 @@
     <string name="car_card_title">הרכב שלך · %1$s</string>
     <string name="car_navigate">ללכת לרכב</string>
     <string name="car_leaving">אני יוצא מהחניה</string>
-    <string name="car_leaving_thanks">תודה! החניה שלך מופיעה עכשיו לנהגים אחרים</string>
+    <string name="car_leaving_thanks">‎+15 נקודות! החניה שלך מופיעה עכשיו לנהגים אחרים</string>
     <string name="car_forget_cd">לשכוח את מיקום הרכב</string>
     <string name="car_just_now">עכשיו</string>
     <string name="legal_privacy">מדיניות פרטיות</string>
@@ -470,7 +470,7 @@
     <string name="car_pay">כחול-לבן? תשלום בפנגו / סלופארק</string>
     <string name="car_explain_title">חנית? שמור את הרכב</string>
     <string name="car_explain_ok">שמור את הרכב כאן</string>
-    <string name="car_explain_body">נזכור איפה הרכב. כשתצא — לחיצה אחת והחניה עוברת לנהג הבא (‎+10).</string>
+    <string name="car_explain_body">נזכור איפה הרכב. כשתצא — לחיצה אחת והחניה עוברת לנהג הבא, ואתה מקבל ‎+15 נקודות.</string>
     <string name="settings_pay_app">אפליקציית תשלום חניה</string>
     <string name="settings_pay_ask">לשאול כל פעם</string>
     <string name="pay_chooser_remember">נזכור את הבחירה. אפשר לשנות בכל רגע בהגדרות.</string>

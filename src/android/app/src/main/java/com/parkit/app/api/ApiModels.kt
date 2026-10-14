@@ -75,6 +75,8 @@ data class SpotCreate(
     @Json(name = "reporter_lat") val reporterLat: Double? = null,
     @Json(name = "reporter_lng") val reporterLng: Double? = null,
     @Json(name = "reporter_accuracy_m") val reporterAccuracyM: Float? = null,
+    /** "I'm leaving" from a saved car: the server adds a hand-off bonus. */
+    val handoff: Boolean = false,
 )
 
 @JsonClass(generateAdapter = true)

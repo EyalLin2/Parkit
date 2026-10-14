@@ -771,6 +771,7 @@ fun MapScreen(
                         reporterLat = fix?.latitude,
                         reporterLng = fix?.longitude,
                         reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
+                        handoff = true,
                     ),
                 )
                 forgetCar()

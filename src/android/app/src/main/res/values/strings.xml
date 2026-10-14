@@ -432,7 +432,7 @@
     <string name="car_card_title">Your car · %1$s</string>
     <string name="car_navigate">Walk to car</string>
     <string name="car_leaving">I\'m leaving</string>
-    <string name="car_leaving_thanks">Thanks! Your spot is now shown to other drivers</string>
+    <string name="car_leaving_thanks">+15 points! Your spot is now shown to other drivers</string>
     <string name="car_forget_cd">Forget where the car is</string>
     <string name="car_just_now">just now</string>
     <string name="legal_privacy">Privacy policy</string>
@@ -461,7 +461,7 @@
     <string name="car_pay">Blue-white? Pay in Pango / Cellopark</string>
     <string name="car_explain_title">Parked? Save your car</string>
     <string name="car_explain_ok">Save my car here</string>
-    <string name="car_explain_body">We\'ll remember where it is. When you leave, one tap hands the spot on (+10).</string>
+    <string name="car_explain_body">We\'ll remember where it is. When you leave, one tap hands the spot on, and you get +15 points.</string>
     <string name="settings_pay_app">Parking payment app</string>
     <string name="settings_pay_ask">Ask every time</string>
     <string name="pay_chooser_remember">We\'ll remember your choice. Change it any time in Settings.</string>

@@ -266,3 +266,11 @@ async def test_optional_note_is_tidied_and_shown(client, make_user):
 async def test_note_is_limited_in_length(client, make_user):
     _, headers = await make_user("long-noter")
     assert (await _report(client, headers, note="x" * 121)).status_code == 422
+
+
+async def test_leaving_your_own_spot_earns_a_handoff_bonus(client, make_user):
+    _, headers = await make_user("leaver")
+    resp = await _report(client, headers, handoff=True)
+    assert resp.status_code == 201
+    me = (await client.get("/users/me", headers=headers)).json()
+    assert me["points"] == 15

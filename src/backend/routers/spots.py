@@ -41,6 +41,9 @@ POINTS_REPORT = 10
 POINTS_CONFIRM_BONUS = 5
 POINTS_REFRESH_BONUS = 3
 POINTS_FALSE_PENALTY = 5
+# "I'm leaving" from a saved car: the driver hands their own spot to the
+# next one — the most reliable report there is, so it earns a little more.
+POINTS_HANDOFF_BONUS = 5
 CONTENT_REPORTS_PER_HOUR = 10
 # A report must come from near the spot. GPS in a street is often 20–50 m
 # off, so the phone's own accuracy is added on top — capped, so a "±5 km"
@@ -179,7 +182,7 @@ async def report_spot(
             hot_minutes=hot,
         )
         db.add(spot)
-        award_points(user, POINTS_REPORT)
+        award_points(user, POINTS_REPORT + (POINTS_HANDOFF_BONUS if payload.handoff else 0))
 
     if payload.photo_staging_id:
         await db.flush()  # assigns spot.id (a new spot's PK default runs at INSERT, not construction)
