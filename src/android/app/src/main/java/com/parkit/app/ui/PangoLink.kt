@@ -8,9 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.material.icons.filled.Payments
 import com.parkit.app.R
 
@@ -57,31 +55,21 @@ object ParkingPay {
     }
 }
 
-/** The payment app's own icon as installed on this phone — read from the
- * system at run time, so no third-party logo ships inside ParkIt. Falls back
- * to a generic card icon when the app isn't installed. */
+/** A neutral payment icon for a payment app's tile — deliberately not the
+ * app's own logo (third-party trademarks stay out of ParkIt). */
 @androidx.compose.runtime.Composable
-fun PayAppIcon(app: ParkingPay.App, size: androidx.compose.ui.unit.Dp) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val icon = androidx.compose.runtime.remember(app) {
-        runCatching { context.packageManager.getApplicationIcon(app.packageName) }.getOrNull()
-            ?.let { it.toBitmap(128, 128).asImageBitmap() }
-    }
+fun PayAppIcon(size: androidx.compose.ui.unit.Dp) {
     val shape = androidx.compose.foundation.shape.RoundedCornerShape(size * 0.24f)
-    if (icon != null) {
-        androidx.compose.foundation.Image(icon, contentDescription = null, modifier = androidx.compose.ui.Modifier.size(size).clip(shape))
-    } else {
-        androidx.compose.foundation.layout.Box(
-            androidx.compose.ui.Modifier.size(size).clip(shape).background(androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = androidx.compose.ui.Alignment.Center,
-        ) {
-            androidx.compose.material3.Icon(
-                androidx.compose.material.icons.Icons.Filled.Payments,
-                contentDescription = null,
-                tint = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = androidx.compose.ui.Modifier.size(size * 0.5f),
-            )
-        }
+    androidx.compose.foundation.layout.Box(
+        androidx.compose.ui.Modifier.size(size).clip(shape).background(androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        androidx.compose.material3.Icon(
+            androidx.compose.material.icons.Icons.Filled.Payments,
+            contentDescription = null,
+            tint = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = androidx.compose.ui.Modifier.size(size * 0.5f),
+        )
     }
 }
 
@@ -102,7 +90,7 @@ fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     modifier = androidx.compose.ui.Modifier.padding(vertical = 16.dp, horizontal = 8.dp),
                 ) {
-                    PayAppIcon(app, 52.dp)
+                    PayAppIcon(52.dp)
                     androidx.compose.material3.Text(
                         androidx.compose.ui.res.stringResource(app.label),
                         style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
