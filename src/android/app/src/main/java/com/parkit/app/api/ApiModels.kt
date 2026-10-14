@@ -97,6 +97,10 @@ data class SpotOut(
 @JsonClass(generateAdapter = true)
 data class FeedbackCreate(val type: String)
 
+/** "This photo / name is offensive" — reason is photo, user or other. */
+@JsonClass(generateAdapter = true)
+data class ContentReport(val reason: String, val note: String? = null)
+
 @JsonClass(generateAdapter = true)
 data class StagedPhotoOut(
     @Json(name = "staging_id") val stagingId: String,

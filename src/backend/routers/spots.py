@@ -16,10 +16,10 @@ from geocoder import reverse_cached
 from hotspots import hot_minutes
 from levels import level_for
 from media import delete_photo, save_photo
-from models import FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
+from models import AppFeedback, FeedbackType, Payment, RemovedReason, Spot, SpotFeedback, SpotStatus, SpotType, User
 from points import award_points, reconcile_weekly_points
 from redis_client import get_redis
-from schemas import FeedbackCreate, SpotCreate, SpotOut
+from schemas import ContentReport, FeedbackCreate, SpotCreate, SpotOut
 
 router = APIRouter(prefix="/spots", tags=["spots"])
 
@@ -41,6 +41,7 @@ POINTS_REPORT = 10
 POINTS_CONFIRM_BONUS = 5
 POINTS_REFRESH_BONUS = 3
 POINTS_FALSE_PENALTY = 5
+CONTENT_REPORTS_PER_HOUR = 10
 # A report must come from near the spot. GPS in a street is often 20–50 m
 # off, so the phone's own accuracy is added on top — capped, so a "±5 km"
 # fix can't stretch the limit across town.
@@ -260,6 +261,48 @@ async def claim_spot(
     await db.commit()
     await db.refresh(spot)
     return spot
+
+
+@router.post("/{spot_id}/report-content", status_code=204)
+async def report_content(
+    spot_id: uuid.UUID,
+    payload: ContentReport,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+) -> None:
+    """Report an offensive photo or reporter. A reported photo comes down at
+    once (the spot itself stays — it may still be a real free spot); every
+    report lands in /admin/feedback for a human to look at."""
+    key = f"content_reports:{user_id}"
+    count = await redis.incr(key)
+    if count == 1:
+        await redis.expire(key, 3600)
+    if count > CONTENT_REPORTS_PER_HOUR:
+        raise HTTPException(429, "Too many reports at once — try again later")
+
+    spot = await db.get(Spot, spot_id)
+    if spot is None:
+        raise HTTPException(404, "Spot not found")
+    if spot.reporter_id == user_id:
+        raise HTTPException(400, "Cannot report your own spot")
+    reporter = await db.get(User, spot.reporter_id)
+
+    photo_removed = False
+    if payload.reason == "photo" and spot.photo_url:
+        delete_photo(spot.photo_url)
+        spot.photo_url = None
+        photo_removed = True
+
+    who = (reporter.display_name or "?") if reporter else "deleted user"
+    message = (
+        f"Content report: {payload.reason}\nSpot {spot.id} ({spot.address or f'{spot.lat:.5f},{spot.lng:.5f}'})"
+        f"\nPosted by: {who} ({spot.reporter_id})\nPhoto removed: {'yes' if photo_removed else 'no'}"
+    )
+    if payload.note:
+        message += f"\nNote: {payload.note.strip()}"
+    db.add(AppFeedback(user_id=user_id, kind="report", message=message))
+    await db.commit()
 
 
 @router.post("/{spot_id}/feedback", status_code=204)

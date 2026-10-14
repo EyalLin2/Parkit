@@ -415,4 +415,10 @@
     <string name="report_too_far">You can only report a spot that\'s near you</string>
     <string name="report_needs_location">Turn on location to report a spot</string>
     <string name="report_go_to_me">Go to me</string>
+    <string name="content_report_action">Report an offensive photo or user</string>
+    <string name="content_report_title">What\'s wrong?</string>
+    <string name="content_report_photo">The photo is offensive or inappropriate</string>
+    <string name="content_report_user">The user\'s name is offensive</string>
+    <string name="content_report_other">Something else</string>
+    <string name="content_report_sent">Thanks, your report was sent and we\'ll review it</string>
 </resources>

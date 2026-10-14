@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -44,6 +45,14 @@ class SpotOut(BaseModel):
 
 class FeedbackCreate(BaseModel):
     type: FeedbackType
+
+
+class ContentReport(BaseModel):
+    """'This photo / this name is offensive' — Google Play requires a way to
+    report what other users post, separate from 'the spot is taken'."""
+
+    reason: Literal["photo", "user", "other"]
+    note: str | None = Field(default=None, max_length=500)
 
 
 class ActivityItem(BaseModel):
