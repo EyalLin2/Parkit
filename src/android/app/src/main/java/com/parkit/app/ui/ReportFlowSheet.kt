@@ -90,6 +90,8 @@ fun ReportFlowSheet(
     addressLabel: String?,
     streetAddress: String?,
     defaultVehicleSize: String?,
+    /** The phone's latest fix, read at the moment of sending. */
+    currentFix: () -> android.location.Location?,
     onDismiss: () -> Unit,
     onReported: () -> Unit,
     onSessionExpired: () -> Unit,
@@ -153,6 +155,7 @@ fun ReportFlowSheet(
         error = null
         scope.launch {
             try {
+                val fix = currentFix()
                 api.reportSpot(
                     SpotCreate(
                         lat = lat,
@@ -162,6 +165,9 @@ fun ReportFlowSheet(
                         vehicleSize = selectedVehicleSize,
                         photoStagingId = stagingId,
                         address = streetAddress,
+                        reporterLat = fix?.latitude,
+                        reporterLng = fix?.longitude,
+                        reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
                     ),
                 )
                 onReported()

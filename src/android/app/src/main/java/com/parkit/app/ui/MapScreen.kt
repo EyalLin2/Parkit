@@ -133,6 +133,9 @@ private const val DEFAULT_RADIUS_M = 800 // ~10 min walk; drag the pin to search
 // MapLibre zoom levels use 512px tiles — one level closer than osmdroid's
 // for the same number. 15 shows ~±400m across, matching the search radius feel.
 private const val STREET_LEVEL_ZOOM = 15.0
+// Same limit as the server (routers/spots.py): you report spots you can see.
+private const val MAX_REPORT_DISTANCE_M = 150.0
+private const val MAX_ACCURACY_ALLOWANCE_M = 100.0
 
 // Guards against snapping to an out-of-country GPS fix (e.g. an
 // emulator/device defaulting to Mountain View, CA) — see locate().
@@ -478,6 +481,48 @@ fun MapScreen(
 
     fun hasLocationPermission() = hasAnyLocation(context)
 
+    /** The phone's position right now: the blue dot keeps updating while the
+     * map is open, so prefer it over the fix taken at launch. */
+    fun currentFix(): android.location.Location? {
+        val live = try {
+            map?.locationComponent?.takeIf { it.isLocationComponentActivated }?.lastKnownLocation
+        } catch (_: Exception) {
+            null
+        }
+        return live ?: deviceLocation?.let { d ->
+            android.location.Location("cached").apply { latitude = d.latitude; longitude = d.longitude }
+        }
+    }
+
+    /** Reports must be made near the spot (the server enforces the same
+     * limit) — say so up front instead of after the photo. */
+    fun openReportFlow() {
+        val fix = currentFix()
+        val message = when {
+            fix == null -> R.string.report_needs_location
+            LatLng(fix.latitude, fix.longitude).distanceTo(geocodeTarget) >
+                MAX_REPORT_DISTANCE_M + minOf(if (fix.hasAccuracy()) fix.accuracy.toDouble() else 0.0, MAX_ACCURACY_ALLOWANCE_M) ->
+                R.string.report_too_far
+            else -> null
+        }
+        if (message == null) {
+            showReportFlow = true
+            return
+        }
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(message),
+                actionLabel = if (fix != null) context.getString(R.string.report_go_to_me) else null,
+                duration = androidx.compose.material3.SnackbarDuration.Long,
+            )
+            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed && fix != null) {
+                val here = LatLng(fix.latitude, fix.longitude)
+                geocodeTarget = here
+                flyTo(here)
+            }
+        }
+    }
+
     @SuppressLint("MissingPermission")
     fun enableLocationPuck() {
         val m = map ?: return
@@ -816,7 +861,7 @@ fun MapScreen(
             ReportHereBubble(
                 visible = !cameraMoving && mapRendered && !showReportFlow && !(locating && deviceLocation == null) &&
                     sheetState.targetValue != SheetValue.Expanded,
-                onClick = { showReportFlow = true },
+                onClick = { openReportFlow() },
                 modifier = Modifier.align(Alignment.Center),
             )
 
@@ -934,6 +979,7 @@ fun MapScreen(
             addressLabel = if (addressLoading) null else resolvedAddress,
             streetAddress = resolvedStreet,
             defaultVehicleSize = driverPrefs.preferences.vehicleSize,
+            currentFix = { currentFix() },
             onDismiss = { showReportFlow = false },
             onReported = {
                 showReportFlow = false

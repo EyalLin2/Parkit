@@ -102,7 +102,14 @@ android {
 // that does (Android Studio's JBR, 25) is too new for this Gradle version
 // to run at all. Generating a plain .kt file sidesteps the whole javac path
 // — kotlinc has no such dependency.
-val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8000/"
+//
+// A release build (what goes to Google Play) defaults to the production
+// server instead: 0.3.4 was once built without -PapiBaseUrl and silently
+// pointed every phone at 10.0.2.2.
+val productionApiUrl = "https://129-159-134-170.sslip.io/"
+val buildingRelease = gradle.startParameter.taskNames.any { it.contains("Release") }
+val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?)
+    ?: if (buildingRelease) productionApiUrl else "http://10.0.2.2:8000/"
 val generatedApiConfigDir = layout.buildDirectory.dir("generated/source/apiconfig")
 
 val generateApiConfig = tasks.register("generateApiConfig") {

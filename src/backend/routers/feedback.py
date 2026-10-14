@@ -70,6 +70,7 @@ _INBOX_CSS = (
     "td,th{border-top:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}"
     "pre{white-space:pre-wrap;margin:0;font:13px ui-monospace,monospace}"
     "tr.crash td:nth-child(2){color:#c5221f;font-weight:600}"
+    "tr.report td:nth-child(2){color:#b06000;font-weight:600}"
 )
 
 

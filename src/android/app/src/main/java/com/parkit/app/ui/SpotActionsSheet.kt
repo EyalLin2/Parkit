@@ -45,6 +45,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,6 +71,7 @@ import coil.compose.AsyncImage
 import com.parkit.app.ApiConfig
 import com.parkit.app.R
 import com.parkit.app.api.ApiService
+import com.parkit.app.api.ContentReport
 import com.parkit.app.api.FeedbackCreate
 import com.parkit.app.api.SpotAddressCache
 import com.parkit.app.api.SpotOut
@@ -118,6 +120,7 @@ fun SpotActionsSheet(
     // A photo that fails to load (e.g. deleted) falls back to the header slot.
     var photoFailed by remember { mutableStateOf(false) }
     val showHero = photoUrl != null && !photoFailed
+    var showContentReport by remember { mutableStateOf(false) }
 
     LaunchedEffect(spot.id) {
         if (address == null) address = SpotAddressCache.resolve(spot.id, spot.lat, spot.lng)
@@ -367,6 +370,19 @@ fun SpotActionsSheet(
                 }
             }
 
+            // Google Play's rule for anything users post: a way to report it.
+            if (!isMine) {
+                TextButton(
+                    onClick = { showContentReport = true },
+                    enabled = !busy,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                ) {
+                    Icon(Icons.Filled.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Text(stringResource(R.string.content_report_action), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 6.dp))
+                }
+            }
+
             if (isMine && spot.status == "active") {
                 TextButton(
                     onClick = { run { api.cancelSpot(spot.id) } },
@@ -378,6 +394,39 @@ fun SpotActionsSheet(
                 }
             }
         }
+    }
+
+    if (showContentReport) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showContentReport = false },
+            title = { Text(stringResource(R.string.content_report_title)) },
+            text = {
+                Column {
+                    listOf(
+                        "photo" to R.string.content_report_photo,
+                        "user" to R.string.content_report_user,
+                        "other" to R.string.content_report_other,
+                    ).filter { (reason, _) -> reason != "photo" || photoUrl != null }.forEach { (reason, label) ->
+                        TextButton(
+                            onClick = {
+                                showContentReport = false
+                                run {
+                                    api.reportContent(spot.id, ContentReport(reason))
+                                    android.widget.Toast.makeText(context, R.string.content_report_sent, android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(label), modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showContentReport = false }) { Text(stringResource(android.R.string.cancel)) }
+            },
+        )
     }
 
     if (photoFullScreen && photoUrl != null) {

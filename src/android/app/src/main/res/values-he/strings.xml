@@ -266,7 +266,7 @@
         <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
         <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
-    <string name="map_filter_lots">חניונים בתשלום</string>
+    <string name="map_filter_lots">חניונים</string>
     <string name="lot_unnamed">חניון</string>
     <string name="lot_kind_underground">תת-קרקעי</string>
     <string name="lot_kind_multistorey">רב-קומות</string>
@@ -421,4 +421,13 @@
     <string name="settings_tips">איך משתמשים ב-ParkIt</string>
     <string name="location_off">המיקום בטלפון כבוי</string>
     <string name="location_turn_on">להפעלה</string>
+    <string name="report_too_far">אפשר לדווח רק על חניה שנמצאת לידך</string>
+    <string name="report_needs_location">כדי לדווח על חניה צריך להפעיל מיקום</string>
+    <string name="report_go_to_me">למיקום שלי</string>
+    <string name="content_report_action">דיווח על תמונה או משתמש פוגעניים</string>
+    <string name="content_report_title">מה הבעיה?</string>
+    <string name="content_report_photo">התמונה פוגענית או לא מתאימה</string>
+    <string name="content_report_user">שם המשתמש פוגעני</string>
+    <string name="content_report_other">משהו אחר</string>
+    <string name="content_report_sent">תודה, הדיווח נשלח ונבדוק אותו</string>
 </resources>

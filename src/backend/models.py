@@ -215,7 +215,7 @@ class AppFeedback(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    kind: Mapped[str] = mapped_column(String(16))  # "feedback" | "crash"
+    kind: Mapped[str] = mapped_column(String(16))  # "feedback" | "crash" | "report"
     message: Mapped[str] = mapped_column(String(8000))
     app_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     device: Mapped[str | None] = mapped_column(String(120), nullable=True)

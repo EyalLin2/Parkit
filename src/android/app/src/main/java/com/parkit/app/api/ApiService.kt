@@ -52,6 +52,9 @@ interface ApiService {
     @POST("spots/{id}/feedback")
     suspend fun submitFeedback(@Path("id") spotId: String, @Body body: FeedbackCreate)
 
+    @POST("spots/{id}/report-content")
+    suspend fun reportContent(@Path("id") spotId: String, @Body body: ContentReport)
+
     @DELETE("spots/{id}")
     suspend fun cancelSpot(@Path("id") spotId: String)
 
