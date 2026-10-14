@@ -258,7 +258,7 @@
         <item quantity="one">1 face or plate blurred</item>
         <item quantity="other">%1$d faces or plates blurred</item>
     </plurals>
-    <string name="map_filter_lots">Paid parking</string>
+    <string name="map_filter_lots">Car parks</string>
     <string name="lot_unnamed">Parking lot</string>
     <string name="lot_kind_underground">Underground</string>
     <string name="lot_kind_multistorey">Multi-storey</string>

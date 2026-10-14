@@ -266,7 +266,7 @@
         <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
         <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
-    <string name="map_filter_lots">חניונים בתשלום</string>
+    <string name="map_filter_lots">חניונים</string>
     <string name="lot_unnamed">חניון</string>
     <string name="lot_kind_underground">תת-קרקעי</string>
     <string name="lot_kind_multistorey">רב-קומות</string>
