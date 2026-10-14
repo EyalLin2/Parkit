@@ -4,6 +4,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import com.parkit.app.R
@@ -13,9 +15,10 @@ import com.parkit.app.R
  * must also be listed under <queries> in the manifest, or Android 11+ hides
  * it and we'd think it isn't installed. */
 object ParkingPay {
-    enum class App(val packageName: String, val label: Int) {
-        Pango("com.unicell.pangoandroid", R.string.pay_pango),
-        Cellopark("air.com.cellogroup.Cellopark", R.string.pay_cellopark),
+    /** [brand] is the main colour of each app's own Play Store icon. */
+    enum class App(val packageName: String, val label: Int, val brand: Long) {
+        Pango("com.unicell.pangoandroid", R.string.pay_pango, 0xFF2E69E7),
+        Cellopark("air.com.cellogroup.Cellopark", R.string.pay_cellopark, 0xFF05A1AA),
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences("parkit_device", Context.MODE_PRIVATE)
@@ -57,20 +60,31 @@ fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
     androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
         ParkingPay.App.entries.forEach { app ->
             val chosen = app == selected
+            val brand = androidx.compose.ui.graphics.Color(app.brand)
             androidx.compose.material3.Surface(
                 onClick = { onPick(app) },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
-                color = if (chosen) androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer else androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
-                border = if (chosen) androidx.compose.foundation.BorderStroke(2.dp, androidx.compose.material3.MaterialTheme.colorScheme.primary) else null,
+                color = androidx.compose.ui.graphics.Color.Transparent,
+                border = if (chosen) androidx.compose.foundation.BorderStroke(3.dp, androidx.compose.material3.MaterialTheme.colorScheme.onSurface) else null,
+                shadowElevation = 4.dp,
                 modifier = androidx.compose.ui.Modifier.weight(1f),
             ) {
-                androidx.compose.foundation.layout.Column(
-                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                    modifier = androidx.compose.ui.Modifier.padding(vertical = 22.dp, horizontal = 8.dp),
+                androidx.compose.foundation.layout.Box(
+                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                    modifier = androidx.compose.ui.Modifier
+                        .fillMaxWidth()
+                        .background(
+                            androidx.compose.ui.graphics.Brush.linearGradient(
+                                listOf(androidx.compose.ui.graphics.lerp(brand, androidx.compose.ui.graphics.Color.White, 0.18f), brand),
+                            ),
+                        )
+                        .padding(vertical = 22.dp, horizontal = 8.dp),
                 ) {
                     androidx.compose.material3.Text(
                         androidx.compose.ui.res.stringResource(app.label),
                         style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = androidx.compose.ui.graphics.Color.White,
                     )
                 }
             }
