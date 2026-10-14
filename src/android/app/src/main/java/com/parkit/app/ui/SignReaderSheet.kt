@@ -114,6 +114,7 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
                 val stream = ByteArrayOutputStream()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
                 val part = MultipartBody.Part.createFormData("photo", "sign.jpg", stream.toByteArray().toRequestBody("image/jpeg".toMediaTypeOrNull()))
+                reminderSet = null // a new sign: its own reminder
                 reading = api.readSign(part)
             } catch (e: Exception) {
                 if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)

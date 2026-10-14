@@ -64,8 +64,6 @@ async def nearby_ad(
         return None
     ad = await db.get(Ad, row.id)
     ad_lat, ad_lng, dist = row.lat, row.lng, row.distance_m
-    await db.execute(update(Ad).where(Ad.id == ad.id).values(impressions=Ad.impressions + 1))
-    await db.commit()
     return AdOut(
         id=ad.id,
         advertiser=ad.advertiser,
@@ -79,6 +77,14 @@ async def nearby_ad(
         distance_m=dist,
         link_url=ad.link_url,
     )
+
+
+@router.post("/ads/{ad_id}/view", status_code=204)
+async def ad_view(ad_id: int, db: AsyncSession = Depends(get_db)) -> None:
+    """Counted when the card is actually on screen — not every time the map
+    moves — so the numbers shown to a business are honest."""
+    await db.execute(update(Ad).where(Ad.id == ad_id).values(impressions=Ad.impressions + 1))
+    await db.commit()
 
 
 @router.post("/ads/{ad_id}/click", status_code=204)

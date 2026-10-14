@@ -899,6 +899,7 @@ fun MapScreen(
         val ad = runCatching { api.nearbyAd(here.latitude, here.longitude, placement = "open") }.getOrNull() ?: return@LaunchedEffect
         sessionStore.lastOpenAdAt = now
         openAd = ad
+        runCatching { api.adView(ad.id) }
     }
 
     // "Parked? / Leaving?" from the car's Bluetooth notification.
@@ -1033,6 +1034,7 @@ fun MapScreen(
                 onShowLots = { showLots = true },
                 onInvite = { inviteFriends(context) },
                 ad = nearbyAd,
+                onAdShown = { ad -> scope.launch { runCatching { api.adView(ad.id) } } },
                 forecast = forecast,
                 onAdClick = { ad ->
                     scope.launch { runCatching { api.adClick(ad.id) } }
@@ -1669,6 +1671,7 @@ private fun NearbySheet(
     ad: com.parkit.app.api.AdOut? = null,
     onAdClick: (com.parkit.app.api.AdOut) -> Unit = {},
     forecast: com.parkit.app.api.AreaForecast? = null,
+    onAdShown: (com.parkit.app.api.AdOut) -> Unit = {},
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1767,11 +1770,11 @@ private fun NearbySheet(
                     item(key = spot.id) {
                         SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
                     }
-                    if (ad != null && index == minOf(1, spots.lastIndex)) item(key = "ad") { SponsoredCard(ad, onAdClick) }
+                    if (ad != null && index == minOf(1, spots.lastIndex)) item(key = "ad") { SponsoredCard(ad, onAdClick, onAdShown) }
                 }
             }
         } else if (ad != null) {
-            SponsoredCard(ad, onAdClick)
+            SponsoredCard(ad, onAdClick, onAdShown)
         }
     }
 }
@@ -2152,8 +2155,10 @@ private fun myCarPaint(registryHex: String?, manual: Int): Color {
 
 /** "ממומן": one local business, clearly labelled, one tap to go there. */
 @Composable
-private fun SponsoredCard(ad: com.parkit.app.api.AdOut, onClick: (com.parkit.app.api.AdOut) -> Unit) {
+private fun SponsoredCard(ad: com.parkit.app.api.AdOut, onClick: (com.parkit.app.api.AdOut) -> Unit, onShown: (com.parkit.app.api.AdOut) -> Unit = {}) {
     val context = LocalContext.current
+    // One view per card per screen visit — when it's really been drawn.
+    LaunchedEffect(ad.id) { onShown(ad) }
     val hebrew = context.resources.configuration.locales[0].language in setOf("he", "iw")
     val icon = when (ad.category) {
         "car_wash" -> Icons.Filled.LocalCarWash

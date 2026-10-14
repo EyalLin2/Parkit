@@ -81,6 +81,12 @@ fun RewardsScreen(
     LaunchedEffect(Unit) {
         try {
             shop = api.rewards()
+            // Only wear what this account owns.
+            val owned = shop?.rewards?.filter { it.owned }?.mapNotNull { it.key }.orEmpty()
+            if (special != null && special !in owned) {
+                special = null
+                sessionStore.carSpecial = null
+            }
             avatar = runCatching { api.myProfile().avatar }.getOrNull()
         } catch (e: Exception) {
             if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)

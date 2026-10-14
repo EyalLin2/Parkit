@@ -99,9 +99,11 @@ class SessionStore(context: Context) {
         }
 
     /** A finish bought in the rewards shop that the car wears ("paint_gold"…), or null. */
+    // Per account (cleared on logout): a finish one driver bought must not
+    // show up for the next person who signs in on this phone.
     var carSpecial: String?
-        get() = device.getString("car_special", null)
-        set(value) = device.edit().apply { if (value == null) remove("car_special") else putString("car_special", value) }.apply()
+        get() = prefs.getString("car_special", null)
+        set(value) = prefs.edit().apply { if (value == null) remove("car_special") else putString("car_special", value) }.apply()
 
     /** The day (yyyy-MM-dd) the daily parking tip was last shown or closed. */
     var tipShownDay: String?
@@ -121,8 +123,8 @@ class SessionStore(context: Context) {
     /** Paint the driver picked by hand for the car illustration (index into
      * CarPaints); -1 = use the colour from the vehicle registry. */
     var carPaint: Int
-        get() = device.getInt("car_paint", -1)
-        set(value) = device.edit().putInt("car_paint", value).apply()
+        get() = prefs.getInt("car_paint", -1)
+        set(value) = prefs.edit().putInt("car_paint", value).apply()
 
     /** The post-sign-up "how ParkIt works" tips were shown on this install. */
     var tipsSeen: Boolean

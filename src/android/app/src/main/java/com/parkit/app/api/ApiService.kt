@@ -104,6 +104,9 @@ interface ApiService {
     @GET("ads/nearby")
     suspend fun nearbyAd(@Query("lat") lat: Double, @Query("lng") lng: Double, @Query("placement") placement: String = "card"): AdOut?
 
+    @POST("ads/{id}/view")
+    suspend fun adView(@Path("id") id: Int)
+
     @POST("ads/{id}/click")
     suspend fun adClick(@Path("id") id: Int)
 

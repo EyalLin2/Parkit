@@ -39,7 +39,9 @@ async def test_no_card_outside_its_area(client):
 async def test_views_and_taps_are_counted(client):
     await _ad("Counted", 32.0785, 34.7745)
     ad = (await client.get("/ads/nearby", params=DIZENGOFF)).json()
-    await client.get("/ads/nearby", params=DIZENGOFF)
+    await client.get("/ads/nearby", params=DIZENGOFF)  # fetching alone isn't a view
+    assert (await client.post(f"/ads/{ad['id']}/view")).status_code == 204
+    assert (await client.post(f"/ads/{ad['id']}/view")).status_code == 204
     assert (await client.post(f"/ads/{ad['id']}/click")).status_code == 204
     async with engine.begin() as conn:
         views, taps = (
