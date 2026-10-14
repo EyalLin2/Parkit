@@ -43,12 +43,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.DoNotDisturbOn
@@ -488,6 +491,28 @@ fun MapScreen(
 
     fun hasLocationPermission() = hasAnyLocation(context)
 
+    var parkedCar by remember { mutableStateOf(sessionStore.parkedCar) }
+
+    fun rememberCar(at: LatLng, address: String?, spotType: String = "street") {
+        val car = com.parkit.app.auth.ParkedCar(at.latitude, at.longitude, System.currentTimeMillis(), address, spotType)
+        parkedCar = car
+        sessionStore.parkedCar = car
+        if (address == null) {
+            scope.launch {
+                val label = com.parkit.app.api.Geocoder.reverse(at.latitude, at.longitude)?.shortLabel() ?: return@launch
+                if (parkedCar?.at == car.at) {
+                    parkedCar = car.copy(address = label)
+                    sessionStore.parkedCar = parkedCar
+                }
+            }
+        }
+    }
+
+    fun forgetCar() {
+        parkedCar = null
+        sessionStore.parkedCar = null
+    }
+
     /** The phone's position right now: the blue dot keeps updating while the
      * map is open, so prefer it over the fix taken at launch. */
     fun currentFix(): android.location.Location? {
@@ -685,6 +710,34 @@ fun MapScreen(
         }
     }
 
+    /** "I'm leaving": the driver's own spot becomes a report in one tap — no
+     * photo, they're standing right at it (the distance check still runs). */
+    fun leaveSpot(car: com.parkit.app.auth.ParkedCar) {
+        scope.launch {
+            val fix = currentFix()
+            try {
+                api.reportSpot(
+                    com.parkit.app.api.SpotCreate(
+                        lat = car.lat,
+                        lng = car.lng,
+                        spotType = car.spotType,
+                        payment = "free",
+                        address = car.address,
+                        reporterLat = fix?.latitude,
+                        reporterLng = fix?.longitude,
+                        reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
+                    ),
+                )
+                forgetCar()
+                refreshSpotsNow()
+                refreshMyProfile()
+                snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
+            } catch (e: Exception) {
+                if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
+            }
+        }
+    }
+
     // --- MapLibre view + lifecycle ------------------------------------
     val mapView = remember {
         MapView(context).apply { onCreate(null) }
@@ -722,7 +775,7 @@ fun MapScreen(
                 isRotateGesturesEnabled = true
                 isTiltGesturesEnabled = false
                 setCompassMargins(0, with(density) { 150.dp.roundToPx() }, with(density) { 16.dp.roundToPx() }, 0)
-                setAttributionMargins(with(density) { 12.dp.roundToPx() }, 0, 0, with(density) { (SHEET_PEEK + 56.dp).roundToPx() })
+                setAttributionMargins(with(density) { 12.dp.roundToPx() }, 0, 0, with(density) { (SHEET_PEEK + 120.dp).roundToPx() })
             }
             m.addOnCameraMoveStartedListener { reason ->
                 if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE && locating) userTookOver = true
@@ -910,6 +963,15 @@ fun MapScreen(
                         if (!showLots) selectedLot = null
                     }
                 }
+                parkedCar?.takeIf { activeClaim == null }?.let { car ->
+                    ParkedCarCard(
+                        car = car,
+                        onNavigate = { walkTo(context, car.lat, car.lng) },
+                        onLeaving = { leaveSpot(car) },
+                        onForget = { forgetCar() },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
+                }
                 activeClaim?.let { claim ->
                     ClaimTripCard(
                         spot = claim,
@@ -922,6 +984,7 @@ fun MapScreen(
                             scope.launch {
                                 try {
                                     api.submitFeedback(claim.id, com.parkit.app.api.FeedbackCreate(type))
+                                    if (type == "confirmed_taken") rememberCar(LatLng(claim.lat, claim.lng), claim.address, claim.spotType)
                                     activeClaim = null
                                     refreshSpotsNow()
                                     if (type == "confirmed_taken") offerPango() else snackbarHostState.showSnackbar(context.getString(R.string.claim_taken_thanks))
@@ -978,6 +1041,36 @@ fun MapScreen(
                     Icon(Icons.Filled.MyLocation, contentDescription = stringResource(R.string.map_my_location_cd), tint = MaterialTheme.colorScheme.primary)
                 }
             }
+            // Parked without a ParkIt spot? Save where the car is anyway, so
+            // "where did I park" and the one-tap "I'm leaving" still work.
+            if (parkedCar == null && activeClaim == null) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset {
+                            val top = sheetTopPx?.toInt() ?: 0
+                            IntOffset(20.dp.roundToPx(), top - buttonSize.roundToPx() - 16.dp.roundToPx())
+                        }
+                        .height(buttonSize)
+                        .clickable {
+                            val fix = currentFix()
+                            if (fix == null) {
+                                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_needs_location)) }
+                            } else {
+                                rememberCar(LatLng(fix.latitude, fix.longitude), null)
+                                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.car_saved)) }
+                            }
+                        },
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Text(stringResource(R.string.car_park_here), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
         }
     }
 
@@ -1022,7 +1115,10 @@ fun MapScreen(
                 selectedSpot = null
                 refreshSpotsNow()
             },
-            onParked = { scope.launch { offerPango() } },
+            onParked = {
+                rememberCar(LatLng(spot.lat, spot.lng), spot.address, spot.spotType)
+                scope.launch { offerPango() }
+            },
             onClaimed = { claimed ->
                 selectedSpot = null
                 activeClaim = claimed
@@ -1601,6 +1697,67 @@ private fun ClaimTripCard(
                 TripAction(stringResource(R.string.spot_flag_taken), Icons.Filled.DoNotDisturbOn, orange, Modifier.weight(1f)) { onFeedback("flagged_false") }
             }
         }
+    }
+}
+
+/** Where the car is, a walk back to it, and "I'm leaving" — which hands the
+ * spot to the next driver in one tap. */
+@Composable
+private fun ParkedCarCard(
+    car: com.parkit.app.auth.ParkedCar,
+    onNavigate: () -> Unit,
+    onLeaving: () -> Unit,
+    onForget: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val green = Color(0xFF188038)
+    val primary = MaterialTheme.colorScheme.primary
+    val now = System.currentTimeMillis()
+    val since = if (now - car.at < android.text.format.DateUtils.MINUTE_IN_MILLIS) {
+        stringResource(R.string.car_just_now)
+    } else {
+        android.text.format.DateUtils.getRelativeTimeSpanString(car.at, now, android.text.format.DateUtils.MINUTE_IN_MILLIS).toString()
+    }
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).background(primary.copy(alpha = 0.12f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = primary)
+                }
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text(stringResource(R.string.car_card_title, since), style = MaterialTheme.typography.labelMedium, color = primary)
+                    Text(
+                        car.address ?: stringResource(R.string.map_locating),
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                androidx.compose.material3.IconButton(onClick = onForget) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.car_forget_cd), modifier = Modifier.size(18.dp))
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+                TripAction(stringResource(R.string.car_navigate), Icons.AutoMirrored.Filled.DirectionsWalk, primary, Modifier.weight(1f), onNavigate)
+                TripAction(stringResource(R.string.car_leaving), Icons.AutoMirrored.Filled.Logout, green, Modifier.weight(1f), onLeaving)
+            }
+        }
+    }
+}
+
+/** Walking directions back to the car; any maps app that takes a geo: link
+ * if Google Maps isn't there. */
+private fun walkTo(context: android.content.Context, lat: Double, lng: Double) {
+    val walk = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("google.navigation:q=$lat,$lng&mode=w"))
+    try {
+        context.startActivity(walk)
+    } catch (_: android.content.ActivityNotFoundException) {
+        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("geo:$lat,$lng?q=$lat,$lng")))
     }
 }
 

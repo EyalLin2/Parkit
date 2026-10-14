@@ -427,4 +427,12 @@
     <string name="report_blue_white">Blue-white curb (paid)</string>
     <string name="spot_blue_white">Blue-white curb · paid, you can use Pango</string>
     <string name="spot_blue_white_short">Blue-white</string>
+    <string name="car_park_here">I parked here</string>
+    <string name="car_saved">Saved where you parked</string>
+    <string name="car_card_title">Your car · %1$s</string>
+    <string name="car_navigate">Walk to car</string>
+    <string name="car_leaving">I\'m leaving</string>
+    <string name="car_leaving_thanks">Thanks! Your spot is now shown to other drivers</string>
+    <string name="car_forget_cd">Forget where the car is</string>
+    <string name="car_just_now">just now</string>
 </resources>
