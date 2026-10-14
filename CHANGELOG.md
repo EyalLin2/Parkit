@@ -3,19 +3,65 @@
 All notable changes to ParkIt. Each entry links to the pull request with the details.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased] — open pull requests
+## [Unreleased]
 
 ### Added
-- Professional redesign of the Android app: vector maps (MapLibre + OpenFreeMap) with a custom light/dark
-  style, a nearby-spots sheet sorted by distance, a rebuilt profile and a dedicated settings screen (#32)
-- Spot address stored on the server; redesigned report and spot sheets (#33)
-- Report from the map pin: a "Report a spot here" bubble on the center pin (#33)
-- Self-hosted reverse geocoder on OpenStreetMap data in PostGIS, replacing public Nominatim (#34)
-- The reporter's photo leads the spot card; photo thumbnails in the nearby list; full-screen viewer (#35)
-- Load-test script and a readiness review for 1,000 users (`docs/scalability/readiness-1000.md`)
+- Android CI: debug build and Android lint on every app change, APK and lint report as artifacts
+- Backend CI: migrations replayed on an empty database (with a downgrade round-trip), production
+  Docker image build, pip caching, cancel outdated runs; Dependabot for pip, Gradle, Docker, Actions
+- CI/CD guide (`docs/ci-cd.md`) and runbooks for deploy and backup/restore
 
 ### Fixed
-- The pin address no longer flashes raw coordinates while loading (#33)
+- The first migration now enables PostGIS itself, so migrations work on a brand-new database
+  (a restore or a new server), not only on the one the Docker image prepared
+
+## [0.3.5-beta] — 2026-10-14 (versionCode 8)
+
+### Added
+- Fixed-code sign-in for the Google Play reviewer, set only in the server's environment (#86)
+- Optional "blue-white curb" (paid) tick when reporting (#86)
+- "I parked here" remembers your car: walk back to it, and report your spot in one tap when leaving (#86)
+- Empty-map state with car parks and "invite friends"; an explanation screen before the location prompt (#86)
+- Privacy policy and terms links in Settings and on sign-in (#86)
+- Nightly database backup script for production (#86)
+- Reports must come from near the spot (150 m plus GPS accuracy); "go to my location" hint (#85)
+- Report an offensive photo or user: the photo comes down at once and lands in the admin feed (#85)
+
+### Changed
+- Navigation opens Waze, then Google Maps, then any map app (#86)
+- Addresses follow the app language; phone numbers shown as 050-123-4567 (#86)
+- Release builds point at production by default (#85)
+
+### Fixed
+- The trip card survives screen rotation; English filter chips no longer overflow; a failed photo shows
+  an icon instead of an empty box (#86)
+
+## [0.3.4-beta] — 2026-10-14 (versionCode 7)
+- Play package id `com.parkit.israel`; rebuilt after the first build pointed at the dev server (#84)
+
+## [0.3.3-beta] — 2026-10-13 (versionCode 6) — first Google Play upload
+
+Everything below was built as a stacked series of pull requests (#32–#83) and squash-merged as #84.
+
+### Added
+- Professional redesign: vector maps (MapLibre + OpenFreeMap) with a custom light/dark style, nearby
+  sheet, new profile and settings (#32)
+- Server-side addresses from a self-hosted OpenStreetMap geocoder in PostGIS (#33, #34)
+- Reporter's photo leads the spot card; thumbnails in the list (#35)
+- Reporter levels, points, illustrated badges, weekly city league, avatars (#61, #69–#72, #78)
+- "On your way" trip card after claiming; driver profile with car size from the plate and disabled
+  permit (#62, #63)
+- Hot areas, fading pins for older reports (#64)
+- Licence-plate blurring in photos (#65)
+- Public car parks layer from OpenStreetMap (#66); hand-off to Pango after parking (#67)
+- Sign-in with a 6-digit code by SMS or email, with HMAC-stored codes and rate limits (#73–#75)
+- Store readiness: account deletion, Android 16 target, signed release builds (#76)
+- Production stack: Caddy HTTPS, several API workers, bounded Redis (#77)
+- In-app feedback, crash reports, error codes, onboarding intro (#79)
+- 800 m search radius; beta sign-in codes shown in the app until email delivery is live (#82)
+
+### Fixed
+- The map opens at your real location (#60); location on real phones (#83)
 
 ## [0.1.0-demo] — 2026-10-11
 
