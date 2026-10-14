@@ -64,6 +64,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -455,12 +456,19 @@ private fun ProfileHero(
                 .clickable(onClick = onCarClick)
                 .semantics { contentDescription = car.carLabel ?: "" },
         )
-        if (car.vehicleSize == null) {
-            Text(
-                "+",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.BottomCenter).offset(x = 86.dp, y = (-8).dp),
+        // "+" when there's no car yet, a pencil once there is: the paint is editable.
+        Box(
+            modifier = Modifier.align(Alignment.BottomCenter).offset(x = 122.dp, y = (-14).dp).size(22.dp)
+                .background(MaterialTheme.colorScheme.surface, CircleShape).padding(2.dp)
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                .clickable(onClick = onCarClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (car.vehicleSize == null) androidx.compose.material.icons.Icons.Filled.Add else androidx.compose.material.icons.Icons.Filled.Edit,
+                contentDescription = stringResource(if (car.vehicleSize == null) R.string.car_art_add else R.string.car_art_pick_paint),
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(12.dp),
             )
         }
         }
