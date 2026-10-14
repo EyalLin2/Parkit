@@ -304,3 +304,11 @@ data class AdOut(
     @Json(name = "link_url") val linkUrl: String?,
 )
 
+/** From report history: at this hour a spot frees up here about every N minutes. */
+@JsonClass(generateAdapter = true)
+data class AreaForecast(@Json(name = "every_minutes") val everyMinutes: Int, val reports: Int, val days: Int)
+
+/** From report history: the hour with the most free spots reported nearby. */
+@JsonClass(generateAdapter = true)
+data class BestHour(val hour: Int, val reports: Int)
+

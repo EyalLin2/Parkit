@@ -421,7 +421,7 @@
     <string name="content_report_user">The user\'s name is offensive</string>
     <string name="content_report_other">Something else</string>
     <string name="content_report_sent">Thanks, your report was sent and we\'ll review it</string>
-    <string name="map_empty_show_lots">Show paid car parks</string>
+    <string name="map_empty_show_lots">Paid car parks</string>
     <string name="map_empty_invite">Invite friends</string>
     <string name="map_open_profile_cd">My profile</string>
     <string name="report_blue_white">Blue-white curb (paid)</string>
@@ -514,4 +514,11 @@
     <string name="reminder_text_forbidden">From %1$s no parking here — better move the car.</string>
     <string name="reminder_text_allowed">From %1$s you may park here.</string>
     <string name="reminder_countdown">⏰ %1$s until your parking changes</string>
+    <string name="forecast_tag">Forecast</string>
+    <string name="tip_best_hour">Around you, parking is easiest to find between %1$s and %2$s</string>
+    <plurals name="forecast_every">
+        <item quantity="one">At this hour a spot frees up here about every minute</item>
+        <item quantity="two">At this hour a spot frees up here about every %d min</item>
+        <item quantity="other">At this hour a spot frees up here about every %d min</item>
+    </plurals>
 </resources>

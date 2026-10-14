@@ -103,6 +103,11 @@ class SessionStore(context: Context) {
         get() = device.getString("car_special", null)
         set(value) = device.edit().apply { if (value == null) remove("car_special") else putString("car_special", value) }.apply()
 
+    /** The day (yyyy-MM-dd) the daily parking tip was last shown or closed. */
+    var tipShownDay: String?
+        get() = device.getString("tip_shown_day", null)
+        set(value) = device.edit().putString("tip_shown_day", value).apply()
+
     /** When the full-screen "on open" ad was last shown (epoch ms). */
     var lastOpenAdAt: Long
         get() = device.getLong("last_open_ad_at", 0L)

@@ -95,6 +95,12 @@ interface ApiService {
     @GET("vehicles/lookup")
     suspend fun lookupVehicle(@Query("plate") plate: String): VehicleLookupOut
 
+    @GET("insights/area")
+    suspend fun areaForecast(@Query("lat") lat: Double, @Query("lng") lng: Double): AreaForecast?
+
+    @GET("insights/best-hour")
+    suspend fun bestHour(@Query("lat") lat: Double, @Query("lng") lng: Double): BestHour?
+
     @GET("ads/nearby")
     suspend fun nearbyAd(@Query("lat") lat: Double, @Query("lng") lng: Double, @Query("placement") placement: String = "card"): AdOut?
 

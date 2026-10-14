@@ -901,6 +901,21 @@ fun MapScreen(
         openAd = ad
     }
 
+    // Forecast for the area on screen (silent until there's enough history).
+    var forecast by remember { mutableStateOf<com.parkit.app.api.AreaForecast?>(null) }
+    LaunchedEffect(geocodeTarget) {
+        forecast = runCatching { api.areaForecast(geocodeTarget.latitude, geocodeTarget.longitude) }.getOrNull()
+    }
+    // Daily tip: once a day, the best hour to find parking around you.
+    var dailyTip by remember { mutableStateOf<com.parkit.app.api.BestHour?>(null) }
+    LaunchedEffect(deviceLocation != null) {
+        val here = deviceLocation ?: return@LaunchedEffect
+        val today = java.time.LocalDate.now().toString()
+        if (sessionStore.tipShownDay == today) return@LaunchedEffect
+        dailyTip = runCatching { api.bestHour(here.latitude, here.longitude) }.getOrNull()
+        if (dailyTip != null) sessionStore.tipShownDay = today
+    }
+
     // One sponsored card for the area on screen; nothing personal is sent.
     var nearbyAd by remember { mutableStateOf<com.parkit.app.api.AdOut?>(null) }
     LaunchedEffect(geocodeTarget) {
@@ -1000,6 +1015,7 @@ fun MapScreen(
                 onShowLots = { showLots = true },
                 onInvite = { inviteFriends(context) },
                 ad = nearbyAd,
+                forecast = forecast,
                 onAdClick = { ad ->
                     scope.launch { runCatching { api.adClick(ad.id) } }
                     val link = ad.linkUrl
@@ -1064,6 +1080,26 @@ fun MapScreen(
                     LotsChip(checked = showLots) {
                         showLots = !showLots
                         if (!showLots) selectedLot = null
+                    }
+                }
+                dailyTip?.let { tip ->
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 14.dp, top = 8.dp, bottom = 8.dp)) {
+                            Text("💡", fontSize = 18.sp)
+                            Text(
+                                stringResource(R.string.tip_best_hour, "%d:00".format(tip.hour), "%d:00".format((tip.hour + 1) % 24)),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+                            )
+                            androidx.compose.material3.IconButton(onClick = { dailyTip = null }) {
+                                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.ad_close), modifier = Modifier.size(18.dp))
+                            }
+                        }
                     }
                 }
                 parkedCar?.takeIf { activeClaim == null }?.let { car ->
@@ -1614,6 +1650,7 @@ private fun NearbySheet(
     onInvite: () -> Unit,
     ad: com.parkit.app.api.AdOut? = null,
     onAdClick: (com.parkit.app.api.AdOut) -> Unit = {},
+    forecast: com.parkit.app.api.AreaForecast? = null,
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1646,6 +1683,25 @@ private fun NearbySheet(
                     else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
                     style = MaterialTheme.typography.titleLarge,
                 )
+                forecast?.let {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                        Text(
+                            stringResource(R.string.forecast_tag),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.clip(RoundedCornerShape(50))
+                                .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6))))
+                                .padding(horizontal = 6.dp),
+                        )
+                        Text(
+                            pluralStringResource(R.plurals.forecast_every, it.everyMinutes, it.everyMinutes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 6.dp),
+                        )
+                    }
+                }
                 // The list isn't purely by distance, so "nearest" is computed —
                 // and it's the nearest one this driver can actually use.
                 val nearest = (spots.filterNot { fitOf(it, prefs).unusable }.ifEmpty { spots })

@@ -13,6 +13,7 @@ from routers.ads import router as ads_router
 from routers.auth import router as auth_router
 from routers.feedback import router as feedback_router
 from routers.geocode import router as geocode_router
+from routers.insights import router as insights_router
 from routers.lots import router as lots_router
 from routers.me import router as me_router
 from routers.photos import router as photos_router
@@ -46,6 +47,7 @@ app.include_router(feedback_router)
 app.include_router(rewards_router)
 app.include_router(signs_router)
 app.include_router(ads_router)
+app.include_router(insights_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 

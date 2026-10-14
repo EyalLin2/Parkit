@@ -430,7 +430,7 @@
     <string name="content_report_user">שם המשתמש פוגעני</string>
     <string name="content_report_other">משהו אחר</string>
     <string name="content_report_sent">תודה, הדיווח נשלח ונבדוק אותו</string>
-    <string name="map_empty_show_lots">הצג חניונים בתשלום</string>
+    <string name="map_empty_show_lots">חניונים בתשלום</string>
     <string name="map_empty_invite">הזמן חברים</string>
     <string name="map_open_profile_cd">הפרופיל שלי</string>
     <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>
@@ -523,4 +523,11 @@
     <string name="reminder_text_forbidden">מ-%1$s אסור לחנות כאן — כדאי להזיז את הרכב.</string>
     <string name="reminder_text_allowed">מ-%1$s מותר לחנות כאן.</string>
     <string name="reminder_countdown">⏰ %1$s עד שינוי בחניה</string>
+    <string name="forecast_tag">חיזוי</string>
+    <string name="tip_best_hour">באזור שלך הכי קל למצוא חניה בין %1$s ל-%2$s</string>
+    <plurals name="forecast_every">
+        <item quantity="one">בשעה הזו מתפנה כאן חניה בערך כל דקה</item>
+        <item quantity="two">בשעה הזו מתפנה כאן חניה בערך כל %d דק׳</item>
+        <item quantity="other">בשעה הזו מתפנה כאן חניה בערך כל %d דק׳</item>
+    </plurals>
 </resources>
