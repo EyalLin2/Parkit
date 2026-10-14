@@ -4,12 +4,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.Payments
 import com.parkit.app.R
 
 /** Hand-off to the apps Israelis pay blue-white street parking with. No API
@@ -55,25 +51,7 @@ object ParkingPay {
     }
 }
 
-/** A neutral payment icon for a payment app's tile — deliberately not the
- * app's own logo (third-party trademarks stay out of ParkIt). */
-@androidx.compose.runtime.Composable
-fun PayAppIcon(size: androidx.compose.ui.unit.Dp) {
-    val shape = androidx.compose.foundation.shape.RoundedCornerShape(size * 0.24f)
-    androidx.compose.foundation.layout.Box(
-        androidx.compose.ui.Modifier.size(size).clip(shape).background(androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer),
-        contentAlignment = androidx.compose.ui.Alignment.Center,
-    ) {
-        androidx.compose.material3.Icon(
-            androidx.compose.material.icons.Icons.Filled.Payments,
-            contentDescription = null,
-            tint = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = androidx.compose.ui.Modifier.size(size * 0.5f),
-        )
-    }
-}
-
-/** Big tappable tiles, one per payment app: icon and name. */
+/** Big tappable tiles, one per payment app — just the name. */
 @androidx.compose.runtime.Composable
 fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
     androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
@@ -88,13 +66,11 @@ fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
             ) {
                 androidx.compose.foundation.layout.Column(
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                    modifier = androidx.compose.ui.Modifier.padding(vertical = 16.dp, horizontal = 8.dp),
+                    modifier = androidx.compose.ui.Modifier.padding(vertical = 22.dp, horizontal = 8.dp),
                 ) {
-                    PayAppIcon(52.dp)
                     androidx.compose.material3.Text(
                         androidx.compose.ui.res.stringResource(app.label),
-                        style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
-                        modifier = androidx.compose.ui.Modifier.padding(top = 10.dp),
+                        style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
                     )
                 }
             }
