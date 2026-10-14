@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -287,6 +288,7 @@ fun SpotActionsSheet(
                     add(Triple(Icons.Filled.DirectionsCar, stringResource(R.string.spot_fits, label.lowercase()), null))
                 }
                 if (isDisabledSpot) add(Triple(Icons.AutoMirrored.Filled.Accessible, stringResource(R.string.map_spot_kind_disabled), null))
+                if (spot.payment == "paid") add(Triple(Icons.Filled.Payments, stringResource(R.string.spot_blue_white), null))
                 ParkItLevel.of(spot.reporterLevel).takeIf { it != ParkItLevel.Newbie }?.let { level ->
                     add(Triple(level.icon, stringResource(R.string.spot_reported_by_level, stringResource(level.nameRes)), level.color))
                 }

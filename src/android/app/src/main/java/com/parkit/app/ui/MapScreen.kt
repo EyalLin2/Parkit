@@ -1408,6 +1408,7 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
             Text(
                 listOfNotNull(
                     stringResource(if (disabled) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
+                    if (spot.payment == "paid") stringResource(R.string.spot_blue_white_short) else null,
                     MarkerBitmaps.relativeTimeLong(context, spot.reportedAt),
                     spot.hotMinutes?.let { stringResource(R.string.hot_short) },
                     when {

@@ -433,4 +433,7 @@
     <string name="map_empty_show_lots">הצג חניונים</string>
     <string name="map_empty_invite">הזמן חברים</string>
     <string name="map_open_profile_cd">הפרופיל שלי</string>
+    <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>
+    <string name="spot_blue_white">כחול־לבן · בתשלום, אפשר דרך פנגו</string>
+    <string name="spot_blue_white_short">כחול־לבן</string>
 </resources>

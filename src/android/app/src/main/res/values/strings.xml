@@ -424,4 +424,7 @@
     <string name="map_empty_show_lots">Show car parks</string>
     <string name="map_empty_invite">Invite friends</string>
     <string name="map_open_profile_cd">My profile</string>
+    <string name="report_blue_white">Blue-white curb (paid)</string>
+    <string name="spot_blue_white">Blue-white curb · paid, you can use Pango</string>
+    <string name="spot_blue_white_short">Blue-white</string>
 </resources>

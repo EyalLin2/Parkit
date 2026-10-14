@@ -154,6 +154,10 @@ async def report_spot(
         existing.hot_minutes = hot
         if existing.address is None and address:
             existing.address = address
+        # "Blue-white" is an optional tick, so a report without it says
+        # nothing about the curb: it can mark a spot paid, never un-mark it.
+        if payload.payment == Payment.paid:
+            existing.payment = Payment.paid
         if existing.reporter_id != user_id:
             award_points(user, POINTS_REFRESH_BONUS)
         spot = existing

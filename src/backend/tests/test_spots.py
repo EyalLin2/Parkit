@@ -238,3 +238,16 @@ async def test_poor_gps_accuracy_cannot_stretch_the_limit_across_town(client, ma
         client, headers, reporter_lat=TLV["lat"] + 0.003, reporter_lng=TLV["lng"], reporter_accuracy_m=5000
     )
     assert resp.status_code == 422
+
+
+async def test_blue_white_tick_marks_an_existing_spot_paid_but_never_unmarks_it(client, make_user):
+    _, first = await make_user("first")
+    _, second = await make_user("second")
+    _, third = await make_user("third")
+    spot_id = (await _report(client, first)).json()["id"]
+
+    paid = await _report(client, second, payment="paid")
+    assert paid.json()["id"] == spot_id and paid.json()["payment"] == "paid"
+
+    again = await _report(client, third)  # no tick
+    assert again.json()["payment"] == "paid"
