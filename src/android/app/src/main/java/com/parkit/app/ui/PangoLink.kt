@@ -85,11 +85,9 @@ fun PayAppIcon(app: ParkingPay.App, size: androidx.compose.ui.unit.Dp) {
     }
 }
 
-/** Big tappable tiles, one per payment app: icon, name, installed or not. */
+/** Big tappable tiles, one per payment app: icon and name. */
 @androidx.compose.runtime.Composable
 fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val have = androidx.compose.runtime.remember { ParkingPay.installed(context) }
     androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
         ParkingPay.App.entries.forEach { app ->
             val chosen = app == selected
@@ -109,11 +107,6 @@ fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
                         androidx.compose.ui.res.stringResource(app.label),
                         style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
                         modifier = androidx.compose.ui.Modifier.padding(top = 10.dp),
-                    )
-                    androidx.compose.material3.Text(
-                        androidx.compose.ui.res.stringResource(if (app in have) R.string.pay_installed else R.string.pay_get_app),
-                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
