@@ -21,6 +21,7 @@ def preferences_of(user: User) -> Preferences:
     return Preferences(
         vehicle_size=user.vehicle_size,
         car_label=user.car_label,
+        car_paint=user.car_paint,
         has_disabled_permit=user.has_disabled_permit,
         home_city=user.home_city,
     )
@@ -99,7 +100,13 @@ async def vehicle_lookup(
     if info is None:
         raise HTTPException(404, "Plate not found in the registry")
     return VehicleLookupOut(
-        make=info.make, model=info.model, year=info.year, body=info.body, size=info.size, label=info.label
+        make=info.make,
+        model=info.model,
+        year=info.year,
+        body=info.body,
+        size=info.size,
+        label=info.label,
+        paint=info.paint,
     )
 
 

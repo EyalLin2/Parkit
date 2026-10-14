@@ -266,14 +266,14 @@
         <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
         <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
-    <string name="map_filter_lots">חניונים</string>
+    <string name="map_filter_lots">חניונים בתשלום</string>
     <string name="lot_unnamed">חניון</string>
     <string name="lot_kind_underground">תת-קרקעי</string>
     <string name="lot_kind_multistorey">רב-קומות</string>
     <string name="lot_kind_rooftop">על הגג</string>
     <string name="lot_kind_surface">פתוח</string>
     <string name="lot_capacity">%1$d מקומות</string>
-    <string name="lot_source_note">נתוני החניונים מ-OpenStreetMap — שעות ומחירים בכניסה לחניון.</string>
+    <string name="lot_source_note">חניונים בתשלום, מ-OpenStreetMap. המחירים והשעות כתובים בכניסה לחניון.</string>
     <string name="parked_pango_prompt">חנית! כחול-לבן? אפשר להפעיל חניה בפנגו</string>
     <string name="parked_pango_action">פנגו</string>
     <string name="spot_no_photo_cd">אין תמונה לחניה הזו</string>
@@ -430,7 +430,7 @@
     <string name="content_report_user">שם המשתמש פוגעני</string>
     <string name="content_report_other">משהו אחר</string>
     <string name="content_report_sent">תודה, הדיווח נשלח ונבדוק אותו</string>
-    <string name="map_empty_show_lots">הצג חניות בתשלום</string>
+    <string name="map_empty_show_lots">הצג חניונים בתשלום</string>
     <string name="map_empty_invite">הזמן חברים</string>
     <string name="map_open_profile_cd">הפרופיל שלי</string>
     <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>

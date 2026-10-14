@@ -107,6 +107,7 @@ class ReverseGeocodeOut(BaseModel):
 class Preferences(BaseModel):
     vehicle_size: VehicleSize | None = None
     car_label: str | None = Field(default=None, max_length=120)
+    car_paint: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     has_disabled_permit: bool = False
     home_city: str | None = Field(default=None, max_length=120)
 
@@ -116,6 +117,7 @@ class PreferencesUpdate(BaseModel):
 
     vehicle_size: VehicleSize | None = None
     car_label: str | None = Field(default=None, max_length=120)
+    car_paint: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     has_disabled_permit: bool | None = None
     home_city: str | None = Field(default=None, max_length=120)
 
@@ -134,6 +136,7 @@ class VehicleLookupOut(BaseModel):
     body: str | None
     size: VehicleSize
     label: str
+    paint: str | None = None
 
 
 class DetailsUpdate(BaseModel):

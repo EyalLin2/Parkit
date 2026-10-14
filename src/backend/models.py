@@ -80,6 +80,7 @@ class User(Base):
     # never stored — only what was derived from it (size + a display label).
     vehicle_size: Mapped[VehicleSize | None] = mapped_column(Enum(VehicleSize, name="vehicle_size"), nullable=True)
     car_label: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    car_paint: Mapped[str | None] = mapped_column(String(7), nullable=True)  # "#RRGGBB"
     has_disabled_permit: Mapped[bool] = mapped_column(default=False, server_default="false")
     home_city: Mapped[str | None] = mapped_column(String(120), nullable=True)
 

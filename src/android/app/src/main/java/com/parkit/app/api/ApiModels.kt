@@ -150,6 +150,8 @@ data class ProfileOut(
 data class Preferences(
     @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "car_label") val carLabel: String? = null,
+    /** "#RRGGBB" from the registry's colour for the car. */
+    @Json(name = "car_paint") val carPaint: String? = null,
     @Json(name = "has_disabled_permit") val hasDisabledPermit: Boolean = false,
     @Json(name = "home_city") val homeCity: String? = null,
 ) {
@@ -165,6 +167,7 @@ data class VehicleLookupOut(
     val body: String?,
     val size: String,
     val label: String,
+    val paint: String? = null,
 )
 
 /** A public off-street car park (OpenStreetMap). Most fields are often

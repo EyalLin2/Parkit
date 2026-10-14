@@ -98,9 +98,10 @@ class SessionStore(context: Context) {
             e.apply()
         }
 
-    /** Paint picked for the car illustration in the profile (index into CarPaints). */
+    /** Paint the driver picked by hand for the car illustration (index into
+     * CarPaints); -1 = use the colour from the vehicle registry. */
     var carPaint: Int
-        get() = device.getInt("car_paint", 0)
+        get() = device.getInt("car_paint", -1)
         set(value) = device.edit().putInt("car_paint", value).apply()
 
     /** The post-sign-up "how ParkIt works" tips were shown on this install. */
@@ -113,6 +114,7 @@ class SessionStore(context: Context) {
         prefs.edit()
             .putString(KEY_VEHICLE_SIZE, p.vehicleSize)
             .putString(KEY_CAR_LABEL, p.carLabel)
+            .putString(KEY_CAR_PAINT, p.carPaint)
             .putBoolean(KEY_DISABLED_PERMIT, p.hasDisabledPermit)
             .putString(KEY_HOME_CITY, p.homeCity)
             .putString(KEY_HOME_LAT, d.homeLat?.toString())
@@ -133,6 +135,7 @@ class SessionStore(context: Context) {
         Preferences(
             vehicleSize = prefs.getString(KEY_VEHICLE_SIZE, null),
             carLabel = prefs.getString(KEY_CAR_LABEL, null),
+            carPaint = prefs.getString(KEY_CAR_PAINT, null),
             hasDisabledPermit = prefs.getBoolean(KEY_DISABLED_PERMIT, false),
             homeCity = prefs.getString(KEY_HOME_CITY, null),
         ),
@@ -174,6 +177,7 @@ class SessionStore(context: Context) {
         private const val KEY_LAST_LEVEL = "last_seen_level"
         private const val KEY_VEHICLE_SIZE = "vehicle_size"
         private const val KEY_CAR_LABEL = "car_label"
+        private const val KEY_CAR_PAINT = "car_paint_hex"
         private const val KEY_DISABLED_PERMIT = "has_disabled_permit"
         private const val KEY_HOME_CITY = "home_city"
         private const val KEY_HOME_LAT = "home_lat"

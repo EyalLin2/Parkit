@@ -30,6 +30,7 @@ class VehicleInfo:
     year: int | None
     body: str | None
     size: str  # compact | regular | large
+    paint: str | None = None  # "#RRGGBB" from the registry's colour name
 
     @property
     def label(self) -> str:
@@ -43,6 +44,45 @@ def classify_size(body: str | None, gross_weight_kg: int | None, seats: int | No
     if body == "הצ'בק" and gross_weight_kg and gross_weight_kg <= 1700:
         return "compact"
     return "regular"
+
+
+# Registry colour names ("כסף מטלי", "שנהב לבן", "אפור כהה") → a paint for the
+# car illustration. Checked in order: shades before their base colour.
+_PAINTS = [
+    ("כסוף כהה", "#8A9097"),
+    ("אפור כהה", "#4A4F56"),
+    ("אפור בהיר", "#AEB3B9"),
+    ("כחול כהה", "#1C2E5A"),
+    ("כחול בהיר", "#7FB3E0"),
+    ("ירקרק", "#9CC48F"),
+    ("בורדו", "#6D1A2B"),
+    ("שחור", "#1F2124"),
+    ("לבן", "#F1F1EE"),
+    ("שנהב", "#F1F1EE"),
+    ("כסף", "#B9BEC4"),
+    ("כסוף", "#B9BEC4"),
+    ("אפור", "#7A8088"),
+    ("תכלת", "#7FB3E0"),
+    ("טורקיז", "#2BA6A6"),
+    ("כחול", "#1F4FA0"),
+    ("אדום", "#B3261E"),
+    ("ירוק", "#2E7D32"),
+    ("צהוב", "#F2C230"),
+    ("כתום", "#E8752A"),
+    ("זהב", "#C9A54C"),
+    ("בז", "#D8C8A8"),
+    ("קרם", "#E6DCC3"),
+    ("ברונזה", "#7A5A3A"),
+    ("קפה", "#6B4A30"),
+    ("חום", "#6B4A30"),
+    ("סגול", "#6A3FA0"),
+    ("ורוד", "#E58FB0"),
+]
+
+
+def paint_of(colour_name: str | None) -> str | None:
+    name = (colour_name or "").strip()
+    return next((hex_ for word, hex_ in _PAINTS if word in name), None)
 
 
 def normalise_plate(raw: str) -> str | None:
@@ -62,7 +102,7 @@ async def lookup(plate: str, redis: Redis) -> VehicleInfo | None:
     cached = await redis.get(key)
     if cached is not None:
         data = json.loads(cached)
-        return VehicleInfo(**data) if data else None
+        return VehicleInfo(**data) if data else None  # older entries lack "paint": it defaults
 
     async with httpx.AsyncClient(timeout=10) as client:
         reg = await _query(client, REGISTRY, {"mispar_rechev": int(plate)})
@@ -88,6 +128,7 @@ async def lookup(plate: str, redis: Redis) -> VehicleInfo | None:
                 year=reg.get("shnat_yitzur"),
                 body=body,
                 size=classify_size(body, (spec or {}).get("mishkal_kolel"), (spec or {}).get("mispar_moshavim")),
+                paint=paint_of(reg.get("tzeva_rechev")),
             )
     await redis.set(key, json.dumps(asdict(info) if info else None), ex=CACHE_TTL_SECONDS)
     return info

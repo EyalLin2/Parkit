@@ -40,27 +40,48 @@ fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Mod
     }
 }
 
+/** Silhouette numbers per body, as fractions of the canvas (front faces right). */
+private class Shape(
+    val left: Float, val right: Float, // bumpers
+    val belt: Float, // bonnet / waist line height
+    val roof: Float, // roof height
+    val rearRoof: Float, val frontRoof: Float, // where the flat roof starts / ends
+    val rearGlass: Float, val windscreen: Float, // bottom ends of the rear window / windscreen
+    val trunk: Float?, // sedan boot lid height, null = hatch / SUV
+    val wheelR: Float, val rearWheel: Float, val frontWheel: Float,
+    val sill: Float,
+)
+
+private fun shapeOf(kind: String) = when (kind) {
+    // Short city hatchback: rounded roof that drops almost straight at the back.
+    "compact" -> Shape(0.14f, 0.86f, 0.53f, 0.25f, 0.24f, 0.56f, 0.15f, 0.70f, null, 0.135f, 0.29f, 0.71f, 0.79f)
+    // Tall SUV: boxy, long flat roof, big wheels, high off the ground.
+    "large" -> Shape(0.06f, 0.97f, 0.40f, 0.04f, 0.12f, 0.70f, 0.09f, 0.82f, null, 0.19f, 0.24f, 0.79f, 0.72f)
+    // Sedan: bonnet, cabin, boot — three boxes.
+    else -> Shape(0.03f, 0.97f, 0.52f, 0.20f, 0.33f, 0.62f, 0.24f, 0.76f, 0.47f, 0.15f, 0.22f, 0.79f, 0.78f)
+}
+
 private fun DrawScope.bodyPath(kind: String): Path {
     val w = size.width
     val h = size.height
-    // Proportions per body: where the roof starts/ends and how tall the cabin is.
-    val (roofTop, roofFrom, roofTo, bonnet) = when (kind) {
-        "compact" -> listOf(0.16f, 0.26f, 0.66f, 0.50f)
-        "large" -> listOf(0.06f, 0.12f, 0.72f, 0.40f)
-        else -> listOf(0.18f, 0.28f, 0.62f, 0.50f)
-    }
-    val sill = h * 0.78f
+    val k = shapeOf(kind)
     return Path().apply {
-        moveTo(w * 0.04f, sill)
-        lineTo(w * 0.04f, h * (bonnet + 0.04f))
-        quadraticBezierTo(w * 0.05f, h * bonnet, w * 0.12f, h * bonnet)
-        lineTo(w * roofFrom, h * bonnet)
-        lineTo(w * (roofFrom + 0.08f), h * roofTop)
-        lineTo(w * (roofTo - 0.02f), h * roofTop)
-        lineTo(w * (roofTo + 0.12f), h * bonnet)
-        lineTo(w * 0.90f, h * (bonnet + 0.03f))
-        quadraticBezierTo(w * 0.97f, h * (bonnet + 0.05f), w * 0.97f, h * (bonnet + 0.14f))
-        lineTo(w * 0.97f, sill)
+        moveTo(w * k.left, h * k.sill)
+        if (k.trunk != null) {
+            // Boot: rear bumper up to the lid, lid forward to the rear window.
+            lineTo(w * k.left, h * (k.trunk + 0.05f))
+            quadraticBezierTo(w * k.left, h * k.trunk, w * (k.left + 0.05f), h * k.trunk)
+            lineTo(w * k.rearGlass, h * k.trunk)
+        } else {
+            lineTo(w * k.left, h * (k.roof + 0.10f))
+            quadraticBezierTo(w * k.left, h * k.roof, w * (k.left + 0.06f), h * k.roof)
+        }
+        lineTo(w * k.rearRoof, h * k.roof)
+        lineTo(w * k.frontRoof, h * k.roof)
+        lineTo(w * k.windscreen, h * k.belt)
+        lineTo(w * (k.right - 0.06f), h * (k.belt + 0.03f))
+        quadraticBezierTo(w * k.right, h * (k.belt + 0.05f), w * k.right, h * (k.belt + 0.14f))
+        lineTo(w * k.right, h * k.sill)
         close()
     }
 }
@@ -68,38 +89,41 @@ private fun DrawScope.bodyPath(kind: String): Path {
 private fun DrawScope.drawCar(kind: String, paint: Color) {
     val w = size.width
     val h = size.height
+    val k = shapeOf(kind)
     val light = paint.luminance() > 0.7f
-    // Ground shadow.
-    drawOval(Color.Black.copy(alpha = 0.16f), topLeft = Offset(w * 0.06f, h * 0.84f), size = Size(w * 0.88f, h * 0.1f))
+    drawOval(Color.Black.copy(alpha = 0.16f), topLeft = Offset(w * (k.left + 0.02f), h * 0.85f), size = Size(w * (k.right - k.left - 0.04f), h * 0.09f))
     val body = bodyPath(kind)
     drawPath(body, Brush.verticalGradient(listOf(lerp(paint, Color.White, 0.25f), paint, lerp(paint, Color.Black, 0.25f))))
     if (light) drawPath(body, Color(0xFF9AA0A6), style = Stroke(w * 0.012f))
-    // Windows: one glass band under the roof, split by a pillar.
-    val (top, from, to) = when (kind) {
-        "compact" -> Triple(0.22f, 0.30f, 0.64f)
-        "large" -> Triple(0.12f, 0.17f, 0.70f)
-        else -> Triple(0.24f, 0.32f, 0.60f)
-    }
-    val glassBottom = h * (if (kind == "large") 0.38f else 0.47f)
+    // Glass: follows the roof, one pillar in the middle.
+    val inset = 0.03f
+    val glassTop = h * (k.roof + 0.04f)
+    val glassBottom = h * (k.belt - 0.03f)
     val glass = Path().apply {
-        moveTo(w * from, glassBottom)
-        lineTo(w * (from + 0.065f), h * top)
-        lineTo(w * (to - 0.03f), h * top)
-        lineTo(w * (to + 0.09f), glassBottom)
+        moveTo(w * (k.rearGlass + inset), glassBottom)
+        lineTo(w * (k.rearRoof + inset * 0.5f), glassTop)
+        lineTo(w * (k.frontRoof - inset * 0.5f), glassTop)
+        lineTo(w * (k.windscreen - inset * 1.5f), glassBottom)
         close()
     }
-    drawPath(glass, Brush.linearGradient(listOf(Color(0xFFBFD9F2), Color(0xFF6E8FB3)), Offset(0f, h * top), Offset(w, glassBottom)))
-    val pillar = w * ((from + to) / 2f + 0.02f)
-    drawLine(lerp(paint, Color.Black, 0.35f), Offset(pillar, h * top), Offset(pillar, glassBottom), strokeWidth = w * 0.022f)
-    // Door line, lights.
-    drawLine(lerp(paint, Color.Black, 0.3f), Offset(pillar, glassBottom), Offset(pillar, h * 0.74f), strokeWidth = w * 0.006f)
-    drawRoundRect(Color(0xFFFFE082), Offset(w * 0.91f, h * 0.60f), Size(w * 0.05f, h * 0.06f), CornerRadius(w * 0.01f))
-    drawRoundRect(Color(0xFFE53935), Offset(w * 0.04f, h * 0.58f), Size(w * 0.03f, h * 0.07f), CornerRadius(w * 0.01f))
-    // Wheels.
-    val r = h * (if (kind == "large") 0.17f else 0.15f)
-    for (cx in listOf(w * 0.23f, w * 0.78f)) {
-        val c = Offset(cx, h * 0.78f)
-        drawCircle(Color(0xFF202124), r, c)
+    drawPath(glass, Brush.linearGradient(listOf(Color(0xFFBFD9F2), Color(0xFF6E8FB3)), Offset(0f, glassTop), Offset(w, glassBottom)))
+    val pillar = w * ((k.rearRoof + k.frontRoof) / 2f + 0.02f)
+    val trim = lerp(paint, Color.Black, 0.35f)
+    drawLine(trim, Offset(pillar, glassTop), Offset(pillar, glassBottom), strokeWidth = w * 0.022f)
+    drawLine(trim, Offset(pillar, glassBottom), Offset(pillar, h * (k.sill - 0.05f)), strokeWidth = w * 0.006f)
+    if (kind == "large") {
+        // Spare wheel on the tailgate.
+        drawRoundRect(Color(0xFF202124), Offset(0f, h * 0.30f), Size(w * 0.075f, h * 0.30f), CornerRadius(w * 0.03f))
+        drawRoundRect(Color(0xFF5F6368), Offset(w * 0.018f, h * 0.36f), Size(w * 0.04f, h * 0.18f), CornerRadius(w * 0.02f))
+        // Roof rails.
+        drawLine(Color(0xFF3C4043), Offset(w * (k.rearRoof + 0.02f), h * (k.roof - 0.025f)), Offset(w * (k.frontRoof - 0.04f), h * (k.roof - 0.025f)), strokeWidth = w * 0.014f)
+    }
+    drawRoundRect(Color(0xFFFFE082), Offset(w * (k.right - 0.06f), h * (k.belt + 0.08f)), Size(w * 0.05f, h * 0.06f), CornerRadius(w * 0.01f))
+    drawRoundRect(Color(0xFFE53935), Offset(w * k.left, h * ((k.trunk ?: k.belt) + 0.07f)), Size(w * 0.03f, h * 0.07f), CornerRadius(w * 0.01f))
+    val r = h * k.wheelR * 2f / 2f
+    for (cx in listOf(w * k.rearWheel, w * k.frontWheel)) {
+        val c = Offset(cx, h * k.sill)
+        drawCircle(Color(0xFF202124), r * 1.02f, c)
         drawCircle(Color(0xFFBDC1C6), r * 0.52f, c)
         drawCircle(Color(0xFF5F6368), r * 0.18f, c)
     }

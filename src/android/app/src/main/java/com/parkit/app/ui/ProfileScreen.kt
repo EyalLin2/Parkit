@@ -156,7 +156,9 @@ fun ProfileScreen(
                     p,
                     onChangeAvatar = { pickAvatar = true },
                     car = p.preferences,
-                    paint = CarPaints[carPaint.coerceIn(0, CarPaints.lastIndex)],
+                    paint = CarPaints.getOrNull(carPaint)
+                        ?: p.preferences.carPaint?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+                        ?: CarPaints[0],
                     onCarClick = { if (p.preferences.vehicleSize == null) onOpenDriver() else pickPaint = true },
                 )
             }
@@ -444,14 +446,17 @@ private fun ProfileHero(
                 Icon(androidx.compose.material.icons.Icons.Filled.Edit, contentDescription = stringResource(R.string.avatar_pick_title), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(13.dp))
             }
         }
+        // Size shows at a glance: a small car is drawn small, an SUV big.
+        val carW = when (car.vehicleSize) { "compact" -> 62.dp; "large" -> 90.dp; else -> 76.dp }
+        val carX = 58.dp + carW / 2 // parked just beside the 108dp avatar ring
         CarArt(
             size = car.vehicleSize,
             paint = paint,
             outline = MaterialTheme.colorScheme.outline,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .offset(x = 86.dp, y = 4.dp)
-                .width(76.dp)
+                .offset(x = carX, y = 4.dp)
+                .width(carW)
                 .clip(RoundedCornerShape(10.dp))
                 .clickable(onClick = onCarClick)
                 .semantics { contentDescription = car.carLabel ?: "" },
@@ -459,7 +464,7 @@ private fun ProfileHero(
         // Disabled permit: the blue tag on the windscreen, like the real one.
         if (car.hasDisabledPermit && car.vehicleSize != null) {
             Box(
-                modifier = Modifier.align(Alignment.BottomCenter).offset(x = 78.dp, y = (-22).dp).size(15.dp)
+                modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX - 8.dp, y = -(carW / 2) + 16.dp).size(15.dp)
                     .background(Color(0xFF1565C0), RoundedCornerShape(3.dp)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -473,7 +478,7 @@ private fun ProfileHero(
         }
         // "+" when there's no car yet, a pencil once there is: the paint is editable.
         Box(
-            modifier = Modifier.align(Alignment.BottomCenter).offset(x = 122.dp, y = (-14).dp).size(22.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX + carW / 2, y = -(carW / 2) + 24.dp).size(22.dp)
                 .background(MaterialTheme.colorScheme.surface, CircleShape).padding(2.dp)
                 .background(MaterialTheme.colorScheme.primary, CircleShape)
                 .clickable(onClick = onCarClick),
@@ -489,8 +494,9 @@ private fun ProfileHero(
         }
         Text(isolate(p.displayName), style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
         LevelChip(level, modifier = Modifier.padding(top = 4.dp))
-        Text(
-            car.carLabel?.let { isolate(it) } ?: stringResource(if (car.vehicleSize == null) R.string.car_art_add else R.string.car_art_pick_paint),
+        val carLine = car.carLabel?.let { isolate(it) } ?: if (car.vehicleSize == null) stringResource(R.string.car_art_add) else null
+        if (carLine != null) Text(
+            carLine,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 6.dp).clip(RoundedCornerShape(50)).clickable(onClick = onCarClick).padding(horizontal = 8.dp, vertical = 2.dp),
