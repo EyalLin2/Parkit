@@ -131,6 +131,8 @@ data class ProfileOut(
     @Json(name = "display_name") val displayName: String,
     val points: Int,
     @Json(name = "weekly_points") val weeklyPoints: Int,
+    /** Left to spend in the rewards shop (the level follows [points]). */
+    @Json(name = "points_balance") val pointsBalance: Int = 0,
     val avatar: String? = null,
     @Json(name = "weekly_rank") val weeklyRank: Int? = null,
     @Json(name = "weekly_city_rank") val weeklyCityRank: Int? = null,
@@ -228,3 +230,37 @@ data class ApiErrorBody(val detail: String? = null)
  * looked up again in English (see SpotAddressCache), so this is null there. */
 val SpotOut.localAddress: String?
     get() = address.takeIf { java.util.Locale.getDefault().language != "en" }
+
+/** One item in the rewards shop: a ParkIt car finish ("cosmetic") or a
+ * business's benefit ("partner"). */
+@JsonClass(generateAdapter = true)
+data class RewardOut(
+    val id: Int,
+    val kind: String,
+    val key: String?,
+    @Json(name = "title_he") val titleHe: String,
+    @Json(name = "title_en") val titleEn: String,
+    val partner: String?,
+    @Json(name = "description_he") val descriptionHe: String?,
+    @Json(name = "description_en") val descriptionEn: String?,
+    val cost: Int,
+    val owned: Boolean = false,
+)
+
+@JsonClass(generateAdapter = true)
+data class RedemptionOut(
+    @Json(name = "reward_id") val rewardId: Int,
+    @Json(name = "title_he") val titleHe: String,
+    @Json(name = "title_en") val titleEn: String,
+    val partner: String?,
+    val code: String,
+    @Json(name = "created_at") val createdAt: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class ShopOut(
+    val balance: Int,
+    val rewards: List<RewardOut>,
+    val redemptions: List<RedemptionOut>,
+)
+

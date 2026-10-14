@@ -15,6 +15,7 @@ from routers.geocode import router as geocode_router
 from routers.lots import router as lots_router
 from routers.me import router as me_router
 from routers.photos import router as photos_router
+from routers.rewards import router as rewards_router
 from routers.spots import router as spots_router
 from routers.users import router as users_router
 
@@ -40,6 +41,7 @@ app.include_router(geocode_router)
 app.include_router(me_router)
 app.include_router(lots_router)
 app.include_router(feedback_router)
+app.include_router(rewards_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 

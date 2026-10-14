@@ -474,4 +474,22 @@
     <string name="settings_pay_app">אפליקציית תשלום חניה</string>
     <string name="settings_pay_ask">לשאול כל פעם</string>
     <string name="pay_chooser_remember">נזכור את הבחירה. אפשר לשנות בכל רגע בהגדרות.</string>
+    <string name="rewards_title">הטבות</string>
+    <string name="rewards_entry">%1$d נק׳ לממש · הטבות</string>
+    <string name="rewards_balance_label">יש לך לממש</string>
+    <string name="rewards_balance_value">%1$d נקודות</string>
+    <string name="rewards_level_safe">הרמה שלך לא יורדת כשמממשים.</string>
+    <string name="rewards_partners">הטבות מעסקים</string>
+    <string name="rewards_partners_soon_title">בקרוב: הטבות אמיתיות</string>
+    <string name="rewards_partners_soon_body">שעת חניה חינם, שטיפת רכב, קפה — מעסקים שותפים. כדאי כבר לצבור.</string>
+    <string name="rewards_car_section">עיצובים לרכב שלך</string>
+    <string name="rewards_cost">%1$d נק׳</string>
+    <string name="rewards_missing">חסרות %1$d נק׳</string>
+    <string name="rewards_buy">מימוש</string>
+    <string name="rewards_confirm_body">לממש ב-%1$d נקודות? הרמה שלך לא תרד.</string>
+    <string name="rewards_wear">להלביש</string>
+    <string name="rewards_wearing">על הרכב</string>
+    <string name="rewards_my_codes">הקודים שלי</string>
+    <string name="rewards_code_title">הקוד שלך</string>
+    <string name="rewards_code_body">מראים את הקוד בעסק. הוא נשמר כאן ב\"הקודים שלי\".</string>
 </resources>

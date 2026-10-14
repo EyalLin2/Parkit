@@ -65,6 +65,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -99,6 +100,7 @@ fun ProfileScreen(
     onOpenSettings: () -> Unit,
     onOpenDriver: () -> Unit,
     onOpenDetails: () -> Unit,
+    onOpenRewards: () -> Unit = {},
     onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -160,6 +162,8 @@ fun ProfileScreen(
                         ?: p.preferences.carPaint?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
                         ?: CarPaints[0],
                     onCarClick = { if (p.preferences.vehicleSize == null) onOpenDriver() else pickPaint = true },
+                    special = sessionStore.carSpecial,
+                    onOpenRewards = onOpenRewards,
                 )
             }
             item { NextLevelCard(p, onReport = onBack) }
@@ -421,6 +425,8 @@ private fun ProfileHero(
     car: com.parkit.app.api.Preferences,
     paint: Color,
     onCarClick: () -> Unit,
+    special: String? = null,
+    onOpenRewards: () -> Unit = {},
 ) {
     val level = ParkItLevel.of(p.level)
     val progress = levelProgress(p)
@@ -452,6 +458,7 @@ private fun ProfileHero(
         CarArt(
             size = car.vehicleSize,
             paint = paint,
+            special = special,
             outline = MaterialTheme.colorScheme.outline,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -507,6 +514,22 @@ private fun ProfileHero(
             HeroStat(p.successfulReports.toString(), stringResource(R.string.hero_helped), Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outline))
             HeroStat(p.weeklyRank?.let { "#$it" } ?: "—", stringResource(R.string.hero_rank), Modifier.weight(1f))
+        }
+        // The rewards shop: what points are for.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 14.dp).clip(RoundedCornerShape(50))
+                .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFFF9AB00), Color(0xFFE37400))))
+                .clickable(onClick = onOpenRewards)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            Icon(androidx.compose.material.icons.Icons.Filled.CardGiftcard, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Text(
+                stringResource(R.string.rewards_entry, p.pointsBalance),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
         if (p.successfulReports == 0) {
             // How "drivers helped" goes up — a zero shouldn't look like a dead number.

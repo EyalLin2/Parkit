@@ -98,6 +98,11 @@ class SessionStore(context: Context) {
             e.apply()
         }
 
+    /** A finish bought in the rewards shop that the car wears ("paint_gold"…), or null. */
+    var carSpecial: String?
+        get() = device.getString("car_special", null)
+        set(value) = device.edit().apply { if (value == null) remove("car_special") else putString("car_special", value) }.apply()
+
     /** "I just parked" was explained once on this install. */
     var carExplained: Boolean
         get() = device.getBoolean("car_explained", false)

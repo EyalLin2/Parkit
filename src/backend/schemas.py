@@ -77,6 +77,7 @@ class ProfileOut(BaseModel):
     display_name: str
     points: int
     weekly_points: int
+    points_balance: int = 0  # what's left to spend in the rewards shop
     avatar: str | None = None
     weekly_rank: int | None = None  # place in this week's league; None = no points yet
     weekly_city_rank: int | None = None  # same, among drivers with the same preferred city

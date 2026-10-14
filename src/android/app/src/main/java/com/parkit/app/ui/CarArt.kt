@@ -45,7 +45,7 @@ val CarPaints = listOf(
  * Faces right; mirror it with Modifier.graphicsLayer for RTL if needed.
  */
 @Composable
-fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Modifier) {
+fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Modifier, special: String? = null) {
     // Driving: the road slides by, the wheels turn and the body bobs a little.
     // Still when the phone has animations turned off.
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -68,7 +68,7 @@ fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Mod
         } else {
             drawRoad(phase)
             val bob = kotlin.math.sin(phase * 2f * Math.PI.toFloat() * 2f) * this.size.height * 0.008f
-            translate(top = bob) { drawCar(size, paint, phase) }
+            translate(top = bob) { drawCar(size, paint, phase, special) }
         }
     }
 }
@@ -119,15 +119,30 @@ private fun DrawScope.bodyPath(kind: String): Path {
     }
 }
 
-private fun DrawScope.drawCar(kind: String, paint: Color, phase: Float) {
+private fun DrawScope.drawCar(kind: String, paint: Color, phase: Float, special: String? = null) {
     val w = size.width
     val h = size.height * CAR_H
     val k = shapeOf(kind)
     val light = paint.luminance() > 0.7f
     drawOval(Color.Black.copy(alpha = 0.16f), topLeft = Offset(w * (k.left + 0.02f), h * 0.85f), size = Size(w * (k.right - k.left - 0.04f), h * 0.09f))
     val body = bodyPath(kind)
-    drawPath(body, Brush.verticalGradient(listOf(lerp(paint, Color.White, 0.25f), paint, lerp(paint, Color.Black, 0.25f))))
-    if (light) drawPath(body, Color(0xFF9AA0A6), style = Stroke(w * 0.012f))
+    when (special) {
+        // Bought in the rewards shop: finishes no registry colour has.
+        "paint_gold" -> drawPath(body, Brush.verticalGradient(listOf(Color(0xFFFFF1B8), Color(0xFFE2B33C), Color(0xFF9C7418), Color(0xFFE9C25A))))
+        "paint_chrome" -> {
+            drawPath(body, Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFB8BEC6), Color(0xFF5F6670), Color(0xFFD9DEE3))))
+            drawPath(body, Color(0xFF8A9097), style = Stroke(w * 0.01f))
+        }
+        "paint_neon" -> {
+            drawPath(body, Color(0xFF39FF14).copy(alpha = 0.35f), style = Stroke(w * 0.05f)) // glow
+            drawPath(body, Brush.verticalGradient(listOf(Color(0xFFB6FF9E), Color(0xFF39FF14), Color(0xFF1FA80A))))
+        }
+        else -> {
+            drawPath(body, Brush.verticalGradient(listOf(lerp(paint, Color.White, 0.25f), paint, lerp(paint, Color.Black, 0.25f))))
+            if (light) drawPath(body, Color(0xFF9AA0A6), style = Stroke(w * 0.012f))
+            if (special == "paint_flames") drawFlames(kind)
+        }
+    }
     // Glass: follows the roof, one pillar in the middle.
     val inset = 0.03f
     val glassTop = h * (k.roof + 0.04f)
@@ -141,7 +156,14 @@ private fun DrawScope.drawCar(kind: String, paint: Color, phase: Float) {
     }
     drawPath(glass, Brush.linearGradient(listOf(Color(0xFFBFD9F2), Color(0xFF6E8FB3)), Offset(0f, glassTop), Offset(w, glassBottom)))
     val pillar = w * ((k.rearRoof + k.frontRoof) / 2f + 0.02f)
-    val trim = lerp(paint, Color.Black, 0.35f)
+    // Trim follows the finish actually on the car, not the registry colour.
+    val base = when (special) {
+        "paint_gold" -> Color(0xFFE2B33C)
+        "paint_chrome" -> Color(0xFF9AA0A6)
+        "paint_neon" -> Color(0xFF39FF14)
+        else -> paint
+    }
+    val trim = lerp(base, Color.Black, 0.35f)
     drawLine(trim, Offset(pillar, glassTop), Offset(pillar, glassBottom), strokeWidth = w * 0.022f)
     drawLine(trim, Offset(pillar, glassBottom), Offset(pillar, h * (k.sill - 0.05f)), strokeWidth = w * 0.006f)
     if (kind == "large") {
@@ -188,6 +210,32 @@ private fun DrawScope.drawRoad(phase: Float) {
     }
 }
 
+/** Hot-rod flames licking back from the front wheel along the lower body. */
+private fun DrawScope.drawFlames(kind: String) {
+    val w = size.width
+    val h = size.height * CAR_H
+    val k = shapeOf(kind)
+    val base = h * (k.sill - 0.04f)
+    val top = h * (k.belt + 0.06f)
+    val start = w * (k.right - 0.10f)
+    val tongues = 4
+    val span = (start - w * (k.left + 0.12f)) / tongues
+    for ((colour, shrink) in listOf(Color(0xFFFF5722) to 0f, Color(0xFFFFC107) to 0.35f)) {
+        val path = Path().apply {
+            moveTo(start, base)
+            lineTo(start, top + (base - top) * shrink)
+            for (i in 0 until tongues) {
+                val x0 = start - span * i
+                val tip = top + (base - top) * (shrink + 0.15f * i)
+                quadraticBezierTo(x0 - span * 0.7f, tip - h * 0.02f, x0 - span, tip + (base - top) * 0.35f)
+            }
+            lineTo(start - span * tongues, base)
+            close()
+        }
+        drawPath(path, colour)
+    }
+}
+
 private fun DrawScope.drawGhostCar(outline: Color) {
     val dash = PathEffect.dashPathEffect(floatArrayOf(size.width * 0.03f, size.width * 0.02f))
     drawPath(bodyPath("regular"), outline, style = Stroke(size.width * 0.014f, pathEffect = dash))
@@ -205,7 +253,7 @@ private fun Color.luminance(): Float = 0.299f * red + 0.587f * green + 0.114f * 
  * white bubble with a pointer at the bottom, so "your car" on the map is
  * unmistakably yours. Drawn off-screen with CanvasDrawScope.
  */
-fun carMarkerBitmap(context: android.content.Context, kind: String?, paint: Color, permit: Boolean): android.graphics.Bitmap {
+fun carMarkerBitmap(context: android.content.Context, kind: String?, paint: Color, permit: Boolean, special: String? = null): android.graphics.Bitmap {
     val density = context.resources.displayMetrics.density
     val w = (46 * density).toInt()
     val h = (38 * density).toInt()
@@ -232,7 +280,7 @@ fun carMarkerBitmap(context: android.content.Context, kind: String?, paint: Colo
         translate(left = pad, top = pad) {
             val inner = Size(w - 2 * pad - 2f * density, bubbleH - 2 * pad - 3f * density)
             // Reuse the profile drawing inside the bubble's box.
-            drawIntoBox(inner) { drawCar(kind ?: "regular", paint, 0f) }
+            drawIntoBox(inner) { drawCar(kind ?: "regular", paint, 0f, special) }
         }
         if (permit) {
             val s = 9f * density

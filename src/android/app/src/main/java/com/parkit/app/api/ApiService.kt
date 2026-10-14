@@ -71,6 +71,12 @@ interface ApiService {
     @GET("users/me")
     suspend fun myProfile(): ProfileOut
 
+    @GET("rewards")
+    suspend fun rewards(): ShopOut
+
+    @POST("rewards/{id}/redeem")
+    suspend fun redeemReward(@Path("id") id: Int): ShopOut
+
     /** Sends the whole set: the screen edits all of it, and an explicit null
      * clears a value (the client serializes nulls for exactly this). */
     @PATCH("users/me/preferences")

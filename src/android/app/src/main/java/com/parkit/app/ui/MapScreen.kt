@@ -896,7 +896,7 @@ fun MapScreen(
     val myCar = sessionStore.driver.value.preferences
     LaunchedEffect(style, myCar.vehicleSize, myCar.carPaint, myCar.hasDisabledPermit) {
         val s = style ?: return@LaunchedEffect
-        s.addImage(CAR_ICON, carMarkerBitmap(context, myCar.vehicleSize, myCarPaint(myCar.carPaint, sessionStore.carPaint), permit = false))
+        s.addImage(CAR_ICON, carMarkerBitmap(context, myCar.vehicleSize, myCarPaint(myCar.carPaint, sessionStore.carPaint), permit = false, special = sessionStore.carSpecial))
     }
     LaunchedEffect(style, parkedCar) {
         val s = style ?: return@LaunchedEffect
@@ -1148,6 +1148,7 @@ fun MapScreen(
                 CarArt(
                     size = prefs.vehicleSize ?: "regular",
                     paint = myCarPaint(prefs.carPaint, sessionStore.carPaint),
+                    special = sessionStore.carSpecial,
                     outline = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.width(150.dp),
                 )

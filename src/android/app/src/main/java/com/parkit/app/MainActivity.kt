@@ -25,6 +25,7 @@ import com.parkit.app.ui.DriverProfileScreen
 import com.parkit.app.ui.LoginScreen
 import com.parkit.app.ui.MapScreen
 import com.parkit.app.ui.ProfileScreen
+import com.parkit.app.ui.RewardsScreen
 import com.parkit.app.ui.theme.ParkItTheme
 import com.parkit.app.ui.theme.ThemeManager
 import com.parkit.app.ui.SettingsScreen
@@ -228,6 +229,19 @@ fun ParkItApp(sessionStore: SessionStore) {
                 onOpenSettings = { navController.navigate("settings") },
                 onOpenDriver = { navController.navigate("driver") },
                 onOpenDetails = { navController.navigate("details-edit") },
+                onOpenRewards = { navController.navigate("rewards") },
+                onSessionExpired = goToLogin,
+            )
+        }
+        composable(
+            "rewards",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
+        ) {
+            RewardsScreen(
+                api = api,
+                sessionStore = sessionStore,
+                onBack = { navController.popBackStack() },
                 onSessionExpired = goToLogin,
             )
         }

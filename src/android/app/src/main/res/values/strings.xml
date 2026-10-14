@@ -465,4 +465,22 @@
     <string name="settings_pay_app">Parking payment app</string>
     <string name="settings_pay_ask">Ask every time</string>
     <string name="pay_chooser_remember">We\'ll remember your choice. Change it any time in Settings.</string>
+    <string name="rewards_title">Rewards</string>
+    <string name="rewards_entry">%1$d pts to spend · Rewards</string>
+    <string name="rewards_balance_label">You have to spend</string>
+    <string name="rewards_balance_value">%1$d points</string>
+    <string name="rewards_level_safe">Spending never lowers your level.</string>
+    <string name="rewards_partners">From businesses</string>
+    <string name="rewards_partners_soon_title">Coming soon: real rewards</string>
+    <string name="rewards_partners_soon_body">A free hour of parking, a car wash, a coffee — from partner businesses. Start collecting.</string>
+    <string name="rewards_car_section">Finishes for your car</string>
+    <string name="rewards_cost">%1$d pts</string>
+    <string name="rewards_missing">%1$d pts to go</string>
+    <string name="rewards_buy">Redeem</string>
+    <string name="rewards_confirm_body">Redeem for %1$d points? Your level stays.</string>
+    <string name="rewards_wear">Put on</string>
+    <string name="rewards_wearing">On your car</string>
+    <string name="rewards_my_codes">My codes</string>
+    <string name="rewards_code_title">Your code</string>
+    <string name="rewards_code_body">Show it at the business. It stays here under \"My codes\".</string>
 </resources>

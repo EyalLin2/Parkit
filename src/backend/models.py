@@ -72,6 +72,9 @@ class User(Base):
 
     points: Mapped[int] = mapped_column(default=0)
     weekly_points: Mapped[int] = mapped_column(default=0)
+    # Redeemed in the rewards shop. Levels go by lifetime points; what's left
+    # to spend is points - points_spent.
+    points_spent: Mapped[int] = mapped_column(default=0)
     weekly_points_reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     consecutive_bad_reports: Mapped[int] = mapped_column(default=0)
     reporting_blocked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -234,4 +237,40 @@ class AppFeedback(Base):
     message: Mapped[str] = mapped_column(String(8000))
     app_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     device: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class Reward(Base):
+    """Something points buy. "cosmetic" items are ParkIt's own (special car
+    paints); "partner" items are real-world benefits a business offers,
+    added by the admin, redeemed for a one-time code."""
+
+    __tablename__ = "rewards"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    kind: Mapped[str] = mapped_column(String(16))  # "cosmetic" | "partner"
+    key: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True)  # cosmetic id, e.g. "paint_gold"
+    title_he: Mapped[str] = mapped_column(String(120))
+    title_en: Mapped[str] = mapped_column(String(120))
+    partner: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    description_he: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    description_en: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    cost: Mapped[int] = mapped_column(Integer)
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class Redemption(Base):
+    """One reward bought by one driver; partner rewards carry the code the
+    driver shows at the business."""
+
+    __tablename__ = "redemptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    reward_id: Mapped[int] = mapped_column(ForeignKey("rewards.id", ondelete="CASCADE"))
+    code: Mapped[str] = mapped_column(String(12), unique=True)
+    cost: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
