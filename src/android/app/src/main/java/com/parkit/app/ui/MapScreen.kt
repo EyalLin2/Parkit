@@ -691,8 +691,32 @@ fun MapScreen(
             }
         }
     }
+    // Say why before Android's own prompt: a bare "allow location?" with no
+    // reason is the most common way drivers end up on a useless map.
+    var showLocationWhy by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (hasAnyLocation(context)) locate() else locationPermission.launch(LOCATION_PERMISSIONS)
+        if (hasAnyLocation(context)) locate() else showLocationWhy = true
+    }
+    if (showLocationWhy) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {},
+            icon = { Icon(Icons.Filled.MyLocation, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text(stringResource(R.string.location_why_title)) },
+            text = { Text(stringResource(R.string.location_why_body)) },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = {
+                    showLocationWhy = false
+                    locationPermission.launch(LOCATION_PERMISSIONS)
+                }) { Text(stringResource(R.string.location_why_continue)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showLocationWhy = false
+                    locating = false
+                    showTelAvivFallback(null)
+                }) { Text(stringResource(R.string.location_why_not_now)) }
+            },
+        )
     }
     // Back from Settings (permission granted / location switched on there)?
     // Try again by itself instead of leaving the map on the fallback.

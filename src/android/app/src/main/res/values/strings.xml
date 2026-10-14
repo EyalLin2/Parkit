@@ -438,4 +438,8 @@
     <string name="legal_privacy">Privacy policy</string>
     <string name="legal_terms">Terms of use</string>
     <string name="login_agree">By signing in you agree to the terms of use and privacy policy</string>
+    <string name="location_why_title">Where are you now?</string>
+    <string name="location_why_body">ParkIt uses your location only while the app is open: to show free spots near you, and to make sure reports come from someone actually at the spot. We never track you in the background.</string>
+    <string name="location_why_continue">Continue</string>
+    <string name="location_why_not_now">Not now</string>
 </resources>

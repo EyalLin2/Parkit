@@ -447,4 +447,8 @@
     <string name="legal_privacy">מדיניות פרטיות</string>
     <string name="legal_terms">תנאי שימוש</string>
     <string name="login_agree">בכניסה את/ה מסכים/ה לתנאי השימוש ולמדיניות הפרטיות</string>
+    <string name="location_why_title">איפה את/ה עכשיו?</string>
+    <string name="location_why_body">ParkIt משתמשת במיקום רק כשהאפליקציה פתוחה: כדי להראות חניות פנויות לידך, ולוודא שדיווחים מגיעים ממי שבאמת נמצא ליד החניה. איננו עוקבים אחריך ברקע.</string>
+    <string name="location_why_continue">המשך</string>
+    <string name="location_why_not_now">לא עכשיו</string>
 </resources>
