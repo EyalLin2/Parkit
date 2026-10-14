@@ -305,6 +305,13 @@ private val SHEET_PEEK = 114.dp
 private val SHEET_PEEK_EMPTY = 178.dp
 private const val CLAIM_HOLD_MS = 120_000L // matches the backend's CLAIM_TTL_SECONDS
 
+private val claimAdapter = com.squareup.moshi.Moshi.Builder()
+    .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory()).build().adapter(SpotOut::class.java)
+private val ClaimSaver = androidx.compose.runtime.saveable.Saver<SpotOut?, String>(
+    save = { spot -> spot?.let { claimAdapter.toJson(it) } },
+    restore = { json -> runCatching<SpotOut?> { claimAdapter.fromJson(json) }.getOrNull() },
+)
+
 private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
     spot.status == "claimed" -> COLOR_CLAIMED
     spot.reporterId == myUserId -> COLOR_MINE
@@ -370,8 +377,10 @@ fun MapScreen(
     // claimed spots from everyone (so nobody else is sent there), so the
     // claimer keeps it locally — on the map and in a trip card — until they
     // report what happened or the 2-minute hold runs out.
-    var activeClaim by remember { mutableStateOf<SpotOut?>(null) }
-    var claimEndsAt by remember { mutableStateOf(0L) }
+    // Saveable: "I'm on my way" opens a navigation app, and Android may
+    // recreate (or kill) ParkIt meanwhile — coming back must still show the trip.
+    var activeClaim by androidx.compose.runtime.saveable.rememberSaveable(stateSaver = ClaimSaver) { mutableStateOf<SpotOut?>(null) }
+    var claimEndsAt by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0L) }
     var showReportFlow by remember { mutableStateOf(false) }
     // The driver's own level/points, for the avatar ring and level-up moments.
     var myProfile by remember { mutableStateOf<com.parkit.app.api.ProfileOut?>(null) }
@@ -953,7 +962,7 @@ fun MapScreen(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     MapChip(stringResource(R.string.map_filter_all), Icons.Filled.LocalParking, typeFilter == null) { typeFilter = null }
                     MapChip(stringResource(R.string.map_filter_regular), Icons.Filled.DirectionsCar, typeFilter == "street") { typeFilter = "street" }
@@ -977,8 +986,7 @@ fun MapScreen(
                         spot = claim,
                         endsAt = claimEndsAt,
                         onNavigate = {
-                            val uri = android.net.Uri.parse("geo:${claim.lat},${claim.lng}?q=${claim.lat},${claim.lng}")
-                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri))
+                            DriveTo.open(context, claim.lat, claim.lng)
                         },
                         onFeedback = { type ->
                             scope.launch {
@@ -1004,7 +1012,7 @@ fun MapScreen(
             }
 
             androidx.compose.animation.AnimatedVisibility(
-                visible = locating && !userTookOver,
+                visible = locating && !userTookOver && (deviceLocation == null || (activeClaim == null && parkedCar == null)),
                 enter = androidx.compose.animation.fadeIn(),
                 exit = androidx.compose.animation.fadeOut(),
                 // Centre while there's nothing to see; once a first fix is on
@@ -1293,7 +1301,7 @@ private fun MapChip(label: String, icon: ImageVector, selected: Boolean, onClick
         shadowElevation = 3.dp,
         modifier = Modifier.height(36.dp).clickable(onClick = onClick),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 11.dp)) {
             Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
             Text(label, style = MaterialTheme.typography.labelLarge, color = content, modifier = Modifier.padding(start = 6.dp))
         }
@@ -1311,7 +1319,7 @@ private fun LotsChip(checked: Boolean, onClick: () -> Unit) {
         shadowElevation = 3.dp,
         modifier = Modifier.height(36.dp).clickable(onClick = onClick),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 11.dp)) {
             Icon(
                 if (checked) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
                 contentDescription = null,

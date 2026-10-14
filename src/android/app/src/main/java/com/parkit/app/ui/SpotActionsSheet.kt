@@ -2,8 +2,6 @@
 
 package com.parkit.app.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -144,14 +142,7 @@ fun SpotActionsSheet(
 
     // Claim and navigate are one tap: saying "on my way" is the reason you
     // open navigation, so they shouldn't be two buttons to choose between.
-    fun navigate() {
-        val uri = Uri.parse("geo:${spot.lat},${spot.lng}?q=${spot.lat},${spot.lng}")
-        try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-        } catch (_: android.content.ActivityNotFoundException) {
-            // No maps app — the claim still holds the spot.
-        }
-    }
+    fun navigate() = DriveTo.open(context, spot.lat, spot.lng)
     val canClaim = spot.status == "active" && !isMine
 
     ModalBottomSheet(

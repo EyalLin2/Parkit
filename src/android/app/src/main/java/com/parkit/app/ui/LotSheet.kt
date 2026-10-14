@@ -1,7 +1,5 @@
 package com.parkit.app.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,8 +73,7 @@ fun LotSheet(lot: ParkingLotOut, onDismiss: () -> Unit) {
             )
             Button(
                 onClick = {
-                    val uri = Uri.parse("geo:${lot.lat},${lot.lng}?q=${lot.lat},${lot.lng}")
-                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    DriveTo.open(context, lot.lat, lot.lng)
                 },
                 shape = RoundedCornerShape(50),
                 modifier = Modifier.fillMaxWidth().padding(top = 18.dp).height(52.dp),

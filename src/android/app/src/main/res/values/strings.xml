@@ -163,7 +163,7 @@
     <string name="settings_map_data">Map data</string>
     <string name="settings_map_data_value">© OpenStreetMap</string>
     <string name="settings_logout_confirm_title">Log out?</string>
-    <string name="settings_logout_confirm_body">You can log back in anytime with your name.</string>
+    <string name="settings_logout_confirm_body">You can sign back in any time with a code to your phone or email.</string>
     <string name="settings_cancel">Cancel</string>
     <string name="map_spot_kind_regular">Regular spot</string>
     <string name="map_spot_kind_disabled">Disabled parking</string>
@@ -435,4 +435,7 @@
     <string name="car_leaving_thanks">Thanks! Your spot is now shown to other drivers</string>
     <string name="car_forget_cd">Forget where the car is</string>
     <string name="car_just_now">just now</string>
+    <string name="legal_privacy">Privacy policy</string>
+    <string name="legal_terms">Terms of use</string>
+    <string name="login_agree">By signing in you agree to the terms of use and privacy policy</string>
 </resources>

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Person
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -145,6 +147,10 @@ fun SettingsScreen(
                 SettingsRow(Icons.Filled.Map, stringResource(R.string.settings_map_data), value = stringResource(R.string.settings_map_data_value), showChevron = false)
                 RowDivider()
                 SettingsRow(Icons.Filled.Face, stringResource(R.string.settings_avatars), subtitle = stringResource(R.string.settings_avatars_value), showChevron = false)
+                RowDivider()
+                SettingsRow(Icons.Filled.Policy, stringResource(R.string.legal_privacy)) { LegalLinks.open(context, LegalLinks.PRIVACY) }
+                RowDivider()
+                SettingsRow(Icons.Filled.Gavel, stringResource(R.string.legal_terms)) { LegalLinks.open(context, LegalLinks.TERMS) }
             }
         }
 

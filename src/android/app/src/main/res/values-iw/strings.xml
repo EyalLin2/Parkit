@@ -169,7 +169,7 @@
     <string name="settings_map_data">נתוני מפה</string>
     <string name="settings_map_data_value">© OpenStreetMap</string>
     <string name="settings_logout_confirm_title">להתנתק?</string>
-    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם השם שלך.</string>
+    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם קוד לטלפון או למייל.</string>
     <string name="settings_cancel">ביטול</string>
     <string name="map_spot_kind_regular">חניה רגילה</string>
     <string name="map_spot_kind_disabled">חניית נכים</string>
@@ -444,4 +444,7 @@
     <string name="car_leaving_thanks">תודה! החניה שלך מופיעה עכשיו לנהגים אחרים</string>
     <string name="car_forget_cd">לשכוח את מיקום הרכב</string>
     <string name="car_just_now">עכשיו</string>
+    <string name="legal_privacy">מדיניות פרטיות</string>
+    <string name="legal_terms">תנאי שימוש</string>
+    <string name="login_agree">בכניסה את/ה מסכים/ה לתנאי השימוש ולמדיניות הפרטיות</string>
 </resources>

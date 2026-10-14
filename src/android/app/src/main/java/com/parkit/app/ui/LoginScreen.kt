@@ -279,6 +279,18 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 14.dp),
         )
+        val context = androidx.compose.ui.platform.LocalContext.current
+        Text(
+            stringResource(R.string.login_agree),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = { LegalLinks.open(context, LegalLinks.TERMS) }) { Text(stringResource(R.string.legal_terms), style = MaterialTheme.typography.labelMedium) }
+            TextButton(onClick = { LegalLinks.open(context, LegalLinks.PRIVACY) }) { Text(stringResource(R.string.legal_privacy), style = MaterialTheme.typography.labelMedium) }
+        }
     }
 }
 
