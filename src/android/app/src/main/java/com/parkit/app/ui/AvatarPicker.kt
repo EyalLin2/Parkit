@@ -36,7 +36,22 @@ private val AVATARS = listOf(
     R.drawable.avatar_13, R.drawable.avatar_14, R.drawable.avatar_15, R.drawable.avatar_16,
 )
 
-fun avatarResource(id: String?): Int? = id?.removePrefix("avatar_")?.toIntOrNull()?.let { AVATARS.getOrNull(it - 1) }
+/** Legend avatars (illustrated figures), unlocked in the rewards shop. */
+val LEGEND_AVATARS = mapOf(
+    "avatar_legend_herzl" to R.drawable.avatar_legend_herzl,
+    "avatar_legend_bengurion" to R.drawable.avatar_legend_bengurion,
+    "avatar_legend_golda" to R.drawable.avatar_legend_golda,
+    "avatar_legend_peres" to R.drawable.avatar_legend_peres,
+    "avatar_legend_benyehuda" to R.drawable.avatar_legend_benyehuda,
+    "avatar_legend_bialik" to R.drawable.avatar_legend_bialik,
+    "avatar_legend_szenes" to R.drawable.avatar_legend_szenes,
+    "avatar_legend_trumpeldor" to R.drawable.avatar_legend_trumpeldor,
+    "avatar_legend_rambam" to R.drawable.avatar_legend_rambam,
+    "avatar_legend_dayan" to R.drawable.avatar_legend_dayan,
+)
+
+fun avatarResource(id: String?): Int? =
+    LEGEND_AVATARS[id] ?: id?.removePrefix("avatar_")?.toIntOrNull()?.let { AVATARS.getOrNull(it - 1) }
 
 fun avatarId(index: Int): String = "avatar_%02d".format(index + 1)
 

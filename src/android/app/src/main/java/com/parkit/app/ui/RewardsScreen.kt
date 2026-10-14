@@ -72,6 +72,7 @@ fun RewardsScreen(
     var confirm by remember { mutableStateOf<RewardOut?>(null) }
     var newCode by remember { mutableStateOf<String?>(null) }
     var special by remember { mutableStateOf(sessionStore.carSpecial) }
+    var avatar by remember { mutableStateOf<String?>(null) }
     val car = sessionStore.driver.value.preferences
     val paint = CarPaints.getOrNull(sessionStore.carPaint)
         ?: car.carPaint?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
@@ -80,6 +81,7 @@ fun RewardsScreen(
     LaunchedEffect(Unit) {
         try {
             shop = api.rewards()
+            avatar = runCatching { api.myProfile().avatar }.getOrNull()
         } catch (e: Exception) {
             if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
         }
@@ -90,8 +92,11 @@ fun RewardsScreen(
             try {
                 val updated = api.redeemReward(reward.id)
                 shop = updated
-                if (reward.kind == "cosmetic") {
+                if (reward.key?.startsWith("avatar_legend_") == true) {
                     // Wear it right away — that's the fun part.
+                    runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(reward.key)) }
+                    avatar = reward.key
+                } else if (reward.kind == "cosmetic") {
                     special = reward.key
                     sessionStore.carSpecial = reward.key
                 } else {
@@ -161,9 +166,35 @@ fun RewardsScreen(
             }
         }
 
+        // Legends: famous Jewish & Israeli figures as your avatar.
+        item { SectionTitle(stringResource(R.string.rewards_legends_section)) }
+        s.rewards.filter { it.key?.startsWith("avatar_legend_") == true }.chunked(3).forEach { row ->
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
+                    row.forEach { reward ->
+                        LegendCard(
+                            reward = reward,
+                            hebrew = hebrew,
+                            balance = s.balance,
+                            wearing = avatar == reward.key,
+                            modifier = Modifier.weight(1f),
+                            onBuy = { confirm = reward },
+                            onWear = {
+                                scope.launch {
+                                    runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(reward.key)) }
+                                        .onSuccess { avatar = reward.key }
+                                }
+                            },
+                        )
+                    }
+                    repeat(3 - row.size) { Box(Modifier.weight(1f)) }
+                }
+            }
+        }
+
         // ParkIt's own finishes for your car, each previewed on your car.
         item { SectionTitle(stringResource(R.string.rewards_car_section)) }
-        s.rewards.filter { it.kind == "cosmetic" }.chunked(2).forEach { pair ->
+        s.rewards.filter { it.kind == "cosmetic" && it.key?.startsWith("paint_") == true }.chunked(2).forEach { pair ->
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     pair.forEach { reward ->
@@ -258,6 +289,46 @@ private fun PartnerCard(reward: RewardOut, hebrew: Boolean, balance: Int, onBuy:
 }
 
 @Composable
+private fun LegendCard(
+    reward: RewardOut,
+    hebrew: Boolean,
+    balance: Int,
+    wearing: Boolean,
+    modifier: Modifier,
+    onBuy: () -> Unit,
+    onWear: () -> Unit,
+) {
+    SectionCard(modifier = modifier) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(10.dp).fillMaxWidth()) {
+            avatarResource(reward.key)?.let { res ->
+                androidx.compose.foundation.Image(
+                    androidx.compose.ui.res.painterResource(res),
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.size(68.dp).clip(androidx.compose.foundation.shape.CircleShape),
+                )
+            }
+            Text(
+                if (hebrew) reward.titleHe else reward.titleEn,
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            Box(Modifier.padding(top = 6.dp)) {
+                if (reward.owned) {
+                    TextButton(onClick = onWear, enabled = !wearing) {
+                        Text(stringResource(if (wearing) R.string.rewards_wearing_avatar else R.string.rewards_wear))
+                    }
+                } else {
+                    PriceButton(reward.cost, balance, owned = false, onBuy, compact = true)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FinishCard(
     reward: RewardOut,
     hebrew: Boolean,
@@ -292,11 +363,15 @@ private fun FinishCard(
 
 /** "300 נק׳" — filled when affordable, a lock and what's missing when not. */
 @Composable
-private fun PriceButton(cost: Int, balance: Int, owned: Boolean, onBuy: () -> Unit) {
+private fun PriceButton(cost: Int, balance: Int, owned: Boolean, onBuy: () -> Unit, compact: Boolean = false) {
     val canBuy = !owned && balance >= cost
     if (canBuy) {
-        Button(onClick = onBuy, shape = RoundedCornerShape(50)) {
-            Text(stringResource(R.string.rewards_cost, cost))
+        Button(
+            onClick = onBuy,
+            shape = RoundedCornerShape(50),
+            contentPadding = if (compact) androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp) else androidx.compose.material3.ButtonDefaults.ContentPadding,
+        ) {
+            Text(stringResource(R.string.rewards_cost, cost), maxLines = 1, softWrap = false)
         }
     } else {
         Row(
@@ -306,7 +381,10 @@ private fun PriceButton(cost: Int, balance: Int, owned: Boolean, onBuy: () -> Un
         ) {
             Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                stringResource(R.string.rewards_missing, cost - balance),
+                // Narrow cards show just the price; wide ones say what's missing.
+                if (compact) stringResource(R.string.rewards_cost, cost) else stringResource(R.string.rewards_missing, cost - balance),
+                maxLines = 1,
+                softWrap = false,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 6.dp),

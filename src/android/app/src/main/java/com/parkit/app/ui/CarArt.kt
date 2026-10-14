@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
@@ -133,6 +134,27 @@ private fun DrawScope.drawCar(kind: String, paint: Color, phase: Float, special:
             drawPath(body, Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFB8BEC6), Color(0xFF5F6670), Color(0xFFD9DEE3))))
             drawPath(body, Color(0xFF8A9097), style = Stroke(w * 0.01f))
         }
+        "paint_galaxy" -> {
+            drawPath(body, Brush.linearGradient(listOf(Color(0xFF1A0B3D), Color(0xFF4A1F8C), Color(0xFF0E2A6B)), Offset(0f, 0f), Offset(w, h)))
+            // A scatter of stars, fixed so they don't twinkle around.
+            clipPath(body) {
+                val rnd = java.util.Random(7)
+                repeat(26) {
+                    drawCircle(Color.White.copy(alpha = 0.55f + rnd.nextFloat() * 0.45f), w * (0.004f + rnd.nextFloat() * 0.006f), Offset(w * rnd.nextFloat(), h * rnd.nextFloat()))
+                }
+            }
+        }
+        "paint_flag" -> {
+            // White with two blue stripes, like the flag.
+            drawPath(body, Color(0xFFF7F9FC))
+            clipPath(body) {
+                val k = shapeOf(kind)
+                val band = h * 0.055f
+                drawRect(Color(0xFF0038B8), Offset(0f, h * (k.belt + 0.04f)), Size(w, band))
+                drawRect(Color(0xFF0038B8), Offset(0f, h * (k.sill - 0.10f)), Size(w, band))
+            }
+            drawPath(body, Color(0xFFB0B8C4), style = Stroke(w * 0.01f))
+        }
         "paint_neon" -> {
             drawPath(body, Color(0xFF39FF14).copy(alpha = 0.35f), style = Stroke(w * 0.05f)) // glow
             drawPath(body, Brush.verticalGradient(listOf(Color(0xFFB6FF9E), Color(0xFF39FF14), Color(0xFF1FA80A))))
@@ -161,6 +183,8 @@ private fun DrawScope.drawCar(kind: String, paint: Color, phase: Float, special:
         "paint_gold" -> Color(0xFFE2B33C)
         "paint_chrome" -> Color(0xFF9AA0A6)
         "paint_neon" -> Color(0xFF39FF14)
+        "paint_galaxy" -> Color(0xFF4A1F8C)
+        "paint_flag" -> Color(0xFF0038B8)
         else -> paint
     }
     val trim = lerp(base, Color.Black, 0.35f)

@@ -18,10 +18,10 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 PAINTS = [
-    ("paint_neon", "צבע ניאון", "Neon paint", 200),
-    ("paint_gold", "צבע זהב", "Gold paint", 300),
-    ("paint_chrome", "צבע כרום", "Chrome paint", 500),
-    ("paint_flames", "להבות על הרכב", "Flames decal", 800),
+    ("paint_neon", "צבע ניאון", "Neon paint", 60),
+    ("paint_gold", "צבע זהב", "Gold paint", 90),
+    ("paint_chrome", "צבע כרום", "Chrome paint", 150),
+    ("paint_flames", "להבות על הרכב", "Flames decal", 250),
 ]
 
 

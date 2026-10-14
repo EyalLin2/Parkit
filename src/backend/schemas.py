@@ -162,4 +162,5 @@ ProfileOut.model_rebuild()
 
 
 class AvatarUpdate(BaseModel):
-    avatar: str | None = Field(default=None, pattern=r"^avatar_(0[1-9]|1[0-6])$")
+    # avatar_01..16 are free; avatar_legend_* are bought in the rewards shop.
+    avatar: str | None = Field(default=None, pattern=r"^avatar_((0[1-9]|1[0-6])|legend_[a-z]+)$")

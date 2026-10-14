@@ -483,4 +483,6 @@
     <string name="rewards_my_codes">My codes</string>
     <string name="rewards_code_title">Your code</string>
     <string name="rewards_code_body">Show it at the business. It stays here under \"My codes\".</string>
+    <string name="rewards_legends_section">Legends — for your profile</string>
+    <string name="rewards_wearing_avatar">In your profile</string>
 </resources>

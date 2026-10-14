@@ -48,3 +48,16 @@ async def test_partner_reward_gives_a_code(client, make_user):
     assert shop["balance"] == 100
     [code] = shop["redemptions"]
     assert code["partner"] == "Cafe" and len(code["code"]) == 8
+
+
+async def test_legend_avatar_needs_to_be_bought_first(client, make_user):
+    user_id, headers = await make_user("fan")
+    await _give_points(user_id, 1000)
+    herzl = await _add(kind="cosmetic", key="avatar_legend_herzl", title_he="הרצל", title_en="Herzl", cost=1000)
+    locked = await client.put("/users/me/avatar", json={"avatar": "avatar_legend_herzl"}, headers=headers)
+    assert locked.status_code == 403
+    await client.post(f"/rewards/{herzl}/redeem", headers=headers)
+    assert (
+        await client.put("/users/me/avatar", json={"avatar": "avatar_legend_herzl"}, headers=headers)
+    ).status_code == 204
+    assert (await client.get("/users/me", headers=headers)).json()["avatar"] == "avatar_legend_herzl"

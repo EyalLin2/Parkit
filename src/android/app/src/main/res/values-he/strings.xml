@@ -492,4 +492,6 @@
     <string name="rewards_my_codes">הקודים שלי</string>
     <string name="rewards_code_title">הקוד שלך</string>
     <string name="rewards_code_body">מראים את הקוד בעסק. הוא נשמר כאן ב\"הקודים שלי\".</string>
+    <string name="rewards_legends_section">דמויות מהעבר — לפרופיל שלך</string>
+    <string name="rewards_wearing_avatar">בפרופיל</string>
 </resources>
