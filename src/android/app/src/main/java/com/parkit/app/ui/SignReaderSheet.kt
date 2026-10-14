@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.DoNotDisturbOn
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material3.Button
@@ -168,29 +169,29 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
     }
 }
 
-/** "✨ AI" — marks what a model decided, so nobody mistakes it for a rule. */
+/** "AI" — marks what a model decided, so nobody mistakes it for a rule. */
 @Composable
-fun AiBadge(modifier: Modifier = Modifier) {
+fun AiBadge(modifier: Modifier = Modifier, small: Boolean = false) {
     Text(
-        "✨ AI",
-        style = MaterialTheme.typography.labelSmall,
+        "AI",
+        fontSize = if (small) 8.sp else 11.sp,
         fontWeight = FontWeight.Bold,
         color = Color.White,
         modifier = modifier
             .clip(RoundedCornerShape(50))
             .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6))))
-            .padding(horizontal = 7.dp, vertical = 2.dp),
+            .padding(horizontal = if (small) 4.dp else 7.dp, vertical = if (small) 0.dp else 2.dp),
     )
 }
 
-/** A blue parking sign with a "P", inside scanner corners, a scan line
- * sweeping over it — "point the camera at the sign", at a glance. */
+/** A blue "P" parking sign on its pole, with a small camera badge — "photograph
+ * the parking sign", readable at a glance. [animate] adds a soft scan line. */
 @Composable
 fun SignScanIcon(size: androidx.compose.ui.unit.Dp, animate: Boolean = true) {
     val sweep = if (animate) {
         androidx.compose.animation.core.rememberInfiniteTransition(label = "scan").animateFloat(
-            initialValue = 0.2f,
-            targetValue = 0.8f,
+            initialValue = 0.15f,
+            targetValue = 0.85f,
             animationSpec = androidx.compose.animation.core.infiniteRepeatable(
                 androidx.compose.animation.core.tween(1400),
                 androidx.compose.animation.core.RepeatMode.Reverse,
@@ -198,31 +199,36 @@ fun SignScanIcon(size: androidx.compose.ui.unit.Dp, animate: Boolean = true) {
             label = "line",
         ).value
     } else {
-        0.5f
+        -1f
     }
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
-    val pStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontWeight = FontWeight.Black, fontSize = (size.value * 0.36f).sp)
-    androidx.compose.foundation.Canvas(Modifier.size(size)) {
-        val w = this.size.width
-        val corner = w * 0.26f
-        val stroke = w * 0.07f
-        val bracket = Color(0xFF1B4F91)
-        // Scanner corners.
-        for ((x, y, dx, dy) in listOf(
-            listOf(0f, 0f, 1f, 1f), listOf(w, 0f, -1f, 1f), listOf(0f, w, 1f, -1f), listOf(w, w, -1f, -1f),
-        )) {
-            drawLine(bracket, androidx.compose.ui.geometry.Offset(x, y + dy * stroke / 2), androidx.compose.ui.geometry.Offset(x + dx * corner, y + dy * stroke / 2), stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-            drawLine(bracket, androidx.compose.ui.geometry.Offset(x + dx * stroke / 2, y), androidx.compose.ui.geometry.Offset(x + dx * stroke / 2, y + dy * corner), stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    val pStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontWeight = FontWeight.Black, fontSize = (size.value * 0.42f).sp)
+    Box(Modifier.size(size)) {
+        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+            val w = this.size.width
+            // Pole.
+            drawRoundRect(Color(0xFF9AA0A6), androidx.compose.ui.geometry.Offset(w * 0.44f, w * 0.55f), androidx.compose.ui.geometry.Size(w * 0.08f, w * 0.43f), androidx.compose.ui.geometry.CornerRadius(w * 0.04f))
+            // The sign: blue, white edge, big P.
+            val left = w * 0.18f
+            val top = w * 0.04f
+            val side = w * 0.6f
+            drawRoundRect(Color.White, androidx.compose.ui.geometry.Offset(left - w * 0.03f, top - w * 0.03f), androidx.compose.ui.geometry.Size(side + w * 0.06f, side + w * 0.06f), androidx.compose.ui.geometry.CornerRadius(side * 0.2f))
+            drawRoundRect(Color(0xFF1565C0), androidx.compose.ui.geometry.Offset(left, top), androidx.compose.ui.geometry.Size(side, side), androidx.compose.ui.geometry.CornerRadius(side * 0.16f))
+            val text = measurer.measure("P", pStyle)
+            drawText(text, topLeft = androidx.compose.ui.geometry.Offset(left + (side - text.size.width) / 2f, top + (side - text.size.height) / 2f))
+            if (sweep >= 0f) {
+                val y = top + side * sweep
+                drawLine(Color(0xFFE53935).copy(alpha = 0.85f), androidx.compose.ui.geometry.Offset(left - w * 0.06f, y), androidx.compose.ui.geometry.Offset(left + side + w * 0.06f, y), w * 0.03f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            }
         }
-        // The parking sign.
-        val inset = w * 0.2f
-        val sign = w - 2 * inset
-        drawRoundRect(Color(0xFF1565C0), androidx.compose.ui.geometry.Offset(inset, inset), androidx.compose.ui.geometry.Size(sign, sign), androidx.compose.ui.geometry.CornerRadius(sign * 0.18f))
-        val text = measurer.measure("P", pStyle)
-        drawText(text, topLeft = androidx.compose.ui.geometry.Offset((w - text.size.width) / 2f, (w - text.size.height) / 2f))
-        // Scan line.
-        val y = w * sweep
-        drawLine(Color(0xFFE53935), androidx.compose.ui.geometry.Offset(w * 0.08f, y), androidx.compose.ui.geometry.Offset(w * 0.92f, y), w * 0.045f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        // Small camera badge: "take a photo of it".
+        Box(
+            Modifier.align(Alignment.BottomEnd).size(size * 0.42f).clip(androidx.compose.foundation.shape.CircleShape)
+                .background(Color.White).padding(size * 0.035f).clip(androidx.compose.foundation.shape.CircleShape)
+                .background(Color(0xFF1B4F91)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(androidx.compose.material.icons.Icons.Filled.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(size * 0.22f))
+        }
     }
 }
-

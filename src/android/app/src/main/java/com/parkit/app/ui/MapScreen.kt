@@ -110,6 +110,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -1143,34 +1144,33 @@ fun MapScreen(
                     Icon(Icons.Filled.MyLocation, contentDescription = stringResource(R.string.map_my_location_cd), tint = MaterialTheme.colorScheme.primary)
                 }
             }
-            // "Can I park here?" — read a parking sign with the camera.
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 6.dp,
+            // "Can I park here?" — a round button with a tiny caption under it.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset {
                         val top = sheetTopPx?.toInt() ?: 0
-                        IntOffset(-20.dp.roundToPx(), top - 2 * buttonSize.roundToPx() - 28.dp.roundToPx())
+                        IntOffset(-14.dp.roundToPx(), top - 2 * buttonSize.roundToPx() - 66.dp.roundToPx())
                     }
-                    .size(buttonSize)
-                    .clickable { showSignReader = true },
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null,
+                    ) { showSignReader = true },
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Box(Modifier.semantics { contentDescription = context.getString(R.string.sign_title) }) { SignScanIcon(30.dp, animate = false) }
+                Box {
+                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 6.dp, modifier = Modifier.size(56.dp)) {
+                        Box(contentAlignment = Alignment.Center) { SignScanIcon(40.dp, animate = false) }
+                    }
+                    AiBadge(Modifier.align(Alignment.TopEnd), small = true)
                 }
-            }
-            // "AI" tag on the sign-reader button, so it reads as a smart feature.
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset {
-                        val top = sheetTopPx?.toInt() ?: 0
-                        IntOffset(-12.dp.roundToPx(), top - 2 * buttonSize.roundToPx() - 34.dp.roundToPx())
-                    },
-            ) {
-                AiBadge()
+                Text(
+                    stringResource(R.string.sign_button_caption),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)).padding(horizontal = 6.dp, vertical = 1.dp),
+                )
             }
             // Parked without a ParkIt spot? Save where the car is anyway, so
             // "where did I park" and the one-tap "I'm leaving" still work.
