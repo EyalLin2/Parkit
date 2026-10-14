@@ -421,4 +421,7 @@
     <string name="settings_tips">איך משתמשים ב-ParkIt</string>
     <string name="location_off">המיקום בטלפון כבוי</string>
     <string name="location_turn_on">להפעלה</string>
+    <string name="report_too_far">אפשר לדווח רק על חניה שנמצאת לידך</string>
+    <string name="report_needs_location">כדי לדווח על חניה צריך להפעיל מיקום</string>
+    <string name="report_go_to_me">למיקום שלי</string>
 </resources>

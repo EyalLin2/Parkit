@@ -1,4 +1,5 @@
 import base64
+import math
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -40,6 +41,19 @@ POINTS_REPORT = 10
 POINTS_CONFIRM_BONUS = 5
 POINTS_REFRESH_BONUS = 3
 POINTS_FALSE_PENALTY = 5
+# A report must come from near the spot. GPS in a street is often 20–50 m
+# off, so the phone's own accuracy is added on top — capped, so a "±5 km"
+# fix can't stretch the limit across town.
+MAX_REPORT_DISTANCE_M = 150
+MAX_ACCURACY_ALLOWANCE_M = 100
+
+
+def _distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Great-circle distance in metres (plenty accurate at street scale)."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp, dl = p2 - p1, math.radians(lng2 - lng1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6_371_000 * math.asin(math.sqrt(a))
 
 
 def _location_bucket(lat: float, lng: float) -> str:
@@ -100,6 +114,12 @@ async def report_spot(
 
     if await redis.exists(f"report_cooldown:{user_id}"):
         raise HTTPException(429, "Please wait before reporting again")
+
+    if payload.reporter_lat is not None and payload.reporter_lng is not None:
+        allowance = min(payload.reporter_accuracy_m or 0, MAX_ACCURACY_ALLOWANCE_M)
+        away = _distance_m(payload.lat, payload.lng, payload.reporter_lat, payload.reporter_lng)
+        if away > MAX_REPORT_DISTANCE_M + allowance:
+            raise HTTPException(422, "You can only report a spot near where you are")
 
     bucket = _location_bucket(payload.lat, payload.lng)
     if await redis.exists(f"same_spot_block:{user_id}:{bucket}"):

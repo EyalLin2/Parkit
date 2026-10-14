@@ -69,6 +69,10 @@ data class SpotCreate(
     @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "photo_staging_id") val photoStagingId: String? = null,
     val address: String? = null,
+    // Where the phone is — the server only accepts reports made near the spot.
+    @Json(name = "reporter_lat") val reporterLat: Double? = null,
+    @Json(name = "reporter_lng") val reporterLng: Double? = null,
+    @Json(name = "reporter_accuracy_m") val reporterAccuracyM: Float? = null,
 )
 
 @JsonClass(generateAdapter = true)

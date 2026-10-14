@@ -412,4 +412,7 @@
     <string name="settings_tips">How ParkIt works</string>
     <string name="location_off">Location is turned off on your phone</string>
     <string name="location_turn_on">Turn on</string>
+    <string name="report_too_far">You can only report a spot that\'s near you</string>
+    <string name="report_needs_location">Turn on location to report a spot</string>
+    <string name="report_go_to_me">Go to me</string>
 </resources>

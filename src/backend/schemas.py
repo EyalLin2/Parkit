@@ -14,6 +14,13 @@ class SpotCreate(BaseModel):
     vehicle_size: VehicleSize | None = None
     photo_staging_id: str | None = None
     address: str | None = Field(default=None, max_length=200)
+    # Where the reporter's phone is (and how sure it is), so a spot can only
+    # be reported by someone standing near it — not from a sofa in another
+    # city by dragging the map. Optional only so 0.3.3 beta installs keep
+    # working until they update; make it required after that.
+    reporter_lat: float | None = Field(default=None, ge=-90, le=90)
+    reporter_lng: float | None = Field(default=None, ge=-180, le=180)
+    reporter_accuracy_m: float | None = Field(default=None, ge=0)
 
 
 class SpotOut(BaseModel):

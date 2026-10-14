@@ -210,3 +210,31 @@ async def test_refresh_fills_a_missing_address_but_never_overwrites_one(client, 
 
     kept = await _report(client, headers_c, lat=TLV["lat"] - 0.00005, address="Somewhere else 1")
     assert kept.json()["address"] == "Dizengoff 50"
+
+
+async def test_report_from_near_the_spot_is_accepted(client, make_user):
+    _, headers = await make_user("reporter")
+    # ~90 m north of the spot, a normal street-GPS gap.
+    resp = await _report(
+        client, headers, reporter_lat=TLV["lat"] + 0.0008, reporter_lng=TLV["lng"], reporter_accuracy_m=30
+    )
+    assert resp.status_code == 201
+
+
+async def test_report_from_far_away_is_rejected(client, make_user):
+    _, headers = await make_user("reporter")
+    # ~1.1 km away: dragging the map to another neighbourhood.
+    resp = await _report(
+        client, headers, reporter_lat=TLV["lat"] + 0.01, reporter_lng=TLV["lng"], reporter_accuracy_m=20
+    )
+    assert resp.status_code == 422
+    assert "near" in resp.json()["detail"]
+
+
+async def test_poor_gps_accuracy_cannot_stretch_the_limit_across_town(client, make_user):
+    _, headers = await make_user("reporter")
+    # ~330 m away with a "±5 km" fix: the accuracy allowance is capped at 100 m.
+    resp = await _report(
+        client, headers, reporter_lat=TLV["lat"] + 0.003, reporter_lng=TLV["lng"], reporter_accuracy_m=5000
+    )
+    assert resp.status_code == 422
