@@ -11,6 +11,7 @@
          installed before opening it (see PangoLink). -->
     <queries>
         <package android:name="com.unicell.pangoandroid" />
+        <package android:name="air.com.cellogroup.Cellopark" />
         <package android:name="com.waze" />
         <package android:name="com.google.android.apps.maps" />
     </queries>

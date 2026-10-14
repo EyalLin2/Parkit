@@ -590,6 +590,8 @@ fun MapScreen(
     /** Right after "I parked": thanks + a one-tap hand-off to Pango in case
      * it's blue-white. A snackbar, not a dialog — it goes away by itself
      * and never blocks the map. */
+    var showPayChooser by remember { mutableStateOf(false) }
+
     suspend fun offerPango() {
         val result = snackbarHostState.showSnackbar(
             message = context.getString(R.string.parked_pango_prompt),
@@ -597,7 +599,11 @@ fun MapScreen(
             withDismissAction = true,
             duration = androidx.compose.material3.SnackbarDuration.Long,
         )
-        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) PangoLink.open(context)
+        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+            // The one app they have opens straight away; otherwise let them pick.
+            val have = ParkingPay.installed(context)
+            if (have.size == 1) ParkingPay.open(context, have.single()) else showPayChooser = true
+        }
     }
 
     /** No usable fix: open on the driver's preferred city, else Tel Aviv. */
@@ -1115,6 +1121,27 @@ fun MapScreen(
                 }
             }
         }
+    }
+
+    if (showPayChooser) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPayChooser = false },
+            title = { Text(stringResource(R.string.pay_chooser_title)) },
+            text = { Text(stringResource(R.string.pay_chooser_body)) },
+            confirmButton = {
+                Row {
+                    ParkingPay.App.entries.forEach { app ->
+                        androidx.compose.material3.TextButton(onClick = {
+                            showPayChooser = false
+                            ParkingPay.open(context, app)
+                        }) { Text(stringResource(app.label)) }
+                    }
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showPayChooser = false }) { Text(stringResource(R.string.settings_cancel)) }
+            },
+        )
     }
 
     if (showReportFlow) {

@@ -266,8 +266,8 @@
     <string name="lot_kind_surface">Open-air</string>
     <string name="lot_capacity">%1$d spaces</string>
     <string name="lot_source_note">Lot data from OpenStreetMap — check the entrance for hours and prices.</string>
-    <string name="parked_pango_prompt">Parked! Blue-white? Start parking in Pango</string>
-    <string name="parked_pango_action">Pango</string>
+    <string name="parked_pango_prompt">Parked! Blue-white curb? Start paying in your parking app</string>
+    <string name="parked_pango_action">Pay</string>
     <string name="spot_no_photo_cd">No photo for this spot</string>
     <string name="spot_age_short">%1$s\u00A0ago</string>
     <string name="profile_tab_overview">Overview</string>
@@ -454,4 +454,8 @@
     <string name="lot_hours">Hours: %1$s</string>
     <string name="lot_hours_always">Open 24/7</string>
     <string name="lot_data_note">Data from OpenStreetMap, updated %1$s. It may not be fully up to date — check at the entrance.</string>
+    <string name="pay_pango">Pango</string>
+    <string name="pay_cellopark">Cellopark</string>
+    <string name="pay_chooser_title">Pay for blue-white parking</string>
+    <string name="pay_chooser_body">Which app do you pay with?</string>
 </resources>
