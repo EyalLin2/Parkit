@@ -21,7 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 LEGENDS = [
     ("avatar_legend_bialik", "ביאליק", "Bialik", 150),
     ("avatar_legend_benyehuda", "אליעזר בן־יהודה", "Eliezer Ben-Yehuda", 150),
-    ("avatar_legend_szenes", "חנה סנש", "Hannah Szenes", 180),
+    ("avatar_legend_scientist", "המדען הגאון", "The Genius Scientist", 180),
     ("avatar_legend_trumpeldor", "טרומפלדור", "Trumpeldor", 180),
     ("avatar_legend_dayan", "משה דיין", "Moshe Dayan", 220),
     ("avatar_legend_peres", "שמעון פרס", "Shimon Peres", 220),

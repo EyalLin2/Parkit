@@ -44,7 +44,7 @@ val LEGEND_AVATARS = mapOf(
     "avatar_legend_peres" to R.drawable.avatar_legend_peres,
     "avatar_legend_benyehuda" to R.drawable.avatar_legend_benyehuda,
     "avatar_legend_bialik" to R.drawable.avatar_legend_bialik,
-    "avatar_legend_szenes" to R.drawable.avatar_legend_szenes,
+    "avatar_legend_scientist" to R.drawable.avatar_legend_scientist,
     "avatar_legend_trumpeldor" to R.drawable.avatar_legend_trumpeldor,
     "avatar_legend_rambam" to R.drawable.avatar_legend_rambam,
     "avatar_legend_dayan" to R.drawable.avatar_legend_dayan,
