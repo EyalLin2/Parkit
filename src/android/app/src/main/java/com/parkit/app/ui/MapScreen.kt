@@ -114,6 +114,7 @@ import com.parkit.app.api.GeocodingClient
 import com.parkit.app.api.SpotOut
 import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
+import com.parkit.app.api.localAddress
 import com.parkit.app.auth.SessionStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -447,7 +448,7 @@ fun MapScreen(
         for (spot in sortedSpots) {
             // Reports carry their own address now; only older ones (made
             // before the backend stored it) still need a lookup.
-            if (spot.address != null || spotAddresses.containsKey(spot.id)) continue
+            if (spot.localAddress != null || spotAddresses.containsKey(spot.id)) continue
             val cached = com.parkit.app.api.SpotAddressCache.get(spot.id)
             if (cached != null) {
                 spotAddresses[spot.id] = cached
@@ -1016,7 +1017,7 @@ fun MapScreen(
                             scope.launch {
                                 try {
                                     api.submitFeedback(claim.id, com.parkit.app.api.FeedbackCreate(type))
-                                    if (type == "confirmed_taken") rememberCar(LatLng(claim.lat, claim.lng), claim.address, claim.spotType)
+                                    if (type == "confirmed_taken") rememberCar(LatLng(claim.lat, claim.lng), claim.localAddress, claim.spotType)
                                     activeClaim = null
                                     refreshSpotsNow()
                                     if (type == "confirmed_taken") offerPango() else snackbarHostState.showSnackbar(context.getString(R.string.claim_taken_thanks))
@@ -1148,7 +1149,7 @@ fun MapScreen(
                 refreshSpotsNow()
             },
             onParked = {
-                rememberCar(LatLng(spot.lat, spot.lng), spot.address, spot.spotType)
+                rememberCar(LatLng(spot.lat, spot.lng), spot.localAddress, spot.spotType)
                 scope.launch { offerPango() }
             },
             onClaimed = { claimed ->
@@ -1484,7 +1485,7 @@ private fun NearbySheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             LazyColumn(modifier = Modifier.fillMaxWidth().height(360.dp)) {
                 items(spots, key = { it.id }) { spot ->
-                    SpotRow(spot, spot.address ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
+                    SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
                 }
             }
         }
@@ -1506,13 +1507,17 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
-            if (spot.photoUrl != null) {
+            // A photo that fails to load (already deleted) shows the icon,
+            // never an empty tile.
+            var photoFailed by remember(spot.id) { mutableStateOf(false) }
+            if (spot.photoUrl != null && !photoFailed) {
                 // The reporter's photo, when there is one — the quickest
                 // read of "is this spot real and will my car fit".
                 coil.compose.AsyncImage(
                     model = com.parkit.app.ApiConfig.BASE_URL.trimEnd('/') + spot.photoUrl,
                     contentDescription = null,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    onError = { photoFailed = true },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {

@@ -76,6 +76,7 @@ import com.parkit.app.api.SpotAddressCache
 import com.parkit.app.api.SpotOut
 import com.parkit.app.api.friendlyMessage
 import com.parkit.app.api.isUnauthorized
+import com.parkit.app.api.localAddress
 import kotlinx.coroutines.launch
 
 private val Free = Color(0xFF188038)
@@ -103,7 +104,7 @@ fun SpotActionsSheet(
     val context = LocalContext.current
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var address by remember { mutableStateOf(spot.address ?: SpotAddressCache.get(spot.id)) }
+    var address by remember { mutableStateOf(spot.localAddress ?: SpotAddressCache.get(spot.id)) }
     val scope = rememberCoroutineScope()
     val isMine = spot.reporterId == myUserId
     val isClaimed = spot.status == "claimed"
@@ -297,7 +298,7 @@ fun SpotActionsSheet(
                     error = null
                     scope.launch {
                         try {
-                            val claimed = api.claimSpot(spot.id).copy(address = spot.address ?: address, reporterLevel = spot.reporterLevel)
+                            val claimed = api.claimSpot(spot.id).copy(address = spot.localAddress ?: address, reporterLevel = spot.reporterLevel)
                             navigate()
                             onClaimed(claimed)
                         } catch (e: Exception) {

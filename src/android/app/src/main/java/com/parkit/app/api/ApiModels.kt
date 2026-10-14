@@ -211,3 +211,8 @@ data class FeedbackIn(
 
 @JsonClass(generateAdapter = true)
 data class ApiErrorBody(val detail: String? = null)
+
+/** The server stores a spot's street in Hebrew; in the English UI it is
+ * looked up again in English (see SpotAddressCache), so this is null there. */
+val SpotOut.localAddress: String?
+    get() = address.takeIf { java.util.Locale.getDefault().language != "en" }
