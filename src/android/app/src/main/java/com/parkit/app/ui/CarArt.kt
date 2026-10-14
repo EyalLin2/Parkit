@@ -2,7 +2,13 @@ package com.parkit.app.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -13,6 +19,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 
 /** Paint colours for "your car" — picked once in the profile, kept on the device. */
@@ -35,12 +44,29 @@ val CarPaints = listOf(
  */
 @Composable
 fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Modifier) {
+    // Driving: the road slides by, the wheels turn and the body bobs a little.
+    // Still when the phone has animations turned off.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val animate = remember {
+        android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+    }
+    val phase = if (animate && size != null) {
+        rememberInfiniteTransition(label = "drive").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
+            label = "phase",
+        ).value
+    } else {
+        0f
+    }
     Canvas(modifier.aspectRatio(1.7f)) {
         if (size == null) {
             drawGhostCar(outline)
         } else {
-            drawRoad()
-            drawCar(size, paint)
+            drawRoad(phase)
+            val bob = kotlin.math.sin(phase * 2f * Math.PI.toFloat() * 2f) * this.size.height * 0.008f
+            translate(top = bob) { drawCar(size, paint, phase) }
         }
     }
 }
@@ -91,7 +117,7 @@ private fun DrawScope.bodyPath(kind: String): Path {
     }
 }
 
-private fun DrawScope.drawCar(kind: String, paint: Color) {
+private fun DrawScope.drawCar(kind: String, paint: Color, phase: Float) {
     val w = size.width
     val h = size.height * CAR_H
     val k = shapeOf(kind)
@@ -130,6 +156,12 @@ private fun DrawScope.drawCar(kind: String, paint: Color) {
         val c = Offset(cx, h * k.sill)
         drawCircle(Color(0xFF202124), r * 1.02f, c)
         drawCircle(Color(0xFFBDC1C6), r * 0.52f, c)
+        // Spokes, so turning wheels read as turning.
+        rotate(phase * 360f, c) {
+            for (a in 0 until 3) {
+                rotate(a * 60f, c) { drawLine(Color(0xFF80868B), Offset(c.x - r * 0.48f, c.y), Offset(c.x + r * 0.48f, c.y), strokeWidth = r * 0.14f) }
+            }
+        }
         drawCircle(Color(0xFF5F6368), r * 0.18f, c)
     }
 }
@@ -138,15 +170,19 @@ private fun DrawScope.drawCar(kind: String, paint: Color) {
 private const val CAR_H = 0.86f
 
 /** A short stretch of asphalt with a dashed centre line. */
-private fun DrawScope.drawRoad() {
+private fun DrawScope.drawRoad(phase: Float) {
     val top = size.height * (CAR_H - 0.09f)
     val roadH = size.height - top
     drawRoundRect(Color(0xFF3C4043), Offset(0f, top), Size(size.width, roadH), CornerRadius(roadH / 2))
+    // The car faces right, so the markings slide left.
     val dash = size.width * 0.09f
-    var x = size.width * 0.06f
-    while (x < size.width * 0.94f) {
-        drawRect(Color(0xFFF1F3F4), Offset(x, top + roadH * 0.62f), Size(dash, roadH * 0.12f))
-        x += dash * 1.9f
+    val step = dash * 1.9f
+    clipRect(left = size.width * 0.05f, right = size.width * 0.95f) {
+        var x = size.width * 0.05f - phase * step
+        while (x < size.width) {
+            drawRect(Color(0xFFF1F3F4), Offset(x, top + roadH * 0.62f), Size(dash, roadH * 0.12f))
+            x += step
+        }
     }
 }
 
