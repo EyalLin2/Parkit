@@ -502,4 +502,7 @@
     <string name="login_or">or with a code</string>
     <string name="login_google_failed">Google sign-in didn\'t work. Try again, or sign in with a code.</string>
     <string name="ad_label">Sponsored</string>
+    <string name="ad_open_link">Learn more</string>
+    <string name="ad_navigate">Take me there</string>
+    <string name="ad_close">Close</string>
 </resources>

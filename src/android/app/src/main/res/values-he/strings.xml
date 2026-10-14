@@ -511,4 +511,7 @@
     <string name="login_or">או עם קוד</string>
     <string name="login_google_failed">הכניסה עם Google לא הצליחה. אפשר לנסות שוב, או להיכנס עם קוד.</string>
     <string name="ad_label">ממומן</string>
+    <string name="ad_open_link">לפרטים</string>
+    <string name="ad_navigate">ניווט לשם</string>
+    <string name="ad_close">סגירה</string>
 </resources>

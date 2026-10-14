@@ -31,6 +31,7 @@ def upgrade() -> None:
         sa.Column('category', sa.String(length=20), nullable=False, server_default='other'),
         sa.Column('geom', geoalchemy2.types.Geography(geometry_type='POINT', srid=4326), nullable=False),
         sa.Column('radius_m', sa.Integer(), nullable=False, server_default='1500'),
+        sa.Column('placement', sa.String(length=10), nullable=False, server_default='card'),
         sa.Column('link_url', sa.String(length=300), nullable=True),
         sa.Column('active', sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column('ends_at', sa.DateTime(timezone=True), nullable=True),

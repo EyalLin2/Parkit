@@ -292,6 +292,8 @@ class Ad(Base):
     category: Mapped[str] = mapped_column(String(20), default="other")  # car_wash | garage | cafe | parking | other
     geom: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326))
     radius_m: Mapped[int] = mapped_column(Integer, default=1500)
+    # "card" = a row in the nearby list; "open" = full screen when the app opens.
+    placement: Mapped[str] = mapped_column(String(10), default="card")
     link_url: Mapped[str | None] = mapped_column(String(300), nullable=True)
     active: Mapped[bool] = mapped_column(default=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

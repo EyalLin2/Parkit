@@ -10,15 +10,15 @@ from database import engine
 DIZENGOFF = {"lat": 32.0779, "lng": 34.7740}
 
 
-async def _ad(name, lat, lng, radius=1500, active=True, ends_at=None):
+async def _ad(name, lat, lng, radius=1500, active=True, ends_at=None, placement="card"):
     async with engine.begin() as conn:
         await conn.execute(
             text(
                 "INSERT INTO ads (advertiser, title_he, title_en, category, geom, radius_m, active, ends_at, "
-                "impressions, clicks, created_at) "
-                "VALUES (:n, :n, :n, 'car_wash', ST_GeogFromText(:wkt), :r, :a, :e, 0, 0, now())"
+                "impressions, clicks, created_at, placement) "
+                "VALUES (:n, :n, :n, 'car_wash', ST_GeogFromText(:wkt), :r, :a, :e, 0, 0, now(), :p)"
             ),
-            {"n": name, "wkt": f"SRID=4326;POINT({lng} {lat})", "r": radius, "a": active, "e": ends_at},
+            {"n": name, "wkt": f"SRID=4326;POINT({lng} {lat})", "r": radius, "a": active, "e": ends_at, "p": placement},
         )
 
 
@@ -46,3 +46,11 @@ async def test_views_and_taps_are_counted(client):
             await conn.execute(text("SELECT impressions, clicks FROM ads WHERE id = :i"), {"i": ad["id"]})
         ).one()
     assert (views, taps) == (2, 1)
+
+
+async def test_open_ads_are_separate_from_list_cards(client):
+    await _ad("List card", 32.0785, 34.7745)
+    await _ad("Splash", 32.0786, 34.7746, placement="open")
+    card = (await client.get("/ads/nearby", params=DIZENGOFF)).json()
+    splash = (await client.get("/ads/nearby", params={**DIZENGOFF, "placement": "open"})).json()
+    assert card["advertiser"] == "List card" and splash["advertiser"] == "Splash"

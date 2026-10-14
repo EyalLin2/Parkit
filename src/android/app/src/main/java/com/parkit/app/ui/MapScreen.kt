@@ -302,6 +302,7 @@ private const val LAYER_PINS = "spots-pins"
 private const val SOURCE_LOTS = "parking-lots"
 private const val LAYER_LOTS = "parking-lots-pins"
 private const val LOT_ICON = "lot-pin"
+private const val OPEN_AD_EVERY_MS = 6 * 60 * 60 * 1000L
 private const val SOURCE_CAR = "parked-car"
 private const val LAYER_CAR = "parked-car-pin"
 private const val CAR_ICON = "car-pin"
@@ -655,9 +656,13 @@ fun MapScreen(
         }
         scope.launch {
             locating = true
-            // 1. Instant: where the phone already knows it is.
-            fusedLastKnown(context, maxAgeMs = QUICK_FIX_MAX_AGE_MS)?.takeIf { inServiceArea(it) }?.let { use(it, fly = true) }
-            // 2. Fast: Wi-Fi + cell, a second or two.
+            // 1. Instant: where the phone already knows it is. Good enough to
+            // show the map right away — no "locating…" while we refine.
+            fusedLastKnown(context, maxAgeMs = QUICK_FIX_MAX_AGE_MS)?.takeIf { inServiceArea(it) }?.let {
+                use(it, fly = true)
+                locating = false
+            }
+            // 2. Fast: Wi-Fi + cell, a second or two — quietly, if 1 already placed us.
             val fix = freshFix(context)
             locating = false
             when {
@@ -877,6 +882,23 @@ fun MapScreen(
             style = s
             enableLocationPuck()
         }
+    }
+
+    // Full-screen ad on open — with guard rails: at most every 6 hours, never
+    // during a trip to a spot, never on a brand-new install's first visit.
+    var openAd by remember { mutableStateOf<com.parkit.app.api.AdOut?>(null) }
+    LaunchedEffect(deviceLocation != null) {
+        val here = deviceLocation ?: return@LaunchedEffect
+        val now = System.currentTimeMillis()
+        val firstVisit = sessionStore.lastOpenAdAt == 0L
+        if (firstVisit) {
+            sessionStore.lastOpenAdAt = now // start the clock; the first ad comes on a later open
+            return@LaunchedEffect
+        }
+        if (activeClaim != null || now - sessionStore.lastOpenAdAt < OPEN_AD_EVERY_MS) return@LaunchedEffect
+        val ad = runCatching { api.nearbyAd(here.latitude, here.longitude, placement = "open") }.getOrNull() ?: return@LaunchedEffect
+        sessionStore.lastOpenAdAt = now
+        openAd = ad
     }
 
     // One sponsored card for the area on screen; nothing personal is sent.
@@ -1187,6 +1209,23 @@ fun MapScreen(
                 }
             }
         }
+    }
+
+    openAd?.let { ad ->
+        OpenAdDialog(
+            ad = ad,
+            onClose = { openAd = null },
+            onOpen = {
+                openAd = null
+                scope.launch { runCatching { api.adClick(ad.id) } }
+                val link = ad.linkUrl
+                if (link != null) {
+                    runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))) }
+                } else {
+                    DriveTo.open(context, ad.lat, ad.lng)
+                }
+            },
+        )
     }
 
     if (showSignReader) {
@@ -2087,4 +2126,72 @@ private fun SponsoredCard(ad: com.parkit.app.api.AdOut, onClick: (com.parkit.app
 private fun formatDistanceShort(context: android.content.Context, meters: Double): String =
     if (meters < 1000) context.getString(R.string.distance_m, (Math.round(meters / 10.0) * 10).toInt())
     else context.getString(R.string.distance_km, meters / 1000.0)
+
+/** The "on open" ad: one business, a clear "Sponsored" tag, an X that's
+ * there from the first frame (Play policy: never trap the user). */
+@Composable
+private fun OpenAdDialog(ad: com.parkit.app.api.AdOut, onClose: () -> Unit, onOpen: () -> Unit) {
+    val context = LocalContext.current
+    val hebrew = context.resources.configuration.locales[0].language in setOf("he", "iw")
+    val icon = when (ad.category) {
+        "car_wash" -> Icons.Filled.LocalCarWash
+        "garage" -> Icons.Filled.Build
+        "cafe" -> Icons.Filled.LocalCafe
+        "parking" -> Icons.Filled.LocalParking
+        else -> Icons.Filled.Storefront
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
+        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
+            Box {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+                    Text(
+                        stringResource(R.string.ad_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+                    )
+                    Box(
+                        Modifier.padding(top = 18.dp).size(96.dp).clip(RoundedCornerShape(28.dp))
+                            .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFFFFD54F), Color(0xFFF57C00)))),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(52.dp))
+                    }
+                    Text(
+                        if (hebrew) ad.titleHe else ad.titleEn,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                    (if (hebrew) ad.bodyHe else ad.bodyEn)?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                    Text(
+                        "${ad.advertiser} · ${stringResource(R.string.spot_distance_away, formatDistanceShort(context, ad.distanceM))}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                    androidx.compose.material3.Button(
+                        onClick = onOpen,
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp),
+                    ) {
+                        Text(stringResource(if (ad.linkUrl != null) R.string.ad_open_link else R.string.ad_navigate), style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+                androidx.compose.material3.IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.ad_close))
+                }
+            }
+        }
+    }
+}
 

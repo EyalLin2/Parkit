@@ -9,6 +9,7 @@ business can be shown what it got.
 import hmac
 import html
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -43,6 +44,7 @@ class AdOut(BaseModel):
 async def nearby_ad(
     lat: float = Query(ge=-90, le=90),
     lng: float = Query(ge=-180, le=180),
+    placement: Literal["card", "open"] = "card",
     db: AsyncSession = Depends(get_db),
 ) -> AdOut | None:
     """The closest active card whose area covers this point, or null."""
@@ -51,11 +53,11 @@ async def nearby_ad(
             text(
                 "SELECT id, ST_Y(geom::geometry) AS lat, ST_X(geom::geometry) AS lng, "
                 "ST_Distance(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) AS distance_m "
-                "FROM ads WHERE active AND (ends_at IS NULL OR ends_at > now()) "
+                "FROM ads WHERE active AND placement = :placement AND (ends_at IS NULL OR ends_at > now()) "
                 "AND ST_DWithin(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, radius_m) "
                 "ORDER BY distance_m LIMIT 1"
             ),
-            {"lat": lat, "lng": lng},
+            {"lat": lat, "lng": lng, "placement": placement},
         )
     ).first()
     if row is None:
@@ -100,7 +102,8 @@ async def admin_ads(token: str = Query(""), db: AsyncSession = Depends(get_db)) 
     t = html.escape(token)
     rows = "".join(
         f"<tr><td>{a.id}</td><td>{html.escape(a.advertiser)}</td><td>{html.escape(a.title_he)}</td>"
-        f"<td>{html.escape(a.category)}</td><td>{a.radius_m} m</td><td>{a.impressions}</td><td>{a.clicks}</td>"
+        f"<td>{html.escape(a.category)} / {html.escape(a.placement)}</td><td>{a.radius_m} m</td>"
+        f"<td>{a.impressions}</td><td>{a.clicks}</td>"
         f"<td>{(a.clicks / a.impressions * 100 if a.impressions else 0):.1f}%</td>"
         f"<td>{a.ends_at.strftime('%d/%m/%Y') if a.ends_at else '—'}</td><td>{'on' if a.active else 'off'}</td>"
         f"<td><form method=post action='/admin/ads/{a.id}/toggle?token={t}'>"
@@ -123,6 +126,8 @@ async def admin_ads(token: str = Query(""), db: AsyncSession = Depends(get_db)) 
         "<input name=body_he placeholder='שורה קצרה, למשל: 10% הנחה למשתמשי ParkIt'><br>"
         "<input name=body_en placeholder='Short line (English)'><br>"
         f"<select name=category>{options}</select><br>"
+        "<select name=placement><option value=card>Card in the nearby list</option>"
+        "<option value=open>Full screen when the app opens</option></select><br>"
         "<input name=lat placeholder='Latitude, e.g. 32.0809' required><br>"
         "<input name=lng placeholder='Longitude, e.g. 34.7806' required><br>"
         "<input name=radius_m type=number value=1500 min=100 max=10000> metres around it<br>"
@@ -141,6 +146,7 @@ async def admin_add_ad(
     body_he: str = Form("", max_length=160),
     body_en: str = Form("", max_length=160),
     category: str = Form("other"),
+    placement: str = Form("card"),
     lat: float = Form(..., ge=-90, le=90),
     lng: float = Form(..., ge=-180, le=180),
     radius_m: int = Form(1500, ge=100, le=10000),
@@ -161,6 +167,7 @@ async def admin_add_ad(
             body_he=body_he.strip() or None,
             body_en=body_en.strip() or None,
             category=category,
+            placement="open" if placement == "open" else "card",
             geom=f"SRID=4326;POINT({lng} {lat})",
             radius_m=radius_m,
             link_url=link_url.strip() or None,

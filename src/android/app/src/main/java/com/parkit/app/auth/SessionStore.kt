@@ -103,6 +103,11 @@ class SessionStore(context: Context) {
         get() = device.getString("car_special", null)
         set(value) = device.edit().apply { if (value == null) remove("car_special") else putString("car_special", value) }.apply()
 
+    /** When the full-screen "on open" ad was last shown (epoch ms). */
+    var lastOpenAdAt: Long
+        get() = device.getLong("last_open_ad_at", 0L)
+        set(value) = device.edit().putLong("last_open_ad_at", value).apply()
+
     /** "I just parked" was explained once on this install. */
     var carExplained: Boolean
         get() = device.getBoolean("car_explained", false)
