@@ -449,4 +449,9 @@
     <string name="car_art_add">Add your car</string>
     <string name="car_art_pick_paint">What colour is your car?</string>
     <string name="car_art_edit">Edit car</string>
+    <string name="lot_charge">Price: %1$s</string>
+    <string name="lot_charge_unknown">Price: posted at the entrance</string>
+    <string name="lot_hours">Hours: %1$s</string>
+    <string name="lot_hours_always">Open 24/7</string>
+    <string name="lot_data_note">Data from OpenStreetMap, updated %1$s. It may not be fully up to date — check at the entrance.</string>
 </resources>

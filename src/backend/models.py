@@ -206,6 +206,18 @@ class OsmParkingLot(Base):
     fee: Mapped[str | None] = mapped_column(String(40), nullable=True)  # "yes" / "no" / unknown
     capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     operator: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    charge: Mapped[str | None] = mapped_column(String(120), nullable=True)  # OSM "charge", e.g. "12 ILS/hour"
+    opening_hours: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class OsmMeta(Base):
+    """Bookkeeping for the OSM import — when it last ran, so the app can say
+    how fresh the car park data is."""
+
+    __tablename__ = "osm_meta"
+
+    key: Mapped[str] = mapped_column(String(40), primary_key=True)
+    value: Mapped[str] = mapped_column(String(200))
 
 
 class AppFeedback(Base):

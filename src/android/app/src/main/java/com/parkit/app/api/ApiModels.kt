@@ -183,7 +183,11 @@ data class ParkingLotOut(
     val fee: String?,
     val capacity: Int?,
     val operator: String?,
+    /** OSM "charge" (e.g. "12 ILS/hour") — rarely mapped. */
+    val charge: String? = null,
+    @Json(name = "opening_hours") val openingHours: String? = null,
     @Json(name = "distance_m") val distanceM: Double,
+    @Json(name = "data_updated_at") val dataUpdatedAt: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

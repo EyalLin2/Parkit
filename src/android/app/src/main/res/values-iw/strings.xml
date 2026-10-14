@@ -458,4 +458,9 @@
     <string name="car_art_add">הוסיפו את הרכב שלכם</string>
     <string name="car_art_pick_paint">איזה צבע הרכב?</string>
     <string name="car_art_edit">עריכת הרכב</string>
+    <string name="lot_charge">מחיר: %1$s</string>
+    <string name="lot_charge_unknown">מחיר: כתוב בכניסה לחניון</string>
+    <string name="lot_hours">שעות: %1$s</string>
+    <string name="lot_hours_always">פתוח 24/7</string>
+    <string name="lot_data_note">המידע מ-OpenStreetMap, עודכן ב-%1$s. ייתכן שאינו מעודכן עד הסוף — כדאי לבדוק בכניסה לחניון.</string>
 </resources>
