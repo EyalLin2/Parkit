@@ -39,7 +39,9 @@ Look at the photo and decide whether this driver may park here right now.
 Answer with JSON only, no other text:
 {{"verdict": "allowed" | "not_allowed" | "unclear",
   "until": "HH:MM" or null,       // when the current state ends today, if the sign says
-  "paid": true | false | null,    // must pay (blue-white / pay hours)
+  "changes_at": "HH:MM" or null,  // the next time today the rules change for this driver
+  "changes_to": "allowed" | "paid" | "not_allowed" | null,  // what they change to then
+  "paid": true | false | null,    // must pay right now (blue-white / pay hours)
   "summary_he": "...",            // one short Hebrew sentence for the driver
   "summary_en": "..."}}           // the same in English
 Use "unclear" if there is no parking sign, the photo is unreadable, or the rules are ambiguous."""
@@ -48,6 +50,10 @@ Use "unclear" if there is no parking sign, the photo is unreadable, or the rules
 class SignReading(BaseModel):
     verdict: Literal["allowed", "not_allowed", "unclear"]
     until: str | None = None
+    # The next change today ("from 19:00 parking is paid") — what the
+    # reminder is set for.
+    changes_at: str | None = None
+    changes_to: Literal["allowed", "paid", "not_allowed"] | None = None
     paid: bool | None = None
     summary_he: str
     summary_en: str

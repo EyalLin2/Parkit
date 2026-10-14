@@ -506,4 +506,12 @@
     <string name="ad_navigate">Take me there</string>
     <string name="ad_close">Close</string>
     <string name="sign_button_caption">Snap a sign</string>
+    <string name="reminder_button">Remind me 10 min before %1$s</string>
+    <string name="reminder_set">✓ We\'ll remind you at %1$s</string>
+    <string name="reminder_channel">Parking reminders</string>
+    <string name="reminder_title">Your parking changes in 10 minutes</string>
+    <string name="reminder_text_paid">From %1$s parking is paid — pay in Pango/Cellopark or move the car.</string>
+    <string name="reminder_text_forbidden">From %1$s no parking here — better move the car.</string>
+    <string name="reminder_text_allowed">From %1$s you may park here.</string>
+    <string name="reminder_countdown">⏰ %1$s until your parking changes</string>
 </resources>

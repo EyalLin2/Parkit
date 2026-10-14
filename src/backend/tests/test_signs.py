@@ -27,13 +27,20 @@ async def test_reads_a_sign(client, make_user, key, monkeypatch):
     async def fake(image, media_type, now):
         assert media_type == "image/jpeg" and image.startswith(b"\xff\xd8")
         return signs.SignReading(
-            verdict="allowed", until="19:00", paid=True, summary_he="מותר עד 19:00", summary_en="OK until 19:00"
+            verdict="allowed",
+            until="19:00",
+            changes_at="19:00",
+            changes_to="not_allowed",
+            paid=False,
+            summary_he="מותר עד 19:00",
+            summary_en="OK until 19:00",
         )
 
     monkeypatch.setattr(signs, "_ask_claude", fake)
     _, headers = await make_user("reader")
     body = (await client.post("/signs/read", files=_photo(), headers=headers)).json()
-    assert body["verdict"] == "allowed" and body["until"] == "19:00" and body["paid"] is True
+    assert body["verdict"] == "allowed" and body["until"] == "19:00"
+    assert (body["changes_at"], body["changes_to"]) == ("19:00", "not_allowed")
 
 
 async def test_a_garbled_answer_is_a_503_not_a_crash(client, make_user, key, monkeypatch):

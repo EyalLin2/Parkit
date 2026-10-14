@@ -16,6 +16,9 @@
         <package android:name="com.google.android.apps.maps" />
     </queries>
 
+    <!-- The parking reminder ("paid from 19:00") — asked for only when the driver sets one. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -46,5 +49,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <receiver android:name=".remind.ReminderReceiver" android:exported="false" />
     </application>
 </manifest>

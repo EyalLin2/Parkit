@@ -269,6 +269,9 @@ data class ShopOut(
 data class SignReading(
     val verdict: String, // allowed | not_allowed | unclear
     val until: String? = null,
+    /** Next change today ("19:00") and what it changes to — the reminder's time. */
+    @Json(name = "changes_at") val changesAt: String? = null,
+    @Json(name = "changes_to") val changesTo: String? = null,
     val paid: Boolean? = null,
     @Json(name = "summary_he") val summaryHe: String,
     @Json(name = "summary_en") val summaryEn: String,

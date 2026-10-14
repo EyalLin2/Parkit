@@ -515,4 +515,12 @@
     <string name="ad_navigate">ניווט לשם</string>
     <string name="ad_close">סגירה</string>
     <string name="sign_button_caption">צלם שלט</string>
+    <string name="reminder_button">תזכיר לי 10 דק׳ לפני %1$s</string>
+    <string name="reminder_set">✓ נזכיר לך ב-%1$s</string>
+    <string name="reminder_channel">תזכורות חניה</string>
+    <string name="reminder_title">החניה שלך משתנה בעוד 10 דקות</string>
+    <string name="reminder_text_paid">מ-%1$s החניה בתשלום — לשלם בפנגו/סלופארק או להזיז את הרכב.</string>
+    <string name="reminder_text_forbidden">מ-%1$s אסור לחנות כאן — כדאי להזיז את הרכב.</string>
+    <string name="reminder_text_allowed">מ-%1$s מותר לחנות כאן.</string>
+    <string name="reminder_countdown">⏰ %1$s עד שינוי בחניה</string>
 </resources>

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.DoNotDisturbOn
@@ -71,6 +72,39 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
     var reading by remember { mutableStateOf<SignReading?>(null) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var reminderSet by remember { mutableStateOf<String?>(null) } // "18:50" once set
+
+    fun setReminder(r: SignReading) {
+        val at = r.changesAt ?: r.until ?: return
+        val change = com.parkit.app.remind.ParkingReminder.changeTime(at) ?: return
+        val text = context.getString(
+            when (r.changesTo) {
+                "paid" -> R.string.reminder_text_paid
+                "allowed" -> R.string.reminder_text_allowed
+                else -> R.string.reminder_text_forbidden
+            },
+            at,
+        )
+        val ringAt = com.parkit.app.remind.ParkingReminder.schedule(context, change, text) ?: return
+        reminderSet = java.time.Instant.ofEpochMilli(ringAt).atZone(java.time.ZoneId.of("Asia/Jerusalem"))
+            .toLocalTime().toString().take(5)
+    }
+    // Android 13+: ask for notifications only now, when the driver wants one.
+    var pendingReminder by remember { mutableStateOf<SignReading?>(null) }
+    val notifyPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        pendingReminder?.let { setReminder(it) }
+        pendingReminder = null
+    }
+    fun askReminder(r: SignReading) {
+        val needs = android.os.Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        if (needs) {
+            pendingReminder = r
+            notifyPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            setReminder(r)
+        }
+    }
 
     fun send(bitmap: Bitmap) {
         busy = true
@@ -136,6 +170,28 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 10.dp),
                     )
+                    // The useful part: don't get a ticket when the rules change.
+                    val changeAt = r.changesAt ?: r.until
+                    if (changeAt != null && com.parkit.app.remind.ParkingReminder.changeTime(changeAt) != null) {
+                        val set = reminderSet
+                        if (set == null) {
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { askReminder(r) },
+                                shape = RoundedCornerShape(50),
+                                modifier = Modifier.padding(top = 14.dp),
+                            ) {
+                                Icon(androidx.compose.material.icons.Icons.Filled.Alarm, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text(stringResource(R.string.reminder_button, changeAt), modifier = Modifier.padding(start = 8.dp))
+                            }
+                        } else {
+                            Text(
+                                stringResource(R.string.reminder_set, set),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color(0xFF188038),
+                                modifier = Modifier.padding(top = 14.dp),
+                            )
+                        }
+                    }
                 }
                 else -> {
                     SignScanIcon(72.dp)

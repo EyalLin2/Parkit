@@ -1986,6 +1986,7 @@ private fun ParkedCarCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    ReminderCountdown()
                 }
                 androidx.compose.material3.IconButton(onClick = onForget) {
                     Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.car_forget_cd), modifier = Modifier.size(18.dp))
@@ -2192,5 +2193,26 @@ private fun OpenAdDialog(ad: com.parkit.app.api.AdOut, onClose: () -> Unit, onOp
             }
         }
     }
+}
+
+/** "⏰ 0:42 עד שינוי בחניה" — ticking down to the change a sign reminder is set for. */
+@Composable
+private fun ReminderCountdown() {
+    val context = LocalContext.current
+    var left by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            left = com.parkit.app.remind.ParkingReminder.activeChangeAt(context)?.minus(System.currentTimeMillis())
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
+    val ms = left ?: return
+    val minutes = ms / 60_000
+    Text(
+        stringResource(R.string.reminder_countdown, "%d:%02d".format(minutes / 60, minutes % 60)),
+        style = MaterialTheme.typography.labelMedium,
+        color = Color(0xFFE37400),
+        modifier = Modifier.padding(top = 2.dp),
+    )
 }
 
