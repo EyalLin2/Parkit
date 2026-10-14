@@ -165,6 +165,10 @@ async def admin_add_ad(
         category = "other"
     if link_url and not link_url.startswith("https://"):
         raise HTTPException(422, "The link must start with https://")
+    try:
+        last_day = datetime.fromisoformat(ends_at).replace(hour=23, minute=59, tzinfo=timezone.utc) if ends_at else None
+    except ValueError:
+        raise HTTPException(422, "The end date should look like 2026-12-31") from None
     db.add(
         Ad(
             advertiser=advertiser.strip(),
@@ -177,9 +181,7 @@ async def admin_add_ad(
             geom=f"SRID=4326;POINT({lng} {lat})",
             radius_m=radius_m,
             link_url=link_url.strip() or None,
-            ends_at=datetime.fromisoformat(ends_at).replace(hour=23, minute=59, tzinfo=timezone.utc)
-            if ends_at
-            else None,
+            ends_at=last_day,
         )
     )
     await db.commit()
