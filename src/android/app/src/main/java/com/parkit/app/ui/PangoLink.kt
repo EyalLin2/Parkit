@@ -16,6 +16,23 @@ object ParkingPay {
         Cellopark("air.com.cellogroup.Cellopark", R.string.pay_cellopark),
     }
 
+    private fun prefs(context: Context) = context.getSharedPreferences("parkit_device", Context.MODE_PRIVATE)
+
+    /** The driver's default payment app (Settings), or null = ask each time. */
+    fun preferred(context: Context): App? =
+        prefs(context).getString("pay_app", null)?.let { name -> App.entries.firstOrNull { it.name == name } }
+
+    fun setPreferred(context: Context, app: App?) {
+        prefs(context).edit().apply { if (app == null) remove("pay_app") else putString("pay_app", app.name) }.apply()
+    }
+
+    /** One tap to pay: the default app, else the only one installed, else
+     * [choose] (the app shows a picker). */
+    fun pay(context: Context, choose: () -> Unit) {
+        val app = preferred(context) ?: installed(context).singleOrNull()
+        if (app != null) open(context, app) else choose()
+    }
+
     fun installed(context: Context): List<App> =
         App.entries.filter { context.packageManager.getLaunchIntentForPackage(it.packageName) != null }
 

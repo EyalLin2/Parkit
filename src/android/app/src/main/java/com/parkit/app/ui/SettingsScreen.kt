@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Face
 import com.parkit.app.api.friendlyMessage
@@ -78,6 +79,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout" | "delete"
     var deleting by remember { mutableStateOf(false) }
+    var payApp by remember { mutableStateOf(ParkingPay.preferred(context)) }
     var deleteError by remember { mutableStateOf<String?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
@@ -117,6 +119,8 @@ fun SettingsScreen(
                 SettingsRow(Icons.Filled.Language, stringResource(R.string.profile_language_label), value = languageLabel) { dialog = "language" }
                 RowDivider()
                 SettingsRow(Icons.Filled.DarkMode, stringResource(R.string.settings_appearance), value = themeLabel) { dialog = "theme" }
+                RowDivider()
+                SettingsRow(Icons.Filled.Payments, stringResource(R.string.settings_pay_app), value = payApp?.let { stringResource(it.label) } ?: stringResource(R.string.settings_pay_ask)) { dialog = "pay" }
             }
         }
 
@@ -188,6 +192,18 @@ fun SettingsScreen(
                     LocaleManager.setLanguage(context, code)
                     (context as? Activity)?.recreate()
                 }
+            },
+        )
+        "pay" -> ChoiceDialog(
+            title = stringResource(R.string.settings_pay_app),
+            options = listOf<Pair<ParkingPay.App?, String>>(null to stringResource(R.string.settings_pay_ask)) +
+                ParkingPay.App.entries.map { it to stringResource(it.label) },
+            selected = payApp,
+            onDismiss = { dialog = null },
+            onSelect = { app ->
+                dialog = null
+                payApp = app
+                ParkingPay.setPreferred(context, app)
             },
         )
         "theme" -> ChoiceDialog(

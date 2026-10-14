@@ -462,4 +462,7 @@
     <string name="car_explain_title">Parked? Save your car</string>
     <string name="car_explain_ok">Save my car here</string>
     <string name="car_explain_body">We\'ll remember where it is. When you leave, one tap hands the spot on (+10).</string>
+    <string name="settings_pay_app">Parking payment app</string>
+    <string name="settings_pay_ask">Ask every time</string>
+    <string name="pay_chooser_remember">We\'ll remember your choice. Change it any time in Settings.</string>
 </resources>

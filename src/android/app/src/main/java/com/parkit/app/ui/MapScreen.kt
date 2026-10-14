@@ -603,9 +603,8 @@ fun MapScreen(
             duration = androidx.compose.material3.SnackbarDuration.Long,
         )
         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-            // The one app they have opens straight away; otherwise let them pick.
-            val have = ParkingPay.installed(context)
-            if (have.size == 1) ParkingPay.open(context, have.single()) else showPayChooser = true
+            // Their default (or only) app opens straight away; otherwise let them pick.
+            ParkingPay.pay(context) { showPayChooser = true }
         }
     }
 
@@ -1026,10 +1025,7 @@ fun MapScreen(
                         car = car,
                         onNavigate = { walkTo(context, car.lat, car.lng) },
                         onLeaving = { leaveSpot(car) },
-                        onPay = {
-                            val have = ParkingPay.installed(context)
-                            if (have.size == 1) ParkingPay.open(context, have.single()) else showPayChooser = true
-                        },
+                        onPay = { ParkingPay.pay(context) { showPayChooser = true } },
                         onForget = { forgetCar() },
                         modifier = Modifier.padding(horizontal = 12.dp),
                     )
@@ -1185,12 +1181,23 @@ fun MapScreen(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showPayChooser = false },
             title = { Text(stringResource(R.string.pay_chooser_title)) },
-            text = { Text(stringResource(R.string.pay_chooser_body)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.pay_chooser_body))
+                    Text(
+                        stringResource(R.string.pay_chooser_remember),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            },
             confirmButton = {
                 Row {
                     ParkingPay.App.entries.forEach { app ->
                         androidx.compose.material3.TextButton(onClick = {
                             showPayChooser = false
+                            ParkingPay.setPreferred(context, app) // remembered; changeable in Settings
                             ParkingPay.open(context, app)
                         }) { Text(stringResource(app.label)) }
                     }
