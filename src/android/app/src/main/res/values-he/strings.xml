@@ -494,4 +494,15 @@
     <string name="rewards_code_body">מראים את הקוד בעסק. הוא נשמר כאן ב\"הקודים שלי\".</string>
     <string name="rewards_legends_section">דמויות מהעבר — לפרופיל שלך</string>
     <string name="rewards_wearing_avatar">בפרופיל</string>
+    <string name="sign_title">מותר לחנות כאן?</string>
+    <string name="sign_intro">מצלמים את שלט החניה, ומקבלים תשובה ברורה לעכשיו.</string>
+    <string name="sign_shoot">צלם שלט</string>
+    <string name="sign_again">צלם שלט אחר</string>
+    <string name="sign_reading">קורא את השלט…</string>
+    <string name="sign_allowed">מותר לחנות עכשיו</string>
+    <string name="sign_not_allowed">אסור לחנות עכשיו</string>
+    <string name="sign_unclear">לא ברור מהשלט</string>
+    <string name="sign_until">עד %1$s</string>
+    <string name="sign_paid">בתשלום</string>
+    <string name="sign_disclaimer">תשובה של AI לנהג בלי תו — היא עלולה לטעות. תמיד לבדוק את השלט עצמו.</string>
 </resources>

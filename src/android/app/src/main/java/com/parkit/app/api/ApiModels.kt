@@ -264,3 +264,13 @@ data class ShopOut(
     val redemptions: List<RedemptionOut>,
 )
 
+/** The sign reader's answer for a regular driver, right now. */
+@JsonClass(generateAdapter = true)
+data class SignReading(
+    val verdict: String, // allowed | not_allowed | unclear
+    val until: String? = null,
+    val paid: Boolean? = null,
+    @Json(name = "summary_he") val summaryHe: String,
+    @Json(name = "summary_en") val summaryEn: String,
+)
+

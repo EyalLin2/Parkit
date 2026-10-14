@@ -485,4 +485,15 @@
     <string name="rewards_code_body">Show it at the business. It stays here under \"My codes\".</string>
     <string name="rewards_legends_section">Legends — for your profile</string>
     <string name="rewards_wearing_avatar">In your profile</string>
+    <string name="sign_title">Can I park here?</string>
+    <string name="sign_intro">Snap the parking sign and get a clear answer for right now.</string>
+    <string name="sign_shoot">Snap a sign</string>
+    <string name="sign_again">Snap another sign</string>
+    <string name="sign_reading">Reading the sign…</string>
+    <string name="sign_allowed">You can park now</string>
+    <string name="sign_not_allowed">No parking now</string>
+    <string name="sign_unclear">The sign isn\'t clear</string>
+    <string name="sign_until">until %1$s</string>
+    <string name="sign_paid">Paid parking</string>
+    <string name="sign_disclaimer">An AI answer for a driver without a permit — it can be wrong. Always check the sign itself.</string>
 </resources>

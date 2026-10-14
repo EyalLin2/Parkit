@@ -414,7 +414,7 @@ private fun TypeOption(label: String, icon: ImageVector, selected: Boolean, onCl
 
 /** Decode the camera's full-size JPEG at a sensible size (≤ ~1600 px on the
  * long side), upright according to its EXIF orientation. */
-private fun loadReportPhoto(file: java.io.File, maxSide: Int = 1600): Bitmap? {
+internal fun loadReportPhoto(file: java.io.File, maxSide: Int = 1600): Bitmap? {
     if (!file.exists()) return null
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.path, bounds)

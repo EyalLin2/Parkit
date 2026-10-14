@@ -59,6 +59,10 @@ interface ApiService {
     suspend fun cancelSpot(@Path("id") spotId: String)
 
     @Multipart
+    @POST("signs/read")
+    suspend fun readSign(@Part photo: MultipartBody.Part): SignReading
+
+    @Multipart
     @POST("photos/stage")
     suspend fun stagePhoto(@Part file: MultipartBody.Part): StagedPhotoOut
 

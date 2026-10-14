@@ -58,6 +58,7 @@ import androidx.compose.material.icons.filled.DoNotDisturbOn
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.BottomSheetScaffold
@@ -592,6 +593,7 @@ fun MapScreen(
      * it's blue-white. A snackbar, not a dialog — it goes away by itself
      * and never blocks the map. */
     var showPayChooser by remember { mutableStateOf(false) }
+    var showSignReader by remember { mutableStateOf(false) }
     // First tap on "I just parked" explains what it's for before saving anything.
     var showCarExplainer by remember { mutableStateOf(false) }
 
@@ -1099,6 +1101,24 @@ fun MapScreen(
                     Icon(Icons.Filled.MyLocation, contentDescription = stringResource(R.string.map_my_location_cd), tint = MaterialTheme.colorScheme.primary)
                 }
             }
+            // "Can I park here?" — read a parking sign with the camera.
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset {
+                        val top = sheetTopPx?.toInt() ?: 0
+                        IntOffset(-20.dp.roundToPx(), top - 2 * buttonSize.roundToPx() - 28.dp.roundToPx())
+                    }
+                    .size(buttonSize)
+                    .clickable { showSignReader = true },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.DocumentScanner, contentDescription = stringResource(R.string.sign_title), tint = MaterialTheme.colorScheme.primary)
+                }
+            }
             // Parked without a ParkIt spot? Save where the car is anyway, so
             // "where did I park" and the one-tap "I'm leaving" still work.
             if (parkedCar == null && activeClaim == null) {
@@ -1135,6 +1155,10 @@ fun MapScreen(
                 }
             }
         }
+    }
+
+    if (showSignReader) {
+        SignReaderSheet(api = api, onDismiss = { showSignReader = false }, onSessionExpired = onLoggedOut)
     }
 
     if (showCarExplainer) {

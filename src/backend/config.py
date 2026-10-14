@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     review_login: str = ""
     # Opens /admin/feedback (tester feedback + crash reports). Empty = closed.
     admin_token: str = ""
+    # Parking-sign reader (Claude vision). Off while the key is empty.
+    anthropic_api_key: str = ""
+    sign_reader_model: str = "claude-sonnet-5-5"
     # SMS_PROVIDER=twilio: credentials from the Twilio console. TWILIO_FROM is
     # the sending number (+1…) or a Messaging Service SID (MG…).
     twilio_account_sid: str = ""
