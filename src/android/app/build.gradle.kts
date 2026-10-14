@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,19 +8,52 @@ plugins {
 
 android {
     namespace = "com.parkit.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.parkit.app"
+        applicationId = "com.parkit.israel"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0-demo"
+        targetSdk = 36
+        versionCode = 7
+        versionName = "0.3.4-beta"
+
+        // MapLibre ships a native renderer per ABI (~13MB each). Real phones
+        // are arm64; x86_64 covers the emulator — the 32-bit ABIs only
+        // doubled the demo APK's download size.
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+
+        // Plain http only for the local dev server (10.0.2.2); release talks
+        // https to the real one and must never fall back to cleartext.
+        manifestPlaceholders["cleartext"] = "false"
+    }
+
+    // Play upload key: lives OUTSIDE the repo (~/.parkit/keystore.properties
+    // + .jks) so it can never be committed. Without it, release builds are
+    // simply unsigned. Losing it isn't fatal with Play App Signing (Google
+    // can reset an upload key), but back it up anyway.
+    val keystoreProps = Properties().apply {
+        val f = file(System.getProperty("user.home") + "/.parkit/keystore.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    signingConfigs {
+        if (keystoreProps.isNotEmpty()) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["cleartext"] = "true"
+        }
         release {
-            isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -34,6 +69,18 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    // Language is picked inside the app, so every install needs both
+    // Hebrew and English — don't let Play split them by device locale.
+    bundle {
+        language { enableSplit = false }
+    }
+
+    lint {
+        // Compose's own detector crashes lint on MapScreen.kt (a lint bug,
+        // not a finding); everything else still runs.
+        disable += "CoroutineCreationDuringComposition"
     }
 
     packaging {
@@ -108,8 +155,14 @@ dependencies {
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    implementation("org.osmdroid:osmdroid-android:6.1.20")
+    // Vector maps (same rendering model as Google Maps/Waze). 12.x is the
+    // newest line built against Kotlin 2.0 (13.x needs Kotlin 2.2) and still
+    // defaults to the OpenGL ES renderer, which every emulator supports.
+    implementation("org.maplibre.gl:android-sdk:12.3.1")
+    // Google's fused location — what actually gets a fix fast on real phones.
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

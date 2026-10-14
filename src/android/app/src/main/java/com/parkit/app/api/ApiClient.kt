@@ -43,7 +43,7 @@ object ApiClient {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .addConverterFactory(MoshiConverterFactory.create(moshi).withNullSerialization())
             .build()
             .create(ApiService::class.java)
     }

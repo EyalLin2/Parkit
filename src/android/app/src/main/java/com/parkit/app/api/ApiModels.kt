@@ -14,6 +14,50 @@ data class DevLoginRequest(
 data class TokenOut(
     @Json(name = "access_token") val accessToken: String,
     @Json(name = "user_id") val userId: String,
+    /** First phone sign-in: name + email still to fill in. */
+    @Json(name = "needs_profile") val needsProfile: Boolean = false,
+)
+
+@JsonClass(generateAdapter = true)
+data class OtpRequest(val phone: String)
+
+@JsonClass(generateAdapter = true)
+data class OtpRequested(
+    val phone: String,
+    @Json(name = "resend_after_seconds") val resendAfterSeconds: Int = 60,
+    /** Only from a local dev server: the code, so the emulator needs no SMS. */
+    @Json(name = "dev_code") val devCode: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class OtpVerify(val phone: String, val code: String)
+
+@JsonClass(generateAdapter = true)
+data class EmailOtpRequest(val email: String)
+
+@JsonClass(generateAdapter = true)
+data class EmailOtpRequested(
+    val email: String,
+    @Json(name = "resend_after_seconds") val resendAfterSeconds: Int = 60,
+    @Json(name = "dev_code") val devCode: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class EmailOtpVerify(val email: String, val code: String)
+
+@JsonClass(generateAdapter = true)
+data class DetailsUpdate(
+    @Json(name = "first_name") val firstName: String,
+    @Json(name = "last_name") val lastName: String,
+    val email: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class AccountOut(
+    val phone: String?,
+    @Json(name = "first_name") val firstName: String?,
+    @Json(name = "last_name") val lastName: String?,
+    val email: String?,
 )
 
 @JsonClass(generateAdapter = true)
@@ -24,6 +68,7 @@ data class SpotCreate(
     val payment: String,
     @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "photo_staging_id") val photoStagingId: String? = null,
+    val address: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -36,9 +81,13 @@ data class SpotOut(
     val payment: String,
     @Json(name = "vehicle_size") val vehicleSize: String?,
     @Json(name = "photo_url") val photoUrl: String?,
+    val address: String? = null,
     val status: String,
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
+    @Json(name = "reporter_level") val reporterLevel: String = "newbie",
+    /** Set in hot areas: the median minutes nearby spots lasted. */
+    @Json(name = "hot_minutes") val hotMinutes: Int? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -48,6 +97,7 @@ data class FeedbackCreate(val type: String)
 data class StagedPhotoOut(
     @Json(name = "staging_id") val stagingId: String,
     @Json(name = "faces_blurred") val facesBlurred: Int,
+    @Json(name = "plates_blurred") val platesBlurred: Int = 0,
     @Json(name = "preview_base64") val previewBase64: String,
 )
 
@@ -56,6 +106,7 @@ data class ActivityItem(
     @Json(name = "spot_id") val spotId: String,
     @Json(name = "spot_type") val spotType: String,
     val payment: String,
+    val address: String? = null,
     @Json(name = "reported_at") val reportedAt: String,
     val status: String,
     @Json(name = "removed_reason") val removedReason: String?,
@@ -67,9 +118,66 @@ data class ProfileOut(
     @Json(name = "display_name") val displayName: String,
     val points: Int,
     @Json(name = "weekly_points") val weeklyPoints: Int,
+    val avatar: String? = null,
+    @Json(name = "weekly_rank") val weeklyRank: Int? = null,
+    @Json(name = "weekly_city_rank") val weeklyCityRank: Int? = null,
     @Json(name = "successful_reports") val successfulReports: Int,
+    @Json(name = "total_reports") val totalReports: Int = 0,
     val badges: List<Int>,
+    val level: String = "newbie",
+    @Json(name = "level_min_points") val levelMinPoints: Int = 0,
+    @Json(name = "next_level") val nextLevel: String? = null,
+    @Json(name = "next_level_points") val nextLevelPoints: Int? = null,
     val activity: List<ActivityItem>,
+    val preferences: Preferences = Preferences(),
+    val account: AccountOut? = null,
+)
+
+/** The driver's car and parking preferences. The plate itself is never
+ * sent here — only what was looked up from it. */
+@JsonClass(generateAdapter = true)
+data class Preferences(
+    @Json(name = "vehicle_size") val vehicleSize: String? = null,
+    @Json(name = "car_label") val carLabel: String? = null,
+    @Json(name = "has_disabled_permit") val hasDisabledPermit: Boolean = false,
+    @Json(name = "home_city") val homeCity: String? = null,
+) {
+    val isEmpty: Boolean
+        get() = vehicleSize == null && !hasDisabledPermit && homeCity == null
+}
+
+@JsonClass(generateAdapter = true)
+data class VehicleLookupOut(
+    val make: String,
+    val model: String,
+    val year: Int?,
+    val body: String?,
+    val size: String,
+    val label: String,
+)
+
+/** A public off-street car park (OpenStreetMap). Most fields are often
+ * missing in the source data — the UI only shows what's there. */
+@JsonClass(generateAdapter = true)
+data class ParkingLotOut(
+    val id: Int,
+    val lat: Double,
+    val lng: Double,
+    val name: String?,
+    @Json(name = "name_en") val nameEn: String?,
+    val kind: String?,
+    val fee: String?,
+    val capacity: Int?,
+    val operator: String?,
+    @Json(name = "distance_m") val distanceM: Double,
+)
+
+@JsonClass(generateAdapter = true)
+data class CityOut(
+    val name: String,
+    @Json(name = "name_en") val nameEn: String? = null,
+    val lat: Double,
+    val lng: Double,
 )
 
 @JsonClass(generateAdapter = true)
@@ -78,6 +186,19 @@ data class LeaderboardEntry(
     @Json(name = "user_id") val userId: String,
     @Json(name = "display_name") val displayName: String,
     @Json(name = "weekly_points") val weeklyPoints: Int,
+    val level: String = "newbie",
+    val avatar: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class AvatarUpdate(val avatar: String?)
+
+@JsonClass(generateAdapter = true)
+data class FeedbackIn(
+    val kind: String,
+    val message: String,
+    @Json(name = "app_version") val appVersion: String?,
+    val device: String?,
 )
 
 @JsonClass(generateAdapter = true)

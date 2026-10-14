@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import uuid
 
@@ -6,18 +7,25 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from auth import get_current_user_id
-from blur import blur_faces
+from blur import blur_sensitive
+from config import settings
 from redis_client import get_redis
 
 router = APIRouter(prefix="/photos", tags=["photos"])
 
 STAGING_TTL_SECONDS = 600
+# OpenCV releases the GIL, so unbounded parallel blurs eat every CPU core and
+# starve map requests (seen on a 1-core server: /spots p50 2.5 s at 100
+# users). One blur at a time per worker keeps the map responsive; extra
+# photos wait their turn instead.
+_BLUR_SLOTS = asyncio.Semaphore(settings.blur_concurrency)
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
 
 class StagedPhotoOut(BaseModel):
     staging_id: str
     faces_blurred: int
+    plates_blurred: int = 0
     preview_base64: str
 
 
@@ -32,7 +40,11 @@ async def stage_photo(
         raise HTTPException(413, "Photo too large")
 
     try:
-        blurred, faces_blurred = blur_faces(raw)
+        # CPU-heavy (OpenCV): run it in a worker thread so the event loop keeps
+        # serving everyone else meanwhile (load-test bug #3 — it used to stall
+        # every request for the duration of each blur).
+        async with _BLUR_SLOTS:
+            blurred, faces_blurred, plates_blurred = await asyncio.to_thread(blur_sensitive, raw)
     except ValueError:
         raise HTTPException(400, "Could not process image") from None
 
@@ -42,5 +54,6 @@ async def stage_photo(
     return StagedPhotoOut(
         staging_id=staging_id,
         faces_blurred=faces_blurred,
+        plates_blurred=plates_blurred,
         preview_base64=base64.b64encode(blurred).decode(),
     )

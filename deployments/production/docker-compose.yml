@@ -1,0 +1,79 @@
+# ParkIt production stack for a single always-on VM (e.g. Oracle Cloud
+# Always Free, 4 ARM cores / 24 GB). Same images as local dev, minus the
+# dev conveniences: no exposed DB/Redis ports, no source mount or --reload,
+# several API workers, and Caddy in front for automatic HTTPS.
+#
+#   cp .env.production.example .env   # fill in DOMAIN, passwords, SMS/email
+#   docker compose up -d --build
+#   docker compose exec backend alembic upgrade head
+#   docker compose exec backend python import_osm_geodata.py
+services:
+  db:
+    # Same PostGIS 16-3.4 as dev, but a multi-arch build (by the official
+    # image's maintainer): the postgis/postgis image is amd64-only and
+    # can't run on ARM servers like Oracle's free Ampere machines.
+    image: imresamu/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Bounded memory. Only keys with a TTL (caches, codes, cooldowns) may be
+    # evicted — never locks or counters without one.
+    command: ["redis-server", "--maxmemory", "512mb", "--maxmemory-policy", "volatile-lru", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+
+  backend:
+    build: ../../src/backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_SSL: disable  # Postgres is on the private compose network
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 30s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./download:/srv/download:ro
+      - caddydata:/data
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
+  media:
+  caddydata:

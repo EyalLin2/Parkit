@@ -19,6 +19,7 @@ if os.environ.get("GITHUB_ACTIONS") != "true":
     os.environ["DATABASE_URL"] = "postgresql+asyncpg://parkit:parkit_dev_password@db:5432/parkit_test"
     os.environ["REDIS_URL"] = "redis://redis:6379/1"
 os.environ.setdefault("JWT_SECRET", "test-secret")
+os.environ.setdefault("RATE_LIMIT_PER_MINUTE", "0")  # tests hammer the API from one address; test_ratelimit turns it on
 
 import asyncpg
 import pytest_asyncio

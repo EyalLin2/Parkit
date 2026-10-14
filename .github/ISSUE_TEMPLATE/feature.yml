@@ -1,0 +1,26 @@
+name: Feature or improvement
+description: Something new, or a change to how something works
+labels: [enhancement]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The problem this solves, and for whom.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: The change, as concretely as possible.
+  - type: textarea
+    id: cost
+    attributes:
+      label: Cost and effort
+      description: Money (free?), external accounts needed, rough size of the work.
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: How we'll know it works (a test, a measurement, a screenshot).

@@ -21,7 +21,7 @@
     <string name="map_my_location_cd">המיקום שלי</string>
     <string name="map_report_location_cd">מיקום לדיווח</string>
     <string name="map_report_fab_cd">דווח על חניה כאן</string>
-    <string name="map_locating">מאתר מיקום…</string>
+    <string name="map_locating">מאתר כתובת…</string>
     <string name="map_load_error">טעינת החניות נכשלה: %1$s</string>
     <string name="map_reported_snackbar">החניה דווחה</string>
     <plurals name="spots_available">
@@ -31,16 +31,11 @@
     </plurals>
 
     <!-- Report flow -->
-    <string name="report_title">דיווח על חניה</string>
+    <string name="report_title">דיווח על חניה פנויה</string>
     <string name="report_photo_required">תמונה היא שלב חובה — זה מה שהופך דיווחים לאמינים.</string>
     <string name="report_take_photo_cd">צילום תמונה</string>
     <string name="report_preview_cd">תצוגה מקדימה של התמונה המטושטשת</string>
     <string name="report_photo_upload_failed">העלאת התמונה נכשלה: %1$s</string>
-    <plurals name="report_faces_blurred">
-        <item quantity="one">פרצוף אחד טושטש לשם פרטיות</item>
-        <item quantity="two">%1$d פרצופים טושטשו לשם פרטיות</item>
-        <item quantity="other">%1$d פרצופים טושטשו לשם פרטיות</item>
-    </plurals>
     <string name="report_type_question">איזה סוג חניה?</string>
     <string name="report_type_regular">רגילה</string>
     <string name="report_type_disabled">נכים</string>
@@ -54,11 +49,13 @@
     <string name="spot_type_disabled">נכים</string>
     <string name="spot_type_regular">רגילה</string>
     <string name="spot_status">סטטוס: %1$s</string>
-    <string name="spot_fits">מתאימה ל: %1$s</string>
+    <string name="spot_fits">מתאים לרכב %1$s</string>
     <string name="spot_navigate">ניווט</string>
-    <string name="spot_claim">אני תופס את החניה</string>
-    <string name="spot_i_took_it">תפסתי אותה</string>
-    <string name="spot_flag_taken">החניה תפוסה (דיווח)</string>
+    <string name="spot_go">אני בדרך · ניווט</string>
+    <string name="spot_status_free">פנויה</string>
+    <string name="spot_claim">אני בדרך</string>
+    <string name="spot_i_took_it">חניתי כאן</string>
+    <string name="spot_flag_taken">כבר תפוסה</string>
     <string name="spot_cancel_report">ביטול הדיווח שלי</string>
     <string name="spot_action_failed">הפעולה נכשלה</string>
     <string name="error_not_found">החניה הזו כבר לא קיימת.</string>
@@ -69,9 +66,9 @@
 
     <!-- Relative time (marker badges + spot detail) -->
     <string name="time_now_short">כעת</string>
-    <string name="time_minutes_short">%1$dד\'</string>
-    <string name="time_hours_short">%1$dש\'</string>
-    <string name="time_days_short">%1$dי\'</string>
+    <string name="time_minutes_short">‏%1$d דק׳</string>
+    <string name="time_hours_short">‏%1$d שע׳</string>
+    <string name="time_days_short">‏%1$d ימ׳</string>
     <string name="time_now_long">הרגע</string>
     <plurals name="time_minutes_long">
         <item quantity="one">לפני דקה</item>
@@ -127,11 +124,301 @@
     <!-- Share -->
     <string name="profile_share_title">שיתוף ParkIt</string>
     <string name="profile_share_button">הזמנת חבר/ה</string>
-    <string name="profile_share_message">אני משתמש/ת ב-ParkIt כדי למצוא ולדווח על חניות חינם בקרבת מקום — נסו גם אתם!</string>
+    <string name="profile_share_message">אני משתמש/ת ב-ParkIt כדי למצוא ולדווח על חניות חינם ברחוב — נסו גם אתם: https://eyallin2.github.io/Parkit/</string>
 
     <!-- Theme -->
     <string name="profile_theme_label">מצב תצוגה</string>
     <string name="profile_theme_system">אוטומטי</string>
     <string name="profile_theme_light">בהיר</string>
     <string name="profile_theme_dark">כהה</string>
+
+    <!-- Map v2 (vector map + nearby sheet) -->
+    <string name="map_pin_label">מיקום החניה</string>
+    <plurals name="map_nearby_count">
+        <item quantity="one">חניה פנויה אחת בסביבה</item>
+        <item quantity="two">%1$d חניות פנויות בסביבה</item>
+        <item quantity="other">%1$d חניות פנויות בסביבה</item>
+    </plurals>
+    <string name="map_nearby_none">אין עדיין חניות פנויות בסביבה</string>
+    <string name="map_nearby_empty_hint">ראית חניה? דווח וצבור נקודות.</string>
+    <string name="map_nearest">הקרובה ביותר: %1$s · %2$s</string>
+    <string name="map_spot_yours">הדיווח שלך</string>
+    <string name="distance_m">%1$d מ׳</string>
+    <string name="distance_km">%1$.1f ק״מ</string>
+
+    <!-- Profile v2 -->
+    <string name="profile_settings_cd">הגדרות</string>
+    <string name="profile_level_progress">עוד %1$d דיווחים מוצלחים לדרגת %2$s</string>
+    <string name="profile_max_level">הגעת לדרגה הגבוהה ביותר — אגדה</string>
+    <string name="profile_level_none">חבר חדש</string>
+    <string name="profile_total_reports">דיווחים</string>
+    <string name="profile_achievements">הישגים</string>
+    <string name="profile_see_all">הצג הכל</string>
+    <string name="profile_show_less">הצג פחות</string>
+    <string name="profile_you">את/ה</string>
+    <string name="profile_week_delta">⁦+%1$d⁩ השבוע</string>
+
+    <!-- Settings -->
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_section_preferences">העדפות</string>
+    <string name="settings_section_community">קהילה</string>
+    <string name="settings_section_about">אודות</string>
+    <string name="settings_appearance">מראה</string>
+    <string name="settings_invite_subtitle">יותר נהגים, יותר חניות פנויות לכולם</string>
+    <string name="settings_version">גרסה</string>
+    <string name="settings_map_data">נתוני מפה</string>
+    <string name="settings_map_data_value">© OpenStreetMap</string>
+    <string name="settings_logout_confirm_title">להתנתק?</string>
+    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם השם שלך.</string>
+    <string name="settings_cancel">ביטול</string>
+    <string name="map_spot_kind_regular">חניה רגילה</string>
+    <string name="map_spot_kind_disabled">חניית נכים</string>
+    <string name="report_points_reward">⁦+10⁩ נק׳</string>
+    <string name="report_needs_photo">צלם תמונה כדי להמשיך</string>
+    <string name="report_take_photo">צלם את החניה</string>
+    <string name="report_blurring">מטשטש פנים לשמירה על פרטיות…</string>
+    <string name="report_privacy_checked">נבדק לפרטיות</string>
+    <string name="report_retake">צלם שוב</string>
+    <string name="spot_close_cd">סגירה</string>
+    <string name="spot_someone_on_the_way">מישהו כבר בדרך</string>
+    <string name="spot_photo_cd">תמונת החניה</string>
+    <string name="spot_still_free_question">החניה עדיין פנויה?</string>
+    <string name="spot_distance_away">במרחק %1$s</string>
+    <string name="map_nearby_searching">מחפש חניות פנויות…</string>
+    <string name="map_nearby_searching_hint">בודק דיווחים סביב הנעץ</string>
+    <string name="map_address_unavailable">לא הצלחנו לאתר כתובת</string>
+    <string name="map_report_here">דווח על חניה כאן</string>
+    <string name="spot_photo_taken">צילום המדווח · %1$s</string>
+    <string name="spot_photo_expand_cd">פתיחת התמונה במסך מלא</string>
+    <string name="map_locating_you">מאתר את מיקומך…</string>
+    <string name="map_location_unavailable">עדיין לא הצלחנו לאתר את המיקום — לחצו ◎ כדי לנסות שוב, או גררו את הסיכה</string>
+    <string name="map_outside_service_area">ParkIt פועלת כרגע רק בישראל</string>
+    <string name="level_newbie">חדש</string>
+    <string name="level_bronze">ארד</string>
+    <string name="level_silver">כסף</string>
+    <string name="level_gold">זהב</string>
+    <string name="level_legend">אגדה</string>
+    <string name="perk_newbie">דיווח, ניווט וליגה שבועית</string>
+    <string name="perk_bronze">מסגרת ארד לפינים שלך + תג ארד ליד השם</string>
+    <string name="perk_silver">מסגרת כסף לפינים שלך</string>
+    <string name="perk_gold">מסגרת זהב לפינים שלך</string>
+    <string name="perk_legend">פין סגול מלא, רק שלך</string>
+    <string name="level_title">רמת %1$s</string>
+    <string name="level_points_total">%1$d נקודות</string>
+    <string name="level_to_next">עוד %1$d נק׳ לרמת %2$s</string>
+    <string name="level_next_perk">רמת %1$s פותחת: %2$s</string>
+    <string name="level_max">הגעת לרמה הגבוהה ביותר — אגדה</string>
+    <string name="levels_title">הרמות וההטבות</string>
+    <string name="level_threshold">%1$d נק׳</string>
+    <string name="level_yours">את/ה כאן</string>
+    <string name="level_earn_hint">דיווח = ‎+10 · מישהו חנה בדיווח שלך = ‎+5 · דיווח שווא = ‎−5</string>
+    <string name="league_subtitle">נקודות השבוע · מתאפס בכל שבוע</string>
+    <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
+    <string name="claim_trip_title">בדרך לחניה</string>
+    <string name="claim_drive_safely">שמורה לך. אין צורך למהר — סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
+    <string name="claim_held_for_you">שמורה לך</string>
+    <string name="claim_taken_thanks">תודה — עדכנו את שאר הנהגים</string>
+    <string name="claim_expired">החניה חזרה למפה. בלי לחץ — יש עוד חניות בסביבה.</string>
+    <!-- פרופיל נהג: רכב, תגים, אזור מועדף -->
+    <string name="driver_title">הרכב שלי והעדפות</string>
+    <string name="driver_skip">דלג</string>
+    <string name="driver_onboarding_title">בואו נכיר את הרכב שלך</string>
+    <string name="driver_onboarding_subtitle">כדי שנראה לך חניות שבאמת מתאימות לך. הכל כאן אופציונלי — אפשר לשנות בכל זמן באזור האישי.</string>
+    <string name="driver_section_car">הרכב שלך</string>
+    <string name="driver_plate_label">מספר רישוי</string>
+    <string name="driver_plate_change">רכב אחר? הקלידו את המספר שלו</string>
+    <string name="driver_plate_lookup">חיפוש</string>
+    <string name="driver_plate_privacy">אנחנו מזהים את הדגם ממאגר הרכב הממשלתי. מספר הרישוי עצמו לא נשמר.</string>
+    <string name="driver_plate_invalid">למספר רישוי ישראלי יש 7 או 8 ספרות</string>
+    <string name="driver_plate_not_found">לא נמצא רכב עם המספר הזה במאגר. בחרו גודל למטה.</string>
+    <string name="driver_plate_lookup_failed">מאגר הרכב לא זמין כרגע. בחרו גודל למטה.</string>
+    <string name="driver_car_from_registry">לפי מאגר הרכב הממשלתי</string>
+    <string name="driver_size_label">גודל הרכב</string>
+    <string name="driver_size_hint">חניות שדווחו כקטנות מדי לרכב שלך יופיעו בסוף הרשימה.</string>
+    <string name="driver_section_permit">חניית נכים</string>
+    <string name="driver_disabled_permit">יש לי תג נכה בתוקף</string>
+    <string name="driver_disabled_permit_note">הצהרה עצמית. בלי תג, חניות נכים יופיעו בסוף הרשימה ויסומנו — חניה בהן ללא תג היא עבירה.</string>
+    <string name="driver_section_area">איפה אתה חונה</string>
+    <string name="driver_home_city">עיר מועדפת</string>
+    <string name="driver_home_city_hint">המפה תיפתח כאן כשהמיקום שלך לא זמין</string>
+    <string name="driver_not_set">לא נבחר</string>
+    <string name="driver_search_city">חיפוש עיר</string>
+    <string name="driver_close">סגירה</string>
+    <string name="driver_save">שמירה</string>
+    <string name="driver_save_and_continue">שמירה והמשך</string>
+    <string name="driver_summary_size">רכב %1$s</string>
+    <string name="driver_summary_empty_title">הוסיפו את הרכב שלכם</string>
+    <string name="driver_summary_empty_body">כדי לראות אילו חניות מתאימות לרכב ולתגים שלכם</string>
+    <string name="driver_edit_cd">עריכת הרכב וההעדפות</string>
+    <string name="fit_needs_disabled_permit">לבעלי תג נכה בלבד</string>
+    <string name="fit_too_small">ייתכן שקטנה לרכב שלך</string>
+    <string name="fit_needs_disabled_permit_long">חניית נכים — לרכב עם תג נכה בתוקף בלבד.</string>
+    <string name="fit_too_small_long">המדווח ציין שהחניה מתאימה לרכב קטן יותר משלך.</string>
+    <string name="hot_short">🔥 אזור לוהט</string>
+    <plurals name="hot_long">
+        <item quantity="one">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך דקה, אז ייתכן שתיתפס לפני שתגיע. אין צורך למהר — סעו בבטחה.</item>
+        <item quantity="two">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות, אז ייתכן שתיתפס לפני שתגיע. אין צורך למהר — סעו בבטחה.</item>
+        <item quantity="other">אזור לוהט — חניות כאן נתפסות בדרך כלל תוך כ־%d דקות, אז ייתכן שתיתפס לפני שתגיע. אין צורך למהר — סעו בבטחה.</item>
+    </plurals>
+    <string name="report_privacy_note">פנים ולוחיות רישוי מטושטשים אוטומטית. התמונה המקורית לא נשמרת, והתמונה נמחקת כשהחניה נסגרת.</string>
+    <plurals name="report_items_blurred">
+        <item quantity="one">טושטשו פנים או לוחית אחת</item>
+        <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
+        <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
+    </plurals>
+    <string name="map_filter_lots">חניונים בתשלום</string>
+    <string name="lot_unnamed">חניון</string>
+    <string name="lot_kind_underground">תת-קרקעי</string>
+    <string name="lot_kind_multistorey">רב-קומות</string>
+    <string name="lot_kind_rooftop">על הגג</string>
+    <string name="lot_kind_surface">פתוח</string>
+    <string name="lot_capacity">%1$d מקומות</string>
+    <string name="lot_source_note">נתוני החניונים מ-OpenStreetMap — שעות ומחירים בכניסה לחניון.</string>
+    <string name="parked_pango_prompt">חנית! כחול-לבן? אפשר להפעיל חניה בפנגו</string>
+    <string name="parked_pango_action">פנגו</string>
+    <string name="spot_no_photo_cd">אין תמונה לחניה הזו</string>
+    <string name="spot_age_short">לפני\u00A0%1$s</string>
+    <string name="profile_tab_overview">סקירה</string>
+    <string name="profile_tab_league">ליגה</string>
+    <string name="profile_tab_reports">הדיווחים שלי</string>
+    <string name="league_not_ranked">עוד לא נכנסת לליגה השבוע — דווח על חניה כדי להופיע בטבלה.</string>
+    <string name="league_my_city">העיר שלי</string>
+    <string name="league_all_israel">כל הארץ</string>
+    <string name="league_pick_city_title">בחר עיר</string>
+    <string name="league_pick_city_body">כדי להתחרות מול נהגים מהעיר שלך בליגה שבועית</string>
+    <string name="badges_title">תגים</string>
+    <string name="badges_progress">הושגו %1$d מתוך %2$d</string>
+    <string name="badge_first">דיווח ראשון</string>
+    <string name="badge_reports_10">10 דיווחים</string>
+    <string name="badge_reports_50">50 דיווחים</string>
+    <string name="badge_reports_100">100 דיווחים</string>
+    <string name="badge_helped_10">עזרת ל־10 נהגים</string>
+    <string name="badge_helped_50">גיבור החניה</string>
+    <string name="login_phone_title">כניסה עם הטלפון</string>
+    <string name="login_phone_body">נשלח לך קוד בן 6 ספרות ב-SMS</string>
+    <string name="login_phone_label">מספר נייד</string>
+    <string name="login_send_code">שליחת קוד</string>
+    <string name="login_code_title">הזינו את הקוד</string>
+    <string name="login_code_body">שלחנו אותו ל-%1$s</string>
+    <string name="login_verify">כניסה</string>
+    <string name="login_change_number">שינוי מספר</string>
+    <string name="login_change_email">שינוי מייל</string>
+    <string name="login_resend">שליחה חוזרת</string>
+    <string name="login_resend_in">שליחה חוזרת בעוד %1$d שנ׳</string>
+    <string name="login_dev_code_title">📩 גרסת בטא — הקוד שלך</string>
+    <string name="login_dev_code">הקוד שלך: %1$s · הקישו למילוי</string>
+    <string name="login_phone_invalid">הזינו מספר נייד ישראלי (05X-XXXXXXX)</string>
+    <string name="login_too_many">יותר מדי ניסיונות — חכו דקה ונסו שוב</string>
+    <string name="login_code_wrong">הקוד שגוי — בדקו את ה-SMS ונסו שוב</string>
+    <string name="login_code_expired">פג תוקף הקוד — שלחו קוד חדש</string>
+    <string name="login_terms_note">הטלפון או המייל שלך משמשים רק לכניסה. נהגים אחרים לא רואים אותם.</string>
+    <string name="details_title">הפרטים שלי</string>
+    <string name="details_welcome_title">ברוכים הבאים ל-ParkIt!</string>
+    <string name="details_welcome_body">כמה פרטים כדי שנדע מי אתה</string>
+    <string name="details_first_name">שם פרטי</string>
+    <string name="details_last_name">שם משפחה</string>
+    <string name="details_email">אימייל</string>
+    <string name="details_email_invalid">זו לא נראית כתובת אימייל תקינה</string>
+    <string name="details_privacy">נהגים אחרים רואים רק את השם הפרטי ואת האות הראשונה של שם המשפחה.</string>
+    <string name="details_missing">הוסיפו את השם שלכם</string>
+    <string name="login_by_email">אימייל</string>
+    <string name="login_by_phone">טלפון</string>
+    <string name="login_email_body">נשלח לך קוד בן 6 ספרות למייל</string>
+    <string name="login_send_failed">לא הצלחנו לשלוח את הקוד כרגע — נסו שוב בעוד רגע</string>
+    <string name="settings_delete_account">מחיקת חשבון</string>
+    <string name="settings_delete_title">למחוק את החשבון?</string>
+    <string name="settings_delete_body">החשבון, הנקודות, הדיווחים, התמונות והפרטים שלך יימחקו לצמיתות. אי אפשר לבטל את זה.</string>
+    <string name="settings_delete_confirm">מחיקה לצמיתות</string>
+    <string name="level_up_title">עלית לרמת %1$s!</string>
+    <string name="level_up_ok">מעולה</string>
+    <string name="avatar_pick_title">בחירת אווטאר</string>
+    <string name="profile_helped_none">דווח על החניה הראשונה שלך ועזור לנהג לחנות</string>
+    <string name="profile_report_cta">דיווח על חניה · ‎+10 נק׳</string>
+    <string name="settings_avatars">אווטארים</string>
+    <string name="settings_avatars_value">DiceBear "Personas" מאת Draftbit · CC BY 4.0</string>
+    <string name="details_pick_avatar">בחרו אווטאר</string>
+    <plurals name="profile_helped">
+        <item quantity="one">עזרת לנהג אחד לחנות 🙌</item>
+        <item quantity="two">עזרת ל-%d נהגים לחנות 🙌</item>
+        <item quantity="other">עזרת ל-%d נהגים לחנות 🙌</item>
+    </plurals>
+    <string-array name="avatar_names">
+        <item>הייטקיסט</item>
+        <item>גולש</item>
+        <item>היפסטר</item>
+        <item>גותית</item>
+        <item>חובב פלאפל</item>
+        <item>חובבת פלאפל</item>
+        <item>סבתא מהשוק</item>
+        <item>דוס</item>
+        <item>חיילת בחופש</item>
+        <item>רוכב קורקינט</item>
+        <item>יוגית</item>
+        <item>אלוף מטקות</item>
+        <item>די־ג׳יי</item>
+        <item>גותי</item>
+        <item>סטודנטית</item>
+        <item>בריסטה</item>
+    </string-array>
+    <string name="settings_section_account">חשבון</string>
+    <string name="settings_details_sub">שם, אימייל וטלפון</string>
+    <string name="hero_points">נקודות</string>
+    <string name="hero_helped">נהגים שעזרת</string>
+    <string name="hero_rank">השבוע</string>
+    <string name="profile_tab_progress">התקדמות</string>
+    <string name="map_offline_title">אין חיבור ל-ParkIt</string>
+    <string name="map_offline_body">בדקו את החיבור לאינטרנט — ננסה שוב בעצמנו</string>
+    <string name="map_offline_retry">נסו שוב</string>
+    <string name="location_denied">בלי מיקום, ParkIt לא יכולה להראות חניות לידך</string>
+    <string name="location_open_settings">לאפשר</string>
+    <string name="error_timeout">השרת עונה לאט. נסו שוב בעוד רגע.</string>
+    <string name="error_session">החיבור הסתיים — היכנסו שוב.</string>
+    <string name="error_blocked">הדיווח מושהה לזמן מה אחרי כמה דיווחים שסומנו כשגויים.</string>
+    <string name="error_photo_large">התמונה גדולה מדי.</string>
+    <string name="error_invalid">חלק מהפרטים לא תקינים — בדקו ונסו שוב.</string>
+    <string name="error_too_many">יותר מדי ניסיונות — חכו דקה ונסו שוב.</string>
+    <string name="error_unavailable">השירות לא זמין כרגע. נסו שוב בקרוב.</string>
+    <string name="error_with_code">%1$s (%2$s)</string>
+    <string name="feedback_title">שליחת משוב</string>
+    <string name="feedback_subtitle">באג, רעיון, משהו לא ברור — ספרו לנו</string>
+    <string name="feedback_hint">מה קרה? מה היה עושה את ParkIt טובה יותר?</string>
+    <string name="feedback_attached">גרסת האפליקציה, דגם הטלפון וקודי השגיאה האחרונים מצורפים אוטומטית.</string>
+    <string name="feedback_send">שליחה</string>
+    <string name="feedback_thanks_title">תודה!</string>
+    <string name="feedback_thanks_body">אנחנו קוראים כל הודעה.</string>
+    <string name="intro_find_title">חניות רחוב פנויות, עכשיו</string>
+    <string name="intro_find_body">נהגים שעוזבים חניה מדווחים עליה — ואתם רואים אותה על המפה, הקרובות והטריות קודם.</string>
+    <string name="intro_report_title">עוזבים חניה? לחיצה אחת.</string>
+    <string name="intro_report_body">מצלמים — פנים ולוחיות מטושטשים אוטומטית — ומקבלים ‎+10 נקודות.</string>
+    <string name="intro_climb_title">עולים ברמות</string>
+    <string name="intro_climb_body">תגים, ליגה שבועית בעיר שלכם ומסגרת משלכם לפין, ככל שעוזרים ליותר נהגים לחנות.</string>
+    <string name="intro_next">הבא</string>
+    <string name="intro_start">יאללה</string>
+    <string name="intro_welcome_body">חניות רחוב פנויות בכל הארץ, מדווחות בזמן אמת על ידי נהגים כמוך.</string>
+    <string name="intro_choose_language">בחרו שפה</string>
+    <string name="intro_how_it_works">איך זה עובד</string>
+    <string name="intro_go_title">לוחצים, מנווטים, נוסעים</string>
+    <string name="intro_go_body">רואים כמה החניה טרייה ולאיזה רכב היא מתאימה. לוחצים \"אני בדרך\" — הניווט נפתח ונהגים אחרים רואים שמישהו בדרך. 🔥 = אזור עמוס, ייתכן שהחניה תיתפס. אף פעם לא ממהרים.</string>
+    <string name="hero_helped_hint">בכל פעם שנהג לוחץ "חניתי כאן" על חניה שדיווחת — המספר עולה.</string>
+    <string name="tips_header">איך משתמשים ב-ParkIt</string>
+    <string name="tips_done">הבנתי, יאללה</string>
+    <string name="tip_map_title">קוראים את המפה</string>
+    <string name="tip_map_body">כל סיכה היא חניה פנויה. ירוק כהה = דווחה עכשיו, בהיר = מחכה כבר זמן מה. המספר הוא דקות מאז הדיווח. כתום = מישהו כבר בדרך.</string>
+    <string name="tip_tag_fresh">2 דק׳</string>
+    <string name="tip_tag_old">40 דק׳</string>
+    <string name="tip_cap_fresh">טרייה</string>
+    <string name="tip_cap_old">ותיקה</string>
+    <string name="tip_cap_claimed">מישהו בדרך</string>
+    <string name="tip_hot_title">🔥 אזור לוהט</string>
+    <string name="tip_hot_body">להבות אומרות שחניות שם נתפסות בדרך כלל תוך דקות, אז ייתכן שתיתפס עד שתגיעו. זה מידע — אף פעם לא סיבה למהר. סעו בבטחה.</string>
+    <string name="tip_go_title">בדרך לחניה</string>
+    <string name="tip_go_body">לוחצים על סיכה ואז \"אני בדרך\". הניווט נפתח ונהגים אחרים רואים שמישהו בדרך. מכינים הכל לפני הנסיעה — לא נוגעים בטלפון בכביש.</string>
+    <string name="tip_report_title">יוצאים? דווחו</string>
+    <string name="tip_report_body">משחררים חניה פנויה? לוחצים \"דווח על חניה כאן\" — כשהרכב עומד. תמונה שווה נקודות נוספות; פנים ולוחיות רישוי מטושטשים אוטומטית.</string>
+    <string name="tip_photo_points">תמונה = נקודות נוספות</string>
+    <string name="tip_close_title">סוגרים מעגל, עולים רמה</string>
+    <string name="tip_close_body">כשמגיעים, לוחצים \"חניתי כאן\" או \"כבר תפוסה\" — ככה המפה נשארת אמינה. כל דיווח ותשובה שווים נקודות, וכל רמה מקבלת מסגרת חדשה לסיכה.</string>
+    <string name="settings_tips">איך משתמשים ב-ParkIt</string>
+    <string name="location_off">המיקום בטלפון כבוי</string>
+    <string name="location_turn_on">להפעלה</string>
 </resources>

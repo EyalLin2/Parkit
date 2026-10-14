@@ -8,7 +8,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from config import settings
 
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_TTL_HOURS = 24
+# Sessions are short and sliding: a token lives settings.session_idle_minutes
+# (30 by default) and the app swaps it for a fresh one while it's in use
+# (POST /auth/refresh). Leave the app for longer than that and the next
+# open asks for a new SMS code.
 
 _security = HTTPBearer()
 
@@ -16,7 +19,7 @@ _security = HTTPBearer()
 def create_access_token(user_id: uuid.UUID) -> str:
     payload = {
         "sub": str(user_id),
-        "exp": datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_TTL_HOURS),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.session_idle_minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=JWT_ALGORITHM)
 

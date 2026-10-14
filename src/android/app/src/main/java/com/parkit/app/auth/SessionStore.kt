@@ -3,6 +3,16 @@ package com.parkit.app.auth
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.mutableStateOf
+import com.parkit.app.api.Preferences
+
+/** What the map needs from the driver profile, cached on the device so it
+ * applies on the very first frame. [homeLat]/[homeLng] are the preferred
+ * city's centre — the map opens there when GPS can't place the user. */
+data class DriverPrefs(
+    val preferences: Preferences = Preferences(),
+    val homeLat: Double? = null,
+    val homeLng: Double? = null,
+)
 
 /**
  * Minimal token/user-id persistence. A demo-scale app doesn't need
@@ -16,6 +26,90 @@ class SessionStore(context: Context) {
     val token = mutableStateOf(prefs.getString(KEY_TOKEN, null))
     val userId = mutableStateOf(prefs.getString(KEY_USER_ID, null))
     val displayName = mutableStateOf(prefs.getString(KEY_DISPLAY_NAME, null))
+
+    val driver = mutableStateOf(loadDriver())
+
+    /** Whether the post-login "your car" step was already shown (saved or
+     * skipped) on this device. */
+    var onboardingSeen: Boolean
+        get() = prefs.getBoolean(KEY_ONBOARDING_SEEN, false)
+        set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_SEEN, value).apply()
+
+    /** Signed in but the name/avatar step isn't done yet — so closing the app
+     * on that screen brings the driver back to it, not to a nameless map. */
+    var needsProfile: Boolean
+        get() = prefs.getBoolean(KEY_NEEDS_PROFILE, false)
+        set(value) = prefs.edit().putBoolean(KEY_NEEDS_PROFILE, value).apply()
+
+    /** The level the driver last saw, so reaching a new one can be celebrated once. */
+    var lastSeenLevel: String?
+        get() = prefs.getString(KEY_LAST_LEVEL, null)
+        set(value) = prefs.edit().putString(KEY_LAST_LEVEL, value).apply()
+
+    /** When the app last went to the background (0 = never / signed out). */
+    var leftAppAt: Long
+        get() = prefs.getLong(KEY_LEFT_APP_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_LEFT_APP_AT, value).apply()
+
+    /** Device-level flags that survive signing out (unlike the session). */
+    private val device: SharedPreferences =
+        context.applicationContext.getSharedPreferences("parkit_device", Context.MODE_PRIVATE)
+
+    /** The 3-screen intro was shown on this install. */
+    var introSeen: Boolean
+        get() = device.getBoolean("intro_seen", false)
+        set(value) = device.edit().putBoolean("intro_seen", value).apply()
+
+    /** Where the phone last was (any successful fix), so the next launch opens
+     * there instead of on a default spot while a fresh fix is on its way. */
+    var lastFix: Pair<Double, Double>?
+        get() = if (device.contains("last_lat")) {
+            Pair(device.getFloat("last_lat", 0f).toDouble(), device.getFloat("last_lng", 0f).toDouble())
+        } else {
+            null
+        }
+        set(value) {
+            val e = device.edit()
+            if (value == null) e.remove("last_lat").remove("last_lng") else e.putFloat("last_lat", value.first.toFloat()).putFloat("last_lng", value.second.toFloat())
+            e.apply()
+        }
+
+    /** The post-sign-up "how ParkIt works" tips were shown on this install. */
+    var tipsSeen: Boolean
+        get() = device.getBoolean("tips_seen", false)
+        set(value) = device.edit().putBoolean("tips_seen", value).apply()
+
+    fun saveDriver(d: DriverPrefs) {
+        val p = d.preferences
+        prefs.edit()
+            .putString(KEY_VEHICLE_SIZE, p.vehicleSize)
+            .putString(KEY_CAR_LABEL, p.carLabel)
+            .putBoolean(KEY_DISABLED_PERMIT, p.hasDisabledPermit)
+            .putString(KEY_HOME_CITY, p.homeCity)
+            .putString(KEY_HOME_LAT, d.homeLat?.toString())
+            .putString(KEY_HOME_LNG, d.homeLng?.toString())
+            .apply()
+        driver.value = d
+    }
+
+    /** Server copy wins for the preferences; the city centre is kept only
+     * while the city is unchanged (another device may have picked another). */
+    fun syncDriver(server: Preferences) {
+        val current = driver.value
+        val keepCentre = current.preferences.homeCity == server.homeCity
+        saveDriver(DriverPrefs(server, current.homeLat.takeIf { keepCentre }, current.homeLng.takeIf { keepCentre }))
+    }
+
+    private fun loadDriver() = DriverPrefs(
+        Preferences(
+            vehicleSize = prefs.getString(KEY_VEHICLE_SIZE, null),
+            carLabel = prefs.getString(KEY_CAR_LABEL, null),
+            hasDisabledPermit = prefs.getBoolean(KEY_DISABLED_PERMIT, false),
+            homeCity = prefs.getString(KEY_HOME_CITY, null),
+        ),
+        prefs.getString(KEY_HOME_LAT, null)?.toDoubleOrNull(),
+        prefs.getString(KEY_HOME_LNG, null)?.toDoubleOrNull(),
+    )
 
     fun save(token: String, userId: String, displayName: String) {
         prefs.edit()
@@ -33,11 +127,22 @@ class SessionStore(context: Context) {
         token.value = null
         userId.value = null
         displayName.value = null
+        driver.value = DriverPrefs()
     }
 
     companion object {
         private const val KEY_TOKEN = "token"
+        private const val KEY_NEEDS_PROFILE = "needs_profile"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_DISPLAY_NAME = "display_name"
+        private const val KEY_ONBOARDING_SEEN = "onboarding_seen"
+        private const val KEY_LEFT_APP_AT = "left_app_at"
+        private const val KEY_LAST_LEVEL = "last_seen_level"
+        private const val KEY_VEHICLE_SIZE = "vehicle_size"
+        private const val KEY_CAR_LABEL = "car_label"
+        private const val KEY_DISABLED_PERMIT = "has_disabled_permit"
+        private const val KEY_HOME_CITY = "home_city"
+        private const val KEY_HOME_LAT = "home_lat"
+        private const val KEY_HOME_LNG = "home_lng"
     }
 }

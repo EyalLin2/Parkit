@@ -13,6 +13,7 @@ class SpotCreate(BaseModel):
     payment: Payment
     vehicle_size: VehicleSize | None = None
     photo_staging_id: str | None = None
+    address: str | None = Field(default=None, max_length=200)
 
 
 class SpotOut(BaseModel):
@@ -24,9 +25,12 @@ class SpotOut(BaseModel):
     payment: Payment
     vehicle_size: VehicleSize | None
     photo_url: str | None
+    address: str | None
     status: SpotStatus
     reported_at: datetime
     claimed_by: uuid.UUID | None
+    reporter_level: str = "newbie"
+    hot_minutes: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -39,6 +43,7 @@ class ActivityItem(BaseModel):
     spot_id: uuid.UUID
     spot_type: SpotType
     payment: Payment
+    address: str | None
     reported_at: datetime
     status: SpotStatus
     removed_reason: RemovedReason | None
@@ -51,8 +56,18 @@ class ProfileOut(BaseModel):
     display_name: str
     points: int
     weekly_points: int
+    avatar: str | None = None
+    weekly_rank: int | None = None  # place in this week's league; None = no points yet
+    weekly_city_rank: int | None = None  # same, among drivers with the same preferred city
     successful_reports: int
-    badges: list[int]
+    total_reports: int = 0  # all reports ever (the activity list is capped)
+    badges: list[int]  # deprecated: replaced by levels, kept for older app builds
+    level: str
+    level_min_points: int
+    next_level: str | None
+    next_level_points: int | None
+    preferences: "Preferences"
+    account: "AccountOut | None" = None
     activity: list[ActivityItem]
 
 
@@ -61,3 +76,65 @@ class LeaderboardEntry(BaseModel):
     user_id: uuid.UUID
     display_name: str
     weekly_points: int
+    level: str
+    avatar: str | None = None
+
+
+class ReverseGeocodeOut(BaseModel):
+    label: str | None
+    street: str | None
+
+
+class Preferences(BaseModel):
+    vehicle_size: VehicleSize | None = None
+    car_label: str | None = Field(default=None, max_length=120)
+    has_disabled_permit: bool = False
+    home_city: str | None = Field(default=None, max_length=120)
+
+
+class PreferencesUpdate(BaseModel):
+    """PATCH semantics: only fields present in the request are changed."""
+
+    vehicle_size: VehicleSize | None = None
+    car_label: str | None = Field(default=None, max_length=120)
+    has_disabled_permit: bool | None = None
+    home_city: str | None = Field(default=None, max_length=120)
+
+
+class CityOut(BaseModel):
+    name: str
+    name_en: str | None = None
+    lat: float
+    lng: float
+
+
+class VehicleLookupOut(BaseModel):
+    make: str
+    model: str
+    year: int | None
+    body: str | None
+    size: VehicleSize
+    label: str
+
+
+class DetailsUpdate(BaseModel):
+    """Basic details, asked once right after the first phone sign-in."""
+
+    first_name: str = Field(min_length=1, max_length=60)
+    last_name: str = Field(min_length=1, max_length=60)
+    # Format check only (no confirmation mail yet).
+    email: str = Field(max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+
+
+class AccountOut(BaseModel):
+    phone: str | None
+    first_name: str | None
+    last_name: str | None
+    email: str | None
+
+
+ProfileOut.model_rebuild()
+
+
+class AvatarUpdate(BaseModel):
+    avatar: str | None = Field(default=None, pattern=r"^avatar_(0[1-9]|1[0-6])$")

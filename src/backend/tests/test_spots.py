@@ -173,3 +173,40 @@ async def test_cancel_by_a_non_reporter_is_rejected(client, make_user):
     resp = await client.delete(f"/spots/{spot_id}", headers=headers_other)
     assert resp.status_code == 404
     assert spot_id in await _nearby_ids(client)
+
+
+async def test_address_is_stored_and_returned_in_nearby_search(client, make_user):
+    _, headers = await make_user("reporter")
+    report = await _report(client, headers, address="  Dizengoff 50  ")
+    assert report.status_code == 201
+    assert report.json()["address"] == "Dizengoff 50"
+
+    resp = await client.get("/spots", params={**TLV, "radius_m": 500})
+    assert resp.json()[0]["address"] == "Dizengoff 50"
+
+
+async def test_address_is_optional(client, make_user):
+    _, headers = await make_user("reporter")
+    report = await _report(client, headers)
+    assert report.status_code == 201
+    assert report.json()["address"] is None
+
+
+async def test_overlong_address_is_rejected(client, make_user):
+    _, headers = await make_user("reporter")
+    report = await _report(client, headers, address="x" * 201)
+    assert report.status_code == 422
+
+
+async def test_refresh_fills_a_missing_address_but_never_overwrites_one(client, make_user):
+    _, headers_a = await make_user("a")
+    _, headers_b = await make_user("b")
+    _, headers_c = await make_user("c")
+    first = await _report(client, headers_a)
+    assert first.json()["address"] is None
+
+    filled = await _report(client, headers_b, lat=TLV["lat"] + 0.00005, address="Dizengoff 50")
+    assert filled.json()["address"] == "Dizengoff 50"
+
+    kept = await _report(client, headers_c, lat=TLV["lat"] - 0.00005, address="Somewhere else 1")
+    assert kept.json()["address"] == "Dizengoff 50"
