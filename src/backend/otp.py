@@ -50,6 +50,15 @@ def normalise_email(raw: str) -> str | None:
     return email if len(email) <= 254 and _EMAIL.match(email) else None
 
 
+def review_code(target: str) -> str | None:
+    """The fixed code of the Play review account, if `target` is it."""
+    review_target, _, code = settings.review_login.rpartition(":")
+    if not review_target or len(code) != 6 or not code.isdigit():
+        return None
+    normalised = normalise_phone(review_target) or normalise_email(review_target)
+    return code if normalised == target else None
+
+
 def _digest(target: str, code: str) -> str:
     return hmac.new(settings.jwt_secret.encode(), f"{target}:{code}".encode(), hashlib.sha256).hexdigest()
 
@@ -77,6 +86,15 @@ async def issue(redis: Redis, target: str, ip: str) -> str:
 
 
 async def check(redis: Redis, target: str, code: str) -> None:
+    fixed = review_code(target)
+    if fixed is not None:
+        # Still capped: 5 wrong guesses lock the review account for 5 minutes.
+        if await _bump(redis, f"otp:attempts:{target}", CODE_TTL_SECONDS) > MAX_ATTEMPTS:
+            raise OtpError(429, "Too many wrong codes — ask for a new one")
+        if not hmac.compare_digest(fixed, code.strip()):
+            raise OtpError(400, "Wrong code")
+        await redis.delete(f"otp:attempts:{target}")
+        return
     stored = await redis.get(f"otp:code:{target}")
     if stored is None:
         raise OtpError(400, "The code expired — ask for a new one")

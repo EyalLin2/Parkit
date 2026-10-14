@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # Anyone who types an address could then sign in as it — switch OFF
     # before the public launch (and once a real provider is set up).
     beta_show_codes: bool = False
+    # Google Play app review (approved by the owner on 2026-10-14): one fixed
+    # sign-in, "target:code" where target is a phone number or email address,
+    # so the reviewer can get in without a real SMS or inbox. Typed into Play
+    # Console → App access. Empty = off. Only this one account has a fixed code.
+    review_login: str = ""
     # Opens /admin/feedback (tester feedback + crash reports). Empty = closed.
     admin_token: str = ""
     # SMS_PROVIDER=twilio: credentials from the Twilio console. TWILIO_FROM is

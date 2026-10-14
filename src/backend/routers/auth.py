@@ -81,6 +81,8 @@ async def request_code(
     """Text a 6-digit login code. Same answer whether or not the number has
     an account, so this can't be used to find out who uses ParkIt."""
     phone = _phone_or_422(payload.phone)
+    if otp.review_code(phone) is not None:
+        return OtpRequested(phone=phone)  # Play reviewer: fixed code, nothing to send
     ip = request.client.host if request.client else "unknown"
     try:
         code = await otp.issue(redis, phone, ip)
@@ -171,6 +173,8 @@ async def request_email_code(
     """Email a 6-digit login code — the free alternative to SMS, with the
     same rules (expiry, attempts, throttling) from otp.py."""
     email = _email_or_422(payload.email)
+    if otp.review_code(email) is not None:
+        return EmailOtpRequested(email=email)  # Play reviewer: fixed code, nothing to send
     ip = request.client.host if request.client else "unknown"
     try:
         code = await otp.issue(redis, email, ip)
