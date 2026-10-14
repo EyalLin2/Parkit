@@ -427,7 +427,7 @@
     <string name="report_blue_white">Blue-white curb (paid)</string>
     <string name="spot_blue_white">Blue-white curb · paid, you can use Pango</string>
     <string name="spot_blue_white_short">Blue-white</string>
-    <string name="car_park_here">Save where I parked</string>
+    <string name="car_park_here">I just parked</string>
     <string name="car_saved">Your car is marked on the map. When you leave, tap \"I\'m leaving\" and the spot goes to the next driver.</string>
     <string name="car_card_title">Your car · %1$s</string>
     <string name="car_navigate">Walk to car</string>
@@ -458,4 +458,8 @@
     <string name="pay_cellopark">Cellopark</string>
     <string name="pay_chooser_title">Pay for blue-white parking</string>
     <string name="pay_chooser_body">Which app do you pay with?</string>
+    <string name="car_pay">Blue-white? Pay in Pango / Cellopark</string>
+    <string name="car_explain_title">Parked? Save your car</string>
+    <string name="car_explain_ok">Save my car here</string>
+    <string name="car_explain_body">We\'ll remember where it is. When you leave, one tap hands the spot on (+10).</string>
 </resources>

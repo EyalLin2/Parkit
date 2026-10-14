@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -591,6 +592,8 @@ fun MapScreen(
      * it's blue-white. A snackbar, not a dialog — it goes away by itself
      * and never blocks the map. */
     var showPayChooser by remember { mutableStateOf(false) }
+    // First tap on "I just parked" explains what it's for before saving anything.
+    var showCarExplainer by remember { mutableStateOf(false) }
 
     suspend fun offerPango() {
         val result = snackbarHostState.showSnackbar(
@@ -889,6 +892,12 @@ fun MapScreen(
         s.getSourceAs<GeoJsonSource>(SOURCE_LOTS)?.setGeoJson(FeatureCollection.fromFeatures(features))
     }
 
+    // "Your car" on the map is the same car as in the profile.
+    val myCar = sessionStore.driver.value.preferences
+    LaunchedEffect(style, myCar.vehicleSize, myCar.carPaint, myCar.hasDisabledPermit) {
+        val s = style ?: return@LaunchedEffect
+        s.addImage(CAR_ICON, carMarkerBitmap(context, myCar.vehicleSize, myCarPaint(myCar.carPaint, sessionStore.carPaint), permit = false))
+    }
     LaunchedEffect(style, parkedCar) {
         val s = style ?: return@LaunchedEffect
         val features = parkedCar?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat))) } ?: emptyList()
@@ -1017,6 +1026,10 @@ fun MapScreen(
                         car = car,
                         onNavigate = { walkTo(context, car.lat, car.lng) },
                         onLeaving = { leaveSpot(car) },
+                        onPay = {
+                            val have = ParkingPay.installed(context)
+                            if (have.size == 1) ParkingPay.open(context, have.single()) else showPayChooser = true
+                        },
                         onForget = { forgetCar() },
                         modifier = Modifier.padding(horizontal = 12.dp),
                     )
@@ -1104,6 +1117,10 @@ fun MapScreen(
                         }
                         .height(buttonSize)
                         .clickable {
+                            if (!sessionStore.carExplained) {
+                                showCarExplainer = true
+                                return@clickable
+                            }
                             val fix = currentFix()
                             if (fix == null) {
                                 scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_needs_location)) }
@@ -1119,6 +1136,47 @@ fun MapScreen(
                         Text(stringResource(R.string.car_park_here), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
+            }
+        }
+    }
+
+    if (showCarExplainer) {
+        // Short and visual: your own car, one line, one button.
+        val prefs = sessionStore.driver.value.preferences
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showCarExplainer = false }) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding(),
+            ) {
+                CarArt(
+                    size = prefs.vehicleSize ?: "regular",
+                    paint = myCarPaint(prefs.carPaint, sessionStore.carPaint),
+                    outline = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.width(150.dp),
+                )
+                Text(stringResource(R.string.car_explain_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 12.dp))
+                Text(
+                    stringResource(R.string.car_explain_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                androidx.compose.material3.Button(
+                    onClick = {
+                        showCarExplainer = false
+                        sessionStore.carExplained = true
+                        val fix = currentFix()
+                        if (fix == null) {
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_needs_location)) }
+                        } else {
+                            rememberCar(LatLng(fix.latitude, fix.longitude), null)
+                            flyTo(LatLng(fix.latitude, fix.longitude))
+                        }
+                    },
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.fillMaxWidth().padding(top = 18.dp).height(52.dp),
+                ) { Text(stringResource(R.string.car_explain_ok), style = MaterialTheme.typography.labelLarge) }
             }
         }
     }
@@ -1259,6 +1317,7 @@ private fun installSpotLayers(context: android.content.Context, style: Style, da
     style.addLayer(
         SymbolLayer(LAYER_CAR, SOURCE_CAR).withProperties(
             PropertyFactory.iconImage(CAR_ICON),
+            PropertyFactory.iconAnchor("bottom"),
             PropertyFactory.iconAllowOverlap(true),
             PropertyFactory.iconIgnorePlacement(true),
         ),
@@ -1791,6 +1850,7 @@ private fun ParkedCarCard(
     car: com.parkit.app.auth.ParkedCar,
     onNavigate: () -> Unit,
     onLeaving: () -> Unit,
+    onPay: () -> Unit,
     onForget: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1831,6 +1891,14 @@ private fun ParkedCarCard(
                 TripAction(stringResource(R.string.car_navigate), Icons.AutoMirrored.Filled.DirectionsWalk, primary, Modifier.weight(1f), onNavigate)
                 TripAction(stringResource(R.string.car_leaving), Icons.AutoMirrored.Filled.Logout, green, Modifier.weight(1f), onLeaving)
             }
+            // Blue-white curb? Pay in Pango / Cellopark without hunting for the app.
+            TripAction(
+                stringResource(R.string.car_pay),
+                Icons.Filled.Payments,
+                Color(0xFF1565C0),
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                onPay,
+            )
         }
     }
 }
@@ -1894,3 +1962,12 @@ private fun inviteFriends(context: android.content.Context) {
     }
     context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.profile_share_title)))
 }
+
+/** The paint for "your car": a colour picked by hand wins, then the
+ * registry's colour, then ParkIt blue. */
+private fun myCarPaint(registryHex: String?, manual: Int): Color {
+    return CarPaints.getOrNull(manual)
+        ?: registryHex?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+        ?: CarPaints[0]
+}
+

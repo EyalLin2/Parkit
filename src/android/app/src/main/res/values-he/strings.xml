@@ -436,7 +436,7 @@
     <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>
     <string name="spot_blue_white">כחול־לבן · בתשלום, אפשר דרך פנגו</string>
     <string name="spot_blue_white_short">כחול־לבן</string>
-    <string name="car_park_here">שמור איפה חניתי</string>
+    <string name="car_park_here">חניתי עכשיו</string>
     <string name="car_saved">הרכב סומן על המפה. כשתצא, לחץ \"אני יוצא מהחניה\" — והחניה תעבור לנהג הבא.</string>
     <string name="car_card_title">הרכב שלך · %1$s</string>
     <string name="car_navigate">ללכת לרכב</string>
@@ -467,4 +467,8 @@
     <string name="pay_cellopark">סלופארק</string>
     <string name="pay_chooser_title">תשלום על כחול-לבן</string>
     <string name="pay_chooser_body">באיזו אפליקציה אתה משלם?</string>
+    <string name="car_pay">כחול-לבן? תשלום בפנגו / סלופארק</string>
+    <string name="car_explain_title">חנית? שמור את הרכב</string>
+    <string name="car_explain_ok">שמור את הרכב כאן</string>
+    <string name="car_explain_body">נזכור איפה הרכב. כשתצא — לחיצה אחת והחניה עוברת לנהג הבא (‎+10).</string>
 </resources>

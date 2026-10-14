@@ -98,6 +98,11 @@ class SessionStore(context: Context) {
             e.apply()
         }
 
+    /** "I just parked" was explained once on this install. */
+    var carExplained: Boolean
+        get() = device.getBoolean("car_explained", false)
+        set(value) = device.edit().putBoolean("car_explained", value).apply()
+
     /** Paint the driver picked by hand for the car illustration (index into
      * CarPaints); -1 = use the colour from the vehicle registry. */
     var carPaint: Int

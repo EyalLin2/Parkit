@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.lerp
 
 /** Paint colours for "your car" — picked once in the profile, kept on the device. */
@@ -196,3 +198,56 @@ private fun DrawScope.drawGhostCar(outline: Color) {
 }
 
 private fun Color.luminance(): Float = 0.299f * red + 0.587f * green + 0.114f * blue
+
+
+/**
+ * The driver's own car as a map marker: the same art as the profile, in a
+ * white bubble with a pointer at the bottom, so "your car" on the map is
+ * unmistakably yours. Drawn off-screen with CanvasDrawScope.
+ */
+fun carMarkerBitmap(context: android.content.Context, kind: String?, paint: Color, permit: Boolean): android.graphics.Bitmap {
+    val density = context.resources.displayMetrics.density
+    val w = (46 * density).toInt()
+    val h = (38 * density).toInt()
+    val image = androidx.compose.ui.graphics.ImageBitmap(w, h)
+    val canvas = androidx.compose.ui.graphics.Canvas(image)
+    androidx.compose.ui.graphics.drawscope.CanvasDrawScope().draw(
+        androidx.compose.ui.unit.Density(density),
+        androidx.compose.ui.unit.LayoutDirection.Ltr,
+        canvas,
+        Size(w.toFloat(), h.toFloat()),
+    ) {
+        val bubbleH = h * 0.82f
+        val corner = CornerRadius(bubbleH * 0.3f)
+        drawRoundRect(Color.Black.copy(alpha = 0.18f), Offset(2f * density, 2f * density), Size(w - 4f * density, bubbleH - 2f * density), corner)
+        drawRoundRect(Color.White, Offset(0f, 0f), Size(w - 2f * density, bubbleH - 3f * density), corner)
+        val tail = Path().apply {
+            moveTo(w / 2f - 7f * density, bubbleH - 4f * density)
+            lineTo(w / 2f, h.toFloat())
+            lineTo(w / 2f + 7f * density, bubbleH - 4f * density)
+            close()
+        }
+        drawPath(tail, Color.White)
+        val pad = 3.5f * density
+        translate(left = pad, top = pad) {
+            val inner = Size(w - 2 * pad - 2f * density, bubbleH - 2 * pad - 3f * density)
+            // Reuse the profile drawing inside the bubble's box.
+            drawIntoBox(inner) { drawCar(kind ?: "regular", paint, 0f) }
+        }
+        if (permit) {
+            val s = 9f * density
+            drawRoundRect(Color(0xFF1565C0), Offset(w - s - 6f * density, 4f * density), Size(s, s), CornerRadius(2f * density))
+            drawCircle(Color.White, s * 0.12f, Offset(w - s / 2 - 6f * density, 4f * density + s * 0.25f))
+            drawArc(Color.White, 20f, 250f, false, Offset(w - s - 6f * density + s * 0.25f, 4f * density + s * 0.4f), Size(s * 0.5f, s * 0.5f), style = Stroke(s * 0.1f))
+        }
+    }
+    return image.asAndroidBitmap()
+}
+
+/** Run [block] as if the canvas were [box] big (drawCar sizes itself from size). */
+private fun DrawScope.drawIntoBox(box: Size, block: DrawScope.() -> Unit) {
+    val sx = box.width / size.width
+    val sy = box.height / size.height
+    scale(sx, sy, pivot = Offset.Zero) { block() }
+}
+
