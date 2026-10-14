@@ -169,7 +169,7 @@ dependencies {
     // Google's fused location — what actually gets a fix fast on real phones.
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
