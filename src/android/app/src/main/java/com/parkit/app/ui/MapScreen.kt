@@ -94,6 +94,10 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -1130,8 +1134,10 @@ private fun LocationBar(
             // colour — progress is visible every time the map is open.
             val ringColor = level?.color ?: MaterialTheme.colorScheme.primary
             val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+            val profileLabel = stringResource(R.string.map_open_profile_cd)
             Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onOpenProfile),
+                modifier = Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onOpenProfile)
+                    .semantics(mergeDescendants = true) { contentDescription = profileLabel; role = Role.Button },
                 contentAlignment = Alignment.Center,
             ) {
                 androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
