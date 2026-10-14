@@ -456,6 +456,21 @@ private fun ProfileHero(
                 .clickable(onClick = onCarClick)
                 .semantics { contentDescription = car.carLabel ?: "" },
         )
+        // Disabled permit: the blue tag on the windscreen, like the real one.
+        if (car.hasDisabledPermit && car.vehicleSize != null) {
+            Box(
+                modifier = Modifier.align(Alignment.BottomCenter).offset(x = 78.dp, y = (-22).dp).size(15.dp)
+                    .background(Color(0xFF1565C0), RoundedCornerShape(3.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    androidx.compose.material.icons.Icons.AutoMirrored.Filled.Accessible,
+                    contentDescription = stringResource(R.string.driver_disabled_permit),
+                    tint = Color.White,
+                    modifier = Modifier.size(11.dp),
+                )
+            }
+        }
         // "+" when there's no car yet, a pencil once there is: the paint is editable.
         Box(
             modifier = Modifier.align(Alignment.BottomCenter).offset(x = 122.dp, y = (-14).dp).size(22.dp)
