@@ -520,7 +520,21 @@ fun MapScreen(
 
     var parkedCar by remember { mutableStateOf(sessionStore.parkedCar) }
 
+    // The spot just handed on with "I'm leaving" — parking right there again
+    // (changed your mind, or a mis-tap) takes it back off the map.
+    var leftSpot by remember { mutableStateOf<Pair<String, com.parkit.app.auth.ParkedCar>?>(null) }
+
     fun rememberCar(at: LatLng, address: String?, spotType: String = "street") {
+        leftSpot?.let { (id, was) ->
+            leftSpot = null
+            val near = at.distanceTo(LatLng(was.lat, was.lng)) < 60
+            if (near && System.currentTimeMillis() - was.at < 110_000) {
+                scope.launch {
+                    if (runCatching { api.cancelSpot(id) }.isSuccess) spots = spots.filterNot { it.id == id }
+                    refreshMyProfile()
+                }
+            }
+        }
         val car = com.parkit.app.auth.ParkedCar(at.latitude, at.longitude, System.currentTimeMillis(), address, spotType)
         parkedCar = car
         sessionStore.parkedCar = car
@@ -535,9 +549,14 @@ fun MapScreen(
         }
     }
 
+    // Ending a parking that was paid for: remind to stop it in the app.
+    var stopPayIn by remember { mutableStateOf<ParkingPay.App?>(null) }
+
     fun forgetCar() {
         parkedCar = null
         sessionStore.parkedCar = null
+        ParkingPay.sessionApp(context)?.let { stopPayIn = it }
+        ParkingPay.clearSession(context)
     }
 
     /** The phone's position right now: the blue dot keeps updating while the
@@ -774,7 +793,7 @@ fun MapScreen(
         scope.launch {
             val fix = currentFix()
             try {
-                api.reportSpot(
+                val spot = api.reportSpot(
                     com.parkit.app.api.SpotCreate(
                         lat = car.lat,
                         lng = car.lng,
@@ -790,6 +809,7 @@ fun MapScreen(
                     ),
                 )
                 forgetCar()
+                leftSpot = spot.id to car.copy(at = System.currentTimeMillis())
                 refreshSpotsNow()
                 refreshMyProfile()
                 snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
@@ -1299,6 +1319,43 @@ fun MapScreen(
                 }
             },
         )
+    }
+
+    stopPayIn?.let { app ->
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { stopPayIn = null }) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 20.dp).navigationBarsPadding(),
+            ) {
+                Text("⏹", fontSize = 34.sp)
+                Text(
+                    stringResource(R.string.stop_pay_title, stringResource(app.label)),
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                Text(
+                    stringResource(R.string.stop_pay_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+                )
+                androidx.compose.material3.Button(
+                    onClick = {
+                        stopPayIn = null
+                        ParkingPay.open(context, app)
+                        ParkingPay.clearSession(context) // opening it isn't a new session
+                    },
+                    shape = RoundedCornerShape(50),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(app.brand)),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                ) { Text(stringResource(R.string.stop_pay_open, stringResource(app.label)), style = MaterialTheme.typography.titleSmall) }
+                androidx.compose.material3.TextButton(onClick = { stopPayIn = null }, modifier = Modifier.padding(top = 6.dp)) {
+                    Text(stringResource(R.string.stop_pay_done))
+                }
+            }
+        }
     }
 
     if (showParkedPay) {
@@ -2163,6 +2220,10 @@ private fun ParkedCarCard(
                 Modifier.fillMaxWidth().padding(top = 8.dp),
                 onPay,
             )
+            // Not at the car, or not handing the spot on: just end the parking.
+            androidx.compose.material3.TextButton(onClick = onForget, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp)) {
+                Text(stringResource(R.string.car_end_parking), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

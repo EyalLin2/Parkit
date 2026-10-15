@@ -274,3 +274,11 @@ async def test_leaving_your_own_spot_earns_a_handoff_bonus(client, make_user):
     assert resp.status_code == 201
     me = (await client.get("/users/me", headers=headers)).json()
     assert me["points"] == 15
+
+
+async def test_taking_a_handed_on_spot_back_returns_the_bonus_too(client, make_user):
+    _, headers = await make_user("changed-mind")
+    spot = (await _report(client, headers, handoff=True)).json()
+    assert (await client.delete(f"/spots/{spot['id']}", headers=headers)).status_code == 204
+    me = (await client.get("/users/me", headers=headers)).json()
+    assert me["points"] == 0

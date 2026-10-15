@@ -543,4 +543,9 @@
     <string name="settings_pay_none">None — I don\'t pay for street parking</string>
     <string name="car_next_to_you">next to you</string>
     <string name="car_from_you">%1$s from you</string>
+    <string name="stop_pay_title">Don\'t forget to stop parking in %1$s</string>
+    <string name="stop_pay_body">If you started paying, stop it now so you don\'t pay for time you weren\'t parked.</string>
+    <string name="stop_pay_open">Stop in %1$s</string>
+    <string name="stop_pay_done">Already stopped</string>
+    <string name="car_end_parking">End parking</string>
 </resources>

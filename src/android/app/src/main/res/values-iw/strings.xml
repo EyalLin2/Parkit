@@ -552,4 +552,9 @@
     <string name="settings_pay_none">בלי — לא משתמש בכחול-לבן</string>
     <string name="car_next_to_you">לידך</string>
     <string name="car_from_you">%1$s ממך</string>
+    <string name="stop_pay_title">אל תשכח לסגור את החניה ב%1$s</string>
+    <string name="stop_pay_body">אם הפעלת תשלום — סגור אותו עכשיו כדי שלא תשלם על זמן שלא חנית.</string>
+    <string name="stop_pay_open">סגור ב%1$s</string>
+    <string name="stop_pay_done">כבר סגרתי</string>
+    <string name="car_end_parking">סיום חניה</string>
 </resources>

@@ -183,6 +183,10 @@ async def report_spot(
         )
         db.add(spot)
         award_points(user, POINTS_REPORT + (POINTS_HANDOFF_BONUS if payload.handoff else 0))
+        if payload.handoff:
+            # Remembered for the cancel window, so taking it back returns the bonus too.
+            await db.flush()
+            await redis.set(f"handoff:{spot.id}", "1", ex=CANCEL_WINDOW_MINUTES * 60 + 60)
 
     if payload.photo_staging_id:
         await db.flush()  # assigns spot.id (a new spot's PK default runs at INSERT, not construction)
@@ -409,7 +413,8 @@ async def cancel_report(
         raise HTTPException(409, "Cancel window has passed")
 
     user = await db.get(User, user_id)
-    award_points(user, -POINTS_REPORT)
+    handoff = await redis.delete(f"handoff:{spot_id}")
+    award_points(user, -(POINTS_REPORT + (POINTS_HANDOFF_BONUS if handoff else 0)))
     delete_photo(spot.photo_url)
 
     bucket = _location_bucket(spot.lat, spot.lng)

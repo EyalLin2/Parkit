@@ -53,7 +53,17 @@ object ParkingPay {
     fun installed(context: Context): List<App> =
         App.entries.filter { context.packageManager.getLaunchIntentForPackage(it.packageName) != null }
 
+    /** The app a paid session was started in for the car parked now — so
+     * leaving can say "don't forget to stop it in Pango". */
+    fun sessionApp(context: Context): App? =
+        prefs(context).getString("pay_session_app", null)?.let { name -> App.entries.firstOrNull { it.name == name } }
+
+    fun clearSession(context: Context) {
+        prefs(context).edit().remove("pay_session_app").apply()
+    }
+
     fun open(context: Context, app: App) {
+        prefs(context).edit().putString("pay_session_app", app.name).apply()
         context.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
             context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             return
