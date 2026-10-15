@@ -778,6 +778,8 @@ fun MapScreen(
                         lng = car.lng,
                         spotType = car.spotType,
                         payment = "free",
+                        // The spot fits at least the car that was just in it.
+                        vehicleSize = sessionStore.driver.value.preferences.vehicleSize,
                         address = car.address,
                         reporterLat = fix?.latitude,
                         reporterLng = fix?.longitude,
@@ -919,6 +921,11 @@ fun MapScreen(
         reminderLeftMin != null -> MainAction.Reminder(reminderLeftMin.toInt())
         nearMyCar -> MainAction.Leave
         else -> MainAction.Report
+    }
+
+    fun myCarLook(): CarLook {
+        val prefs = sessionStore.driver.value.preferences
+        return CarLook(prefs.vehicleSize, myCarPaint(prefs.carPaint, sessionStore.carPaint), sessionStore.carSpecial)
     }
 
     /** "I just parked": explained once, then one tap saves the car here. */
@@ -1135,6 +1142,7 @@ fun MapScreen(
                 parkedCar?.takeIf { activeClaim == null }?.let { car ->
                     CarLine(
                         car = car,
+                        look = myCarLook(),
                         distanceM = deviceLocation?.distanceTo(LatLng(car.lat, car.lng)),
                         onClick = { showCarSheet = true },
                         modifier = Modifier.padding(horizontal = 12.dp),
@@ -1211,6 +1219,7 @@ fun MapScreen(
             // One action dock above the list: car · smart main action · sign.
             ActionDock(
                 parked = parkedCar != null,
+                car = myCarLook(),
                 main = mainAction,
                 onCar = { if (parkedCar == null) parkHere() else showCarSheet = true },
                 onMain = {
@@ -2336,6 +2345,7 @@ private sealed interface MainAction {
 @Composable
 private fun ActionDock(
     parked: Boolean,
+    car: CarLook,
     main: MainAction,
     onCar: () -> Unit,
     onMain: () -> Unit,
@@ -2353,7 +2363,7 @@ private fun ActionDock(
                 label = stringResource(if (parked) R.string.dock_my_car else R.string.dock_parked),
                 modifier = Modifier.weight(1f),
                 onClick = onCar,
-            ) { Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp)) }
+            ) { CarArt(car.size ?: "regular", car.paint, MaterialTheme.colorScheme.outline, Modifier.width(40.dp), special = car.special, animate = false) }
             val (label, color) = when (main) {
                 MainAction.Report -> stringResource(R.string.dock_report) to MaterialTheme.colorScheme.primary
                 MainAction.Leave -> stringResource(R.string.dock_leave) to Color(0xFF188038)
@@ -2392,7 +2402,7 @@ private fun DockSide(label: String, modifier: Modifier, onClick: () -> Unit, ico
 
 /** The parked car as one thin line — tap for walk / leaving / pay. */
 @Composable
-private fun CarLine(car: com.parkit.app.auth.ParkedCar, distanceM: Double?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM: Double?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Surface(
         onClick = onClick,
@@ -2402,7 +2412,7 @@ private fun CarLine(car: com.parkit.app.auth.ParkedCar, distanceM: Double?, onCl
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            CarArt(look.size ?: "regular", look.paint, MaterialTheme.colorScheme.outline, Modifier.width(34.dp), special = look.special, animate = false)
             Text(
                 listOfNotNull(
                     stringResource(R.string.car_line_title),
@@ -2435,4 +2445,7 @@ private fun ReminderCountdownInline() {
     val minutes = ms / 60_000
     Text("⏰ %d:%02d".format(minutes / 60, minutes % 60), style = MaterialTheme.typography.labelMedium, color = Color(0xFFE37400))
 }
+
+/** How the driver's own car is drawn (same as the profile and the map). */
+private data class CarLook(val size: String?, val paint: Color, val special: String?)
 

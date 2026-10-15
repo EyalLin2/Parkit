@@ -432,7 +432,7 @@
     <string name="car_card_title">Your car · %1$s</string>
     <string name="car_navigate">Walk to car</string>
     <string name="car_leaving">I\'m leaving</string>
-    <string name="car_leaving_thanks">+15 points! Your spot is now shown to other drivers</string>
+    <string name="car_leaving_thanks">Thanks! +15 points · your spot is now on the map</string>
     <string name="car_forget_cd">Forget where the car is</string>
     <string name="car_just_now">just now</string>
     <string name="legal_privacy">Privacy policy</string>
@@ -533,7 +533,7 @@
     <string name="dock_parked">Parked</string>
     <string name="dock_my_car">My car</string>
     <string name="dock_report">Report</string>
-    <string name="dock_leave">Leaving? +15</string>
+    <string name="dock_leave">I\'m leaving</string>
     <string name="dock_reminder">⏰ %1$d min to change</string>
     <string name="dock_sign">Sign</string>
     <string name="car_line_title">Your car</string>

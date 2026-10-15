@@ -441,7 +441,7 @@
     <string name="car_card_title">הרכב שלך · %1$s</string>
     <string name="car_navigate">ללכת לרכב</string>
     <string name="car_leaving">אני יוצא מהחניה</string>
-    <string name="car_leaving_thanks">‎+15 נקודות! החניה שלך מופיעה עכשיו לנהגים אחרים</string>
+    <string name="car_leaving_thanks">תודה! ‎+15 נקודות · החניה שלך הופיעה לנהגים</string>
     <string name="car_forget_cd">לשכוח את מיקום הרכב</string>
     <string name="car_just_now">עכשיו</string>
     <string name="legal_privacy">מדיניות פרטיות</string>
@@ -542,7 +542,7 @@
     <string name="dock_parked">חניתי</string>
     <string name="dock_my_car">הרכב שלי</string>
     <string name="dock_report">דווח</string>
-    <string name="dock_leave">יוצא? ‎+15</string>
+    <string name="dock_leave">יוצא מהחניה</string>
     <string name="dock_reminder">⏰ %1$d דק׳ לשינוי</string>
     <string name="dock_sign">שלט</string>
     <string name="car_line_title">הרכב שלך</string>

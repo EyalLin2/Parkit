@@ -46,14 +46,14 @@ val CarPaints = listOf(
  * Faces right; mirror it with Modifier.graphicsLayer for RTL if needed.
  */
 @Composable
-fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Modifier, special: String? = null) {
+fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Modifier, special: String? = null, animate: Boolean = true) {
     // Driving: the road slides by, the wheels turn and the body bobs a little.
     // Still when the phone has animations turned off.
     val context = androidx.compose.ui.platform.LocalContext.current
-    val animate = remember {
+    val moving = remember {
         android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
     }
-    val phase = if (animate && size != null) {
+    val phase = if (animate && moving && size != null) {
         rememberInfiniteTransition(label = "drive").animateFloat(
             initialValue = 0f,
             targetValue = 1f,
