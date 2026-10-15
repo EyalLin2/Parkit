@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private const val SESSION_IDLE_MS = 30 * 60 * 1000L // matches the server's SESSION_IDLE_MINUTES
+private const val SESSION_IDLE_MS = 14 * 24 * 60 * 60 * 1000L // two weeks; matches the server's SESSION_IDLE_MINUTES
 private const val RENEW_EVERY_MS = 10 * 60 * 1000L
 
 @Composable

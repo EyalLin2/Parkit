@@ -932,7 +932,6 @@ fun MapScreen(
         val today = java.time.LocalDate.now().toString()
         if (sessionStore.tipShownDay == today) return@LaunchedEffect
         dailyTip = runCatching { api.bestHour(here.latitude, here.longitude) }.getOrNull()
-        if (dailyTip != null) sessionStore.tipShownDay = today
     }
 
     // One sponsored card for the area on screen; nothing personal is sent.
@@ -1103,6 +1102,8 @@ fun MapScreen(
                     }
                 }
                 dailyTip?.let { tip ->
+                    // Counted as "shown today" only once it's really on screen.
+                    LaunchedEffect(tip) { sessionStore.tipShownDay = java.time.LocalDate.now().toString() }
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = MaterialTheme.colorScheme.surface,

@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     email_from: str = ""
     # Signed out after this long without using the app (sign in again by SMS).
     # The app renews the session while it's open, so active use never expires.
-    session_idle_minutes: int = 30
+    session_idle_minutes: int = 14 * 24 * 60  # two weeks away from the app
     # Requests per minute per client IP (0 = off). See ratelimit.py.
     rate_limit_per_minute: int = 240
     # Photo blurs running at once per worker process (see routers/photos.py).

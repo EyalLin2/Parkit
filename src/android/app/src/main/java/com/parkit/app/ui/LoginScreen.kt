@@ -262,7 +262,10 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
                     // code back, shown like the message that would have arrived.
                     devCode?.let {
                         androidx.compose.material3.Surface(
-                            onClick = { code = it },
+                            onClick = {
+                                code = it
+                                if (!loading) verify() // same as typing the 6th digit
+                            },
                             shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                             modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
