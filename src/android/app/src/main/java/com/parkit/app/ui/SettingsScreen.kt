@@ -81,6 +81,7 @@ fun SettingsScreen(
     var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout" | "delete"
     var deleting by remember { mutableStateOf(false) }
     var payApp by remember { mutableStateOf(ParkingPay.preferred(context)) }
+    var payOff by remember { mutableStateOf(ParkingPay.isOff(context)) }
     var carBt by remember { mutableStateOf(com.parkit.app.remind.CarBluetooth.chosenName(context)) }
     var btDevices by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     val btPermissions = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -148,7 +149,11 @@ fun SettingsScreen(
                     value = carBt ?: stringResource(R.string.car_bt_off),
                 ) { openCarBt() }
                 RowDivider()
-                SettingsRow(Icons.Filled.Payments, stringResource(R.string.settings_pay_app), value = payApp?.let { stringResource(it.label) } ?: stringResource(R.string.settings_pay_ask)) { dialog = "pay" }
+                SettingsRow(Icons.Filled.Payments, stringResource(R.string.settings_pay_app), value = when {
+                        payOff -> stringResource(R.string.settings_pay_none)
+                        payApp != null -> stringResource(payApp!!.label)
+                        else -> stringResource(R.string.settings_pay_ask)
+                    }) { dialog = "pay" }
             }
         }
 
@@ -241,6 +246,7 @@ fun SettingsScreen(
                 PayAppTiles(selected = payApp) { app ->
                     dialog = null
                     payApp = app
+                    payOff = false
                     ParkingPay.setPreferred(context, app)
                 }
             },
@@ -248,8 +254,18 @@ fun SettingsScreen(
                 TextButton(onClick = {
                     dialog = null
                     payApp = null
+                    payOff = false
+                    ParkingPay.setOff(context, false)
                     ParkingPay.setPreferred(context, null)
                 }) { Text(stringResource(R.string.settings_pay_ask)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    dialog = null
+                    payApp = null
+                    payOff = true
+                    ParkingPay.setOff(context, true)
+                }) { Text(stringResource(R.string.settings_pay_none)) }
             },
         )
         "theme" -> ChoiceDialog(

@@ -233,10 +233,14 @@ fun AiBadge(modifier: Modifier = Modifier, small: Boolean = false) {
     if (small) {
         Text(
             "AI",
-            fontSize = 9.sp,
+            fontSize = 8.sp,
+            lineHeight = 9.sp,
             fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier,
+            color = Color.White,
+            modifier = modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFF1B4F91))
+                .padding(horizontal = 3.dp, vertical = 1.dp),
         )
         return
     }

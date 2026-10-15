@@ -612,7 +612,7 @@ fun MapScreen(
     var showParkedPay by remember { mutableStateOf(false) }
 
     fun offerPango() {
-        showParkedPay = true
+        if (!ParkingPay.isOff(context)) showParkedPay = true
     }
 
     /** No usable fix: open on the driver's preferred city, else Tel Aviv. */

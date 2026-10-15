@@ -535,9 +535,10 @@
     <string name="dock_report">Report</string>
     <string name="dock_leave">I\'m leaving</string>
     <string name="dock_reminder">⏰ %1$d min to change</string>
-    <string name="dock_sign">Sign</string>
+    <string name="dock_sign">Can I park?</string>
     <string name="car_line_title">Your car</string>
     <string name="parked_pay_title">Parked! Car saved</string>
     <string name="parked_pay_body">Blue-white curb? Start paying in one tap:</string>
     <string name="parked_pay_free">It\'s free, no need</string>
+    <string name="settings_pay_none">None — I don\'t pay for street parking</string>
 </resources>

@@ -30,7 +30,9 @@ object ParkingPay {
         prefs(context).getString("pay_app", null)?.let { name -> App.entries.firstOrNull { it.name == name } }
 
     fun setPreferred(context: Context, app: App?) {
-        prefs(context).edit().apply { if (app == null) remove("pay_app") else putString("pay_app", app.name) }.apply()
+        prefs(context).edit().apply {
+            if (app == null) remove("pay_app") else putString("pay_app", app.name).putBoolean("pay_off", false)
+        }.apply()
     }
 
     /** One tap to pay: the default app, else the only one installed, else
@@ -38,6 +40,14 @@ object ParkingPay {
     fun pay(context: Context, choose: () -> Unit) {
         val app = preferred(context) ?: installed(context).singleOrNull()
         if (app != null) open(context, app) else choose()
+    }
+
+    /** The driver said they don't pay for street parking: no pay window. */
+    fun isOff(context: Context): Boolean = prefs(context).getBoolean("pay_off", false)
+
+    fun setOff(context: Context, off: Boolean) {
+        prefs(context).edit().putBoolean("pay_off", off).apply()
+        if (off) setPreferred(context, null)
     }
 
     fun installed(context: Context): List<App> =

@@ -544,9 +544,10 @@
     <string name="dock_report">דווח</string>
     <string name="dock_leave">יוצא מהחניה</string>
     <string name="dock_reminder">⏰ %1$d דק׳ לשינוי</string>
-    <string name="dock_sign">שלט</string>
+    <string name="dock_sign">מותר לחנות?</string>
     <string name="car_line_title">הרכב שלך</string>
     <string name="parked_pay_title">חנית! הרכב נשמר</string>
     <string name="parked_pay_body">כחול-לבן? מפעילים תשלום בלחיצה:</string>
     <string name="parked_pay_free">חינם, לא צריך</string>
+    <string name="settings_pay_none">בלי — לא משתמש בכחול-לבן</string>
 </resources>
