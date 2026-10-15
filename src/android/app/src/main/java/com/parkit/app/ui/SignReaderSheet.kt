@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -231,15 +232,18 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
 @Composable
 fun AiBadge(modifier: Modifier = Modifier, small: Boolean = false) {
     if (small) {
+        // A thin purple→blue frame with the letters in the same gradient.
+        val ai = androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6), Color(0xFF00B4D8)))
         Text(
             "AI",
             fontSize = 8.sp,
             lineHeight = 9.sp,
             fontWeight = FontWeight.Black,
-            color = Color.White,
+            style = androidx.compose.ui.text.TextStyle(brush = ai),
             modifier = modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF202124))
+                .clip(RoundedCornerShape(5.dp))
+                .background(Color.White)
+                .border(1.5.dp, ai, RoundedCornerShape(5.dp))
                 .padding(horizontal = 3.dp, vertical = 1.dp),
         )
         return
