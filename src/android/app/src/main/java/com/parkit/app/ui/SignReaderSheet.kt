@@ -226,18 +226,29 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
     }
 }
 
-/** "AI" — marks what a model decided, so nobody mistakes it for a rule. */
+/** "AI" — marks what a model decided, so nobody mistakes it for a rule.
+ * [small] is the plain lettering on the sign button; the full size is a pill. */
 @Composable
 fun AiBadge(modifier: Modifier = Modifier, small: Boolean = false) {
+    if (small) {
+        Text(
+            "AI",
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier,
+        )
+        return
+    }
     Text(
         "AI",
-        fontSize = if (small) 8.sp else 11.sp,
+        fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         color = Color.White,
         modifier = modifier
             .clip(RoundedCornerShape(50))
             .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6))))
-            .padding(horizontal = if (small) 4.dp else 7.dp, vertical = if (small) 0.dp else 2.dp),
+            .padding(horizontal = 7.dp, vertical = 2.dp),
     )
 }
 

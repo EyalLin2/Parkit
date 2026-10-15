@@ -128,7 +128,7 @@
     <string name="profile_theme_dark">Dark</string>
 
     <!-- Map v2 (vector map + nearby sheet) -->
-    <string name="map_pin_label">Parking location</string>
+    <string name="map_pin_label">Searching near</string>
     <plurals name="map_nearby_count">
         <item quantity="one">1 free spot nearby</item>
         <item quantity="other">%1$d free spots nearby</item>
@@ -258,7 +258,7 @@
         <item quantity="one">1 face or plate blurred</item>
         <item quantity="other">%1$d faces or plates blurred</item>
     </plurals>
-    <string name="map_filter_lots">Paid car parks</string>
+    <string name="map_filter_lots">₪ Car parks</string>
     <string name="lot_unnamed">Parking lot</string>
     <string name="lot_kind_underground">Underground</string>
     <string name="lot_kind_multistorey">Multi-storey</string>
@@ -530,4 +530,14 @@
     <string name="car_bt_park_text">One tap and we\'ll remember where your car is.</string>
     <string name="car_bt_leave_title">Leaving your spot?</string>
     <string name="car_bt_leave_text">One tap hands it to the next driver · +15</string>
+    <string name="dock_parked">Parked</string>
+    <string name="dock_my_car">My car</string>
+    <string name="dock_report">Report</string>
+    <string name="dock_leave">Leaving? +15</string>
+    <string name="dock_reminder">⏰ %1$d min to change</string>
+    <string name="dock_sign">Sign</string>
+    <string name="car_line_title">Your car</string>
+    <string name="parked_pay_title">Parked! Car saved</string>
+    <string name="parked_pay_body">Blue-white curb? Start paying in one tap:</string>
+    <string name="parked_pay_free">It\'s free, no need</string>
 </resources>

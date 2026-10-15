@@ -133,7 +133,7 @@
     <string name="profile_theme_dark">כהה</string>
 
     <!-- Map v2 (vector map + nearby sheet) -->
-    <string name="map_pin_label">מיקום החניה</string>
+    <string name="map_pin_label">מחפש ליד</string>
     <plurals name="map_nearby_count">
         <item quantity="one">חניה פנויה אחת בסביבה</item>
         <item quantity="two">%1$d חניות פנויות בסביבה</item>
@@ -266,7 +266,7 @@
         <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
         <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
-    <string name="map_filter_lots">חניונים בתשלום</string>
+    <string name="map_filter_lots">₪ חניונים</string>
     <string name="lot_unnamed">חניון</string>
     <string name="lot_kind_underground">תת-קרקעי</string>
     <string name="lot_kind_multistorey">רב-קומות</string>
@@ -539,4 +539,14 @@
     <string name="car_bt_park_text">לחיצה אחת ונשמור איפה הרכב.</string>
     <string name="car_bt_leave_title">יוצא מהחניה?</string>
     <string name="car_bt_leave_text">לחיצה אחת ומסרת אותה לנהג הבא · ‎+15</string>
+    <string name="dock_parked">חניתי</string>
+    <string name="dock_my_car">הרכב שלי</string>
+    <string name="dock_report">דווח</string>
+    <string name="dock_leave">יוצא? ‎+15</string>
+    <string name="dock_reminder">⏰ %1$d דק׳ לשינוי</string>
+    <string name="dock_sign">שלט</string>
+    <string name="car_line_title">הרכב שלך</string>
+    <string name="parked_pay_title">חנית! הרכב נשמר</string>
+    <string name="parked_pay_body">כחול-לבן? מפעילים תשלום בלחיצה:</string>
+    <string name="parked_pay_free">חינם, לא צריך</string>
 </resources>

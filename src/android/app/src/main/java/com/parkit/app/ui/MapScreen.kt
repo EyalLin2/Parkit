@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.LocalCarWash
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.BottomSheetScaffold
@@ -303,6 +304,9 @@ private const val SOURCE_LOTS = "parking-lots"
 private const val LAYER_LOTS = "parking-lots-pins"
 private const val LOT_ICON = "lot-pin"
 private const val OPEN_AD_EVERY_MS = 6 * 60 * 60 * 1000L
+private val DOCK_HEIGHT = 64.dp
+private const val NEAR_CAR_M = 150.0 // standing by the car → "leaving?" is the main action
+private const val REMINDER_SOON_MIN = 15L
 private const val SOURCE_CAR = "parked-car"
 private const val LAYER_CAR = "parked-car-pin"
 private const val CAR_ICON = "car-pin"
@@ -603,17 +607,12 @@ fun MapScreen(
     // First tap on "I just parked" explains what it's for before saving anything.
     var showCarExplainer by remember { mutableStateOf(false) }
 
-    suspend fun offerPango() {
-        val result = snackbarHostState.showSnackbar(
-            message = context.getString(R.string.parked_pango_prompt),
-            actionLabel = context.getString(R.string.parked_pango_action),
-            withDismissAction = true,
-            duration = androidx.compose.material3.SnackbarDuration.Long,
-        )
-        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-            // Their default (or only) app opens straight away; otherwise let them pick.
-            ParkingPay.pay(context) { showPayChooser = true }
-        }
+    // Right after parking: "blue-white? pay" with the apps as one-tap buttons.
+    // (The blue-white tick on a report is optional, so it's offered every time.)
+    var showParkedPay by remember { mutableStateOf(false) }
+
+    fun offerPango() {
+        showParkedPay = true
     }
 
     /** No usable fix: open on the driver's preferred city, else Tel Aviv. */
@@ -902,6 +901,42 @@ fun MapScreen(
         runCatching { api.adView(ad.id) }
     }
 
+    var showCarSheet by remember { mutableStateOf(false) }
+
+    // The dock's main button always offers what matters right now.
+    var clock by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(20_000)
+            clock = System.currentTimeMillis()
+        }
+    }
+    val reminderLeftMin = com.parkit.app.remind.ParkingReminder.activeChangeAt(context)
+        ?.let { (it - clock) / 60_000 }
+        ?.takeIf { it in 0..REMINDER_SOON_MIN }
+    val nearMyCar = parkedCar?.let { car -> deviceLocation?.distanceTo(LatLng(car.lat, car.lng))?.let { it <= NEAR_CAR_M } } == true
+    val mainAction: MainAction = when {
+        reminderLeftMin != null -> MainAction.Reminder(reminderLeftMin.toInt())
+        nearMyCar -> MainAction.Leave
+        else -> MainAction.Report
+    }
+
+    /** "I just parked": explained once, then one tap saves the car here. */
+    fun parkHere() {
+        if (!sessionStore.carExplained) {
+            showCarExplainer = true
+            return
+        }
+        val fix = currentFix()
+        if (fix == null) {
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_needs_location)) }
+        } else {
+            rememberCar(LatLng(fix.latitude, fix.longitude), null)
+            flyTo(LatLng(fix.latitude, fix.longitude))
+            offerPango()
+        }
+    }
+
     // "Parked? / Leaving?" from the car's Bluetooth notification.
     val carAction = com.parkit.app.remind.CarBluetooth.pendingAction.value
     LaunchedEffect(carAction, deviceLocation != null) {
@@ -914,7 +949,7 @@ fun MapScreen(
                 currentFix()?.let { fix ->
                     rememberCar(LatLng(fix.latitude, fix.longitude), null)
                     flyTo(LatLng(fix.latitude, fix.longitude))
-                    snackbarHostState.showSnackbar(context.getString(R.string.car_saved))
+                    offerPango()
                 }
             }
         }
@@ -1035,6 +1070,9 @@ fun MapScreen(
                 ad = nearbyAd,
                 onAdShown = { ad -> scope.launch { runCatching { api.adView(ad.id) } } },
                 forecast = forecast,
+                dailyTip = dailyTip,
+                onTipShown = { sessionStore.tipShownDay = java.time.LocalDate.now().toString() },
+                onTipClose = { dailyTip = null },
                 onAdClick = { ad ->
                     scope.launch { runCatching { api.adClick(ad.id) } }
                     val link = ad.linkUrl
@@ -1056,16 +1094,6 @@ fun MapScreen(
             AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
 
             CenterPin(lifted = cameraMoving, modifier = Modifier.align(Alignment.Center))
-            // The report action lives on the pin itself (Uber's "set pickup"
-            // pattern): the pin IS the spot being reported. Hidden while the
-            // map moves, and when the nearby list is pulled up over the pin.
-            ReportHereBubble(
-                visible = !cameraMoving && mapRendered && !showReportFlow && !(locating && deviceLocation == null) &&
-                    sheetState.targetValue != SheetValue.Expanded,
-                onClick = { openReportFlow() },
-                modifier = Modifier.align(Alignment.Center),
-            )
-
             androidx.compose.animation.AnimatedVisibility(
                 visible = !mapRendered,
                 enter = androidx.compose.animation.fadeIn(),
@@ -1095,41 +1123,20 @@ fun MapScreen(
                 ) {
                     MapChip(stringResource(R.string.map_filter_all), Icons.Filled.LocalParking, typeFilter == null) { typeFilter = null }
                     MapChip(stringResource(R.string.map_filter_regular), Icons.Filled.DirectionsCar, typeFilter == "street") { typeFilter = "street" }
-                    MapChip(stringResource(R.string.map_filter_disabled), Icons.AutoMirrored.Filled.Accessible, typeFilter == "disabled") { typeFilter = "disabled" }
+                    // Only drivers with a disabled permit need this filter.
+                    if (driverPrefs.preferences.hasDisabledPermit || typeFilter == "disabled") {
+                        MapChip(stringResource(R.string.map_filter_disabled), Icons.AutoMirrored.Filled.Accessible, typeFilter == "disabled") { typeFilter = "disabled" }
+                    }
                     LotsChip(checked = showLots) {
                         showLots = !showLots
                         if (!showLots) selectedLot = null
                     }
                 }
-                dailyTip?.let { tip ->
-                    // Counted as "shown today" only once it's really on screen.
-                    LaunchedEffect(tip) { sessionStore.tipShownDay = java.time.LocalDate.now().toString() }
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 6.dp,
-                        modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 14.dp, top = 8.dp, bottom = 8.dp)) {
-                            Text("💡", fontSize = 18.sp)
-                            Text(
-                                stringResource(R.string.tip_best_hour, "%d:00".format(tip.hour), "%d:00".format((tip.hour + 1) % 24)),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-                            )
-                            androidx.compose.material3.IconButton(onClick = { dailyTip = null }) {
-                                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.ad_close), modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    }
-                }
                 parkedCar?.takeIf { activeClaim == null }?.let { car ->
-                    ParkedCarCard(
+                    CarLine(
                         car = car,
-                        onNavigate = { walkTo(context, car.lat, car.lng) },
-                        onLeaving = { leaveSpot(car) },
-                        onPay = { ParkingPay.pay(context) { showPayChooser = true } },
-                        onForget = { forgetCar() },
+                        distanceM = deviceLocation?.distanceTo(LatLng(car.lat, car.lng)),
+                        onClick = { showCarSheet = true },
                         modifier = Modifier.padding(horizontal = 12.dp),
                     )
                 }
@@ -1190,7 +1197,7 @@ fun MapScreen(
                     .align(Alignment.TopEnd)
                     .offset {
                         val top = sheetTopPx?.toInt() ?: 0
-                        IntOffset(-20.dp.roundToPx(), top - buttonSize.roundToPx() - 16.dp.roundToPx())
+                        IntOffset(-20.dp.roundToPx(), top - DOCK_HEIGHT.roundToPx() - buttonSize.roundToPx() - 24.dp.roundToPx())
                     }
                     .size(buttonSize)
                     .clickable {
@@ -1201,69 +1208,27 @@ fun MapScreen(
                     Icon(Icons.Filled.MyLocation, contentDescription = stringResource(R.string.map_my_location_cd), tint = MaterialTheme.colorScheme.primary)
                 }
             }
-            // "Can I park here?" — a round button with a tiny caption under it.
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // One action dock above the list: car · smart main action · sign.
+            ActionDock(
+                parked = parkedCar != null,
+                main = mainAction,
+                onCar = { if (parkedCar == null) parkHere() else showCarSheet = true },
+                onMain = {
+                    when (mainAction) {
+                        MainAction.Leave -> parkedCar?.let { leaveSpot(it) }
+                        is MainAction.Reminder -> showCarSheet = true
+                        MainAction.Report -> openReportFlow()
+                    }
+                },
+                onSign = { showSignReader = true },
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopCenter)
                     .offset {
                         val top = sheetTopPx?.toInt() ?: 0
-                        IntOffset(-14.dp.roundToPx(), top - 2 * buttonSize.roundToPx() - 66.dp.roundToPx())
+                        IntOffset(0, top - DOCK_HEIGHT.roundToPx() - 12.dp.roundToPx())
                     }
-                    .clickable(
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                        indication = null,
-                    ) { showSignReader = true },
-            ) {
-                Box {
-                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 6.dp, modifier = Modifier.size(56.dp)) {
-                        Box(contentAlignment = Alignment.Center) { SignScanIcon(40.dp, animate = false) }
-                    }
-                    AiBadge(Modifier.align(Alignment.TopEnd), small = true)
-                }
-                Text(
-                    stringResource(R.string.sign_button_caption),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)).padding(horizontal = 6.dp, vertical = 1.dp),
-                )
-            }
-            // Parked without a ParkIt spot? Save where the car is anyway, so
-            // "where did I park" and the one-tap "I'm leaving" still work.
-            if (parkedCar == null && activeClaim == null) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 6.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset {
-                            val top = sheetTopPx?.toInt() ?: 0
-                            IntOffset(20.dp.roundToPx(), top - buttonSize.roundToPx() - 16.dp.roundToPx())
-                        }
-                        .height(buttonSize)
-                        .clickable {
-                            if (!sessionStore.carExplained) {
-                                showCarExplainer = true
-                                return@clickable
-                            }
-                            val fix = currentFix()
-                            if (fix == null) {
-                                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_needs_location)) }
-                            } else {
-                                rememberCar(LatLng(fix.latitude, fix.longitude), null)
-                                flyTo(LatLng(fix.latitude, fix.longitude))
-                                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.car_saved)) }
-                            }
-                        },
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                        Text(stringResource(R.string.car_park_here), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
+                    .padding(horizontal = 12.dp),
+            )
         }
     }
 
@@ -1282,6 +1247,48 @@ fun MapScreen(
                 }
             },
         )
+    }
+
+    if (showParkedPay) {
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showParkedPay = false }) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 20.dp).navigationBarsPadding()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF188038), modifier = Modifier.size(26.dp))
+                    Text(stringResource(R.string.parked_pay_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 8.dp))
+                }
+                Text(
+                    stringResource(R.string.parked_pay_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+                )
+                // One tap: the tile opens that app (and becomes the default).
+                PayAppTiles(selected = ParkingPay.preferred(context)) { app ->
+                    showParkedPay = false
+                    ParkingPay.setPreferred(context, app)
+                    ParkingPay.open(context, app)
+                }
+                androidx.compose.material3.TextButton(
+                    onClick = { showParkedPay = false },
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
+                ) { Text(stringResource(R.string.parked_pay_free)) }
+            }
+        }
+    }
+
+    if (showCarSheet) {
+        parkedCar?.let { car ->
+            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showCarSheet = false }) {
+                ParkedCarCard(
+                    car = car,
+                    onNavigate = { walkTo(context, car.lat, car.lng) },
+                    onLeaving = { showCarSheet = false; leaveSpot(car) },
+                    onPay = { ParkingPay.pay(context) { showPayChooser = true } },
+                    onForget = { showCarSheet = false; forgetCar() },
+                    modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp).navigationBarsPadding(),
+                )
+            }
+        } ?: run { showCarSheet = false }
     }
 
     if (showSignReader) {
@@ -1321,6 +1328,7 @@ fun MapScreen(
                         } else {
                             rememberCar(LatLng(fix.latitude, fix.longitude), null)
                             flyTo(LatLng(fix.latitude, fix.longitude))
+                            offerPango()
                         }
                     },
                     shape = RoundedCornerShape(50),
@@ -1398,7 +1406,7 @@ fun MapScreen(
             },
             onParked = {
                 rememberCar(LatLng(spot.lat, spot.lng), spot.localAddress, spot.spotType)
-                scope.launch { offerPango() }
+                offerPango()
             },
             onClaimed = { claimed ->
                 selectedSpot = null
@@ -1673,6 +1681,9 @@ private fun NearbySheet(
     onAdClick: (com.parkit.app.api.AdOut) -> Unit = {},
     forecast: com.parkit.app.api.AreaForecast? = null,
     onAdShown: (com.parkit.app.api.AdOut) -> Unit = {},
+    dailyTip: com.parkit.app.api.BestHour? = null,
+    onTipShown: () -> Unit = {},
+    onTipClose: () -> Unit = {},
     onSpotClick: (SpotOut) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1721,6 +1732,24 @@ private fun NearbySheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 6.dp),
+                        )
+                    }
+                }
+                dailyTip?.let { tip ->
+                    LaunchedEffect(tip) { onTipShown() }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                        Text("💡", fontSize = 13.sp)
+                        Text(
+                            stringResource(R.string.tip_best_hour, "%d:00".format(tip.hour), "%d:00".format((tip.hour + 1) % 24)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f, fill = false).padding(start = 6.dp),
+                        )
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.ad_close),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 6.dp).size(16.dp).clickable(onClick = onTipClose),
                         )
                     }
                 }
@@ -2294,5 +2323,116 @@ private fun ReminderCountdown() {
         color = Color(0xFFE37400),
         modifier = Modifier.padding(top = 2.dp),
     )
+}
+
+/** What the dock's big button does right now. */
+private sealed interface MainAction {
+    data object Report : MainAction
+    data object Leave : MainAction
+    data class Reminder(val minutes: Int) : MainAction
+}
+
+/** Car · main action · sign — every action in one place the thumb reaches. */
+@Composable
+private fun ActionDock(
+    parked: Boolean,
+    main: MainAction,
+    onCar: () -> Unit,
+    onMain: () -> Unit,
+    onSign: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+        modifier = modifier.fillMaxWidth().height(DOCK_HEIGHT),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 6.dp)) {
+            DockSide(
+                label = stringResource(if (parked) R.string.dock_my_car else R.string.dock_parked),
+                modifier = Modifier.weight(1f),
+                onClick = onCar,
+            ) { Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp)) }
+            val (label, color) = when (main) {
+                MainAction.Report -> stringResource(R.string.dock_report) to MaterialTheme.colorScheme.primary
+                MainAction.Leave -> stringResource(R.string.dock_leave) to Color(0xFF188038)
+                is MainAction.Reminder -> stringResource(R.string.dock_reminder, main.minutes) to Color(0xFFE37400)
+            }
+            androidx.compose.material3.Button(
+                onClick = onMain,
+                shape = RoundedCornerShape(50),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = color),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp),
+                modifier = Modifier.weight(1.6f).height(48.dp),
+            ) {
+                if (main == MainAction.Report) Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                Text(label, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+            }
+            DockSide(label = stringResource(R.string.dock_sign), modifier = Modifier.weight(1f), onClick = onSign) {
+                Box {
+                    SignScanIcon(30.dp, animate = false)
+                    AiBadge(Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-4).dp), small = true)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DockSide(label: String, modifier: Modifier, onClick: () -> Unit, icon: @Composable () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(vertical = 6.dp),
+    ) {
+        icon()
+        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
+    }
+}
+
+/** The parked car as one thin line — tap for walk / leaving / pay. */
+@Composable
+private fun CarLine(car: com.parkit.app.auth.ParkedCar, distanceM: Double?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Text(
+                listOfNotNull(
+                    stringResource(R.string.car_line_title),
+                    car.address,
+                    distanceM?.let { formatDistanceShort(context, it) },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+            )
+            ReminderCountdownInline()
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+/** "⏰ 0:42" next to the car line while a sign reminder is set. */
+@Composable
+private fun ReminderCountdownInline() {
+    val context = LocalContext.current
+    var left by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            left = com.parkit.app.remind.ParkingReminder.activeChangeAt(context)?.minus(System.currentTimeMillis())
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
+    val ms = left ?: return
+    val minutes = ms / 60_000
+    Text("⏰ %d:%02d".format(minutes / 60, minutes % 60), style = MaterialTheme.typography.labelMedium, color = Color(0xFFE37400))
 }
 
