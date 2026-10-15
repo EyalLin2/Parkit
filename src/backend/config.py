@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     email_from: str = ""
     # Signed out after this long without using the app (sign in again by SMS).
     # The app renews the session while it's open, so active use never expires.
-    session_idle_minutes: int = 30
+    session_idle_minutes: int = 14 * 24 * 60  # two weeks away from the app
     # Requests per minute per client IP (0 = off). See ratelimit.py.
     rate_limit_per_minute: int = 240
     # Photo blurs running at once per worker process (see routers/photos.py).
@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     review_login: str = ""
     # Opens /admin/feedback (tester feedback + crash reports). Empty = closed.
     admin_token: str = ""
+    # "Sign in with Google": the OAuth *web* client ID the Android app asks
+    # Google for (the token's audience). Off while empty.
+    google_client_id: str = ""
+    # Parking-sign reader (Claude vision). Off while the key is empty.
+    anthropic_api_key: str = ""
+    sign_reader_model: str = "claude-sonnet-5-5"
     # SMS_PROVIDER=twilio: credentials from the Twilio console. TWILIO_FROM is
     # the sending number (+1…) or a Messaging Service SID (MG…).
     twilio_account_sid: str = ""

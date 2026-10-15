@@ -76,6 +76,8 @@ import java.io.ByteArrayOutputStream
 
 private val Gold = Color(0xFFC9971C)
 
+private const val NOTE_MAX = 120
+
 /**
  * Reporting stays the fewest possible decisions — photo (mandatory, it's
  * what makes reports trustworthy), Regular vs Disabled, car size, confirm —
@@ -112,6 +114,13 @@ fun ReportFlowSheet(
     // Optional, off by default: one tap if the curb is blue-white (paid).
     // Deliberately not a required question — the form stays short.
     var blueWhite by remember { mutableStateOf(false) }
+    // Optional heads-up for the next driver: a hazard, a low branch…
+    var note by remember { mutableStateOf("") }
+    // AI hints from the photo: they fill only what the driver hasn't touched.
+    var typeTouched by remember { mutableStateOf(false) }
+    var blueWhiteTouched by remember { mutableStateOf(false) }
+    var autoFilled by remember { mutableStateOf(false) }
+    var notASpot by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -125,6 +134,17 @@ fun ReportFlowSheet(
             val part = MultipartBody.Part.createFormData("file", "photo.jpg", body)
             val staged = api.stagePhoto(part)
             stagingId = staged.stagingId
+            // Ask what the photo shows in the background; the form never waits for it.
+            val id = staged.stagingId
+            scope.launch {
+                val hints = runCatching { api.analyzePhoto(id) }.getOrNull() ?: return@launch
+                if (stagingId != id) return@launch // a newer photo was taken meanwhile
+                notASpot = !hints.looksLikeFreeSpot
+                var filled = false
+                if (!typeTouched && hints.disabledSpot) { selectedType = "disabled"; filled = true }
+                if (!blueWhiteTouched && hints.blueWhiteCurb && selectedType == "street") { blueWhite = true; filled = true }
+                autoFilled = filled
+            }
             facesBlurred = staged.facesBlurred + staged.platesBlurred
             val previewBytes = Base64.decode(staged.previewBase64, Base64.DEFAULT)
             blurredPreview = BitmapFactory.decodeByteArray(previewBytes, 0, previewBytes.size)
@@ -170,6 +190,7 @@ fun ReportFlowSheet(
                         vehicleSize = selectedVehicleSize,
                         photoStagingId = stagingId,
                         address = streetAddress,
+                        note = note.trim().ifEmpty { null },
                         reporterLat = fix?.latitude,
                         reporterLng = fix?.longitude,
                         reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
@@ -233,27 +254,43 @@ fun ReportFlowSheet(
                 )
             }
 
+            if (autoFilled) {
+                Text(
+                    stringResource(R.string.report_auto_filled),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+            if (notASpot) {
+                Text(
+                    stringResource(R.string.report_not_a_spot),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFB06000),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
             FieldLabel(stringResource(R.string.report_type_question))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TypeOption(
                     label = stringResource(R.string.map_spot_kind_regular),
                     icon = Icons.Filled.DirectionsCar,
                     selected = selectedType == "street",
-                    onClick = { selectedType = "street" },
+                    onClick = { selectedType = "street"; typeTouched = true },
                     modifier = Modifier.weight(1f),
                 )
                 TypeOption(
                     label = stringResource(R.string.map_spot_kind_disabled),
                     icon = Icons.AutoMirrored.Filled.Accessible,
                     selected = selectedType == "disabled",
-                    onClick = { selectedType = "disabled" },
+                    onClick = { selectedType = "disabled"; typeTouched = true },
                     modifier = Modifier.weight(1f),
                 )
             }
             if (selectedType == "street") {
                 androidx.compose.material3.FilterChip(
                     selected = blueWhite,
-                    onClick = { blueWhite = !blueWhite },
+                    onClick = { blueWhite = !blueWhite; blueWhiteTouched = true },
                     label = { Text(stringResource(R.string.report_blue_white)) },
                     leadingIcon = {
                         Icon(
@@ -286,6 +323,17 @@ fun ReportFlowSheet(
                     ) { Text(label, style = MaterialTheme.typography.labelLarge) }
                 }
             }
+
+            FieldLabel(stringResource(R.string.report_note_label))
+            androidx.compose.material3.OutlinedTextField(
+                value = note,
+                onValueChange = { note = it.replace('\n', ' ').take(NOTE_MAX) },
+                placeholder = { Text(stringResource(R.string.report_note_hint)) },
+                supportingText = { Text("${note.length}/$NOTE_MAX") },
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp)) }
 
@@ -398,7 +446,7 @@ private fun TypeOption(label: String, icon: ImageVector, selected: Boolean, onCl
 
 /** Decode the camera's full-size JPEG at a sensible size (≤ ~1600 px on the
  * long side), upright according to its EXIF orientation. */
-private fun loadReportPhoto(file: java.io.File, maxSide: Int = 1600): Bitmap? {
+internal fun loadReportPhoto(file: java.io.File, maxSide: Int = 1600): Bitmap? {
     if (!file.exists()) return null
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.path, bounds)

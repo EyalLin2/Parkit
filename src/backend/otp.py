@@ -4,9 +4,9 @@ address — the rules are the same).
 Security rules, all enforced in Redis so they hold across app servers:
 - 6 random digits (secrets), valid 5 minutes, stored only as an HMAC —
   never in plain text.
-- At most 5 wrong guesses per code; then the code is burned.
-- Sending is throttled per target (1 a minute, 5 an hour) and per IP (20 an
-  hour) — so nobody can brute-force a code or run up our SMS bill by
+- At most 8 wrong guesses per code; then the code is burned.
+- Sending is throttled per target (1 per 30 s, 10 an hour) and per IP (40
+  an hour) — so nobody can brute-force a code or run up our SMS bill by
   spamming a number ("SMS pumping").
 """
 
@@ -22,10 +22,10 @@ from redis.asyncio import Redis
 from config import settings
 
 CODE_TTL_SECONDS = 300
-MAX_ATTEMPTS = 5
-RESEND_COOLDOWN_SECONDS = 60
-MAX_PER_PHONE_PER_HOUR = 5
-MAX_PER_IP_PER_HOUR = 20
+MAX_ATTEMPTS = 8
+RESEND_COOLDOWN_SECONDS = 30
+MAX_PER_PHONE_PER_HOUR = 10
+MAX_PER_IP_PER_HOUR = 40
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 _ISRAELI_MOBILE = re.compile(r"^(?:\+?972|0)?(5\d{8})$")
@@ -72,7 +72,7 @@ async def _bump(redis: Redis, key: str, ttl: int) -> int:
 
 async def issue(redis: Redis, target: str, ip: str) -> str:
     if await redis.exists(f"otp:cooldown:{target}"):
-        raise OtpError(429, "Please wait a minute before asking for another code")
+        raise OtpError(429, "Please wait a few seconds before asking for another code")
     if await _bump(redis, f"otp:phone_hour:{target}", 3600) > MAX_PER_PHONE_PER_HOUR:
         raise OtpError(429, "Too many codes for this number or address — try again later")
     if await _bump(redis, f"otp:ip_hour:{ip}", 3600) > MAX_PER_IP_PER_HOUR:
@@ -88,7 +88,7 @@ async def issue(redis: Redis, target: str, ip: str) -> str:
 async def check(redis: Redis, target: str, code: str) -> None:
     fixed = review_code(target)
     if fixed is not None:
-        # Still capped: 5 wrong guesses lock the review account for 5 minutes.
+        # Still capped: 8 wrong guesses lock the review account for 5 minutes.
         if await _bump(redis, f"otp:attempts:{target}", CODE_TTL_SECONDS) > MAX_ATTEMPTS:
             raise OtpError(429, "Too many wrong codes — ask for a new one")
         if not hmac.compare_digest(fixed, code.strip()):

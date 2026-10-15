@@ -24,6 +24,9 @@ interface ApiService {
     @POST("auth/email/request")
     suspend fun requestEmailOtp(@Body body: EmailOtpRequest): EmailOtpRequested
 
+    @POST("auth/google")
+    suspend fun googleLogin(@Body body: GoogleLogin): TokenOut
+
     @POST("auth/email/verify")
     suspend fun verifyEmailOtp(@Body body: EmailOtpVerify): TokenOut
 
@@ -58,6 +61,13 @@ interface ApiService {
     @DELETE("spots/{id}")
     suspend fun cancelSpot(@Path("id") spotId: String)
 
+    @POST("photos/{id}/analyze")
+    suspend fun analyzePhoto(@Path("id") stagingId: String): PhotoHints
+
+    @Multipart
+    @POST("signs/read")
+    suspend fun readSign(@Part photo: MultipartBody.Part): SignReading
+
     @Multipart
     @POST("photos/stage")
     suspend fun stagePhoto(@Part file: MultipartBody.Part): StagedPhotoOut
@@ -71,6 +81,12 @@ interface ApiService {
     @GET("users/me")
     suspend fun myProfile(): ProfileOut
 
+    @GET("rewards")
+    suspend fun rewards(): ShopOut
+
+    @POST("rewards/{id}/redeem")
+    suspend fun redeemReward(@Path("id") id: Int): ShopOut
+
     /** Sends the whole set: the screen edits all of it, and an explicit null
      * clears a value (the client serializes nulls for exactly this). */
     @PATCH("users/me/preferences")
@@ -78,6 +94,21 @@ interface ApiService {
 
     @GET("vehicles/lookup")
     suspend fun lookupVehicle(@Query("plate") plate: String): VehicleLookupOut
+
+    @GET("insights/area")
+    suspend fun areaForecast(@Query("lat") lat: Double, @Query("lng") lng: Double): AreaForecast?
+
+    @GET("insights/best-hour")
+    suspend fun bestHour(@Query("lat") lat: Double, @Query("lng") lng: Double): BestHour?
+
+    @GET("ads/nearby")
+    suspend fun nearbyAd(@Query("lat") lat: Double, @Query("lng") lng: Double, @Query("placement") placement: String = "card"): AdOut?
+
+    @POST("ads/{id}/view")
+    suspend fun adView(@Path("id") id: Int)
+
+    @POST("ads/{id}/click")
+    suspend fun adClick(@Path("id") id: Int)
 
     @GET("parking-lots")
     suspend fun parkingLots(

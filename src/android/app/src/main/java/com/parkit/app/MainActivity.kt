@@ -25,6 +25,7 @@ import com.parkit.app.ui.DriverProfileScreen
 import com.parkit.app.ui.LoginScreen
 import com.parkit.app.ui.MapScreen
 import com.parkit.app.ui.ProfileScreen
+import com.parkit.app.ui.RewardsScreen
 import com.parkit.app.ui.theme.ParkItTheme
 import com.parkit.app.ui.theme.ThemeManager
 import com.parkit.app.ui.SettingsScreen
@@ -32,6 +33,18 @@ import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 
 class MainActivity : ComponentActivity() {
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        takeCarAction(intent)
+    }
+
+    private fun takeCarAction(intent: android.content.Intent?) {
+        intent?.getStringExtra(com.parkit.app.remind.CarBluetooth.EXTRA_ACTION)?.let {
+            com.parkit.app.remind.CarBluetooth.pendingAction.value = it
+            intent.removeExtra(com.parkit.app.remind.CarBluetooth.EXTRA_ACTION)
+        }
+    }
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleManager.wrap(newBase))
     }
@@ -48,6 +61,7 @@ class MainActivity : ComponentActivity() {
         ThemeManager.init(this)
         com.parkit.app.api.CrashReporter.install(this)
         val sessionStore = SessionStore(this)
+        takeCarAction(intent)
 
         setContent {
             ParkItTheme {
@@ -59,7 +73,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private const val SESSION_IDLE_MS = 30 * 60 * 1000L // matches the server's SESSION_IDLE_MINUTES
+private const val SESSION_IDLE_MS = 14 * 24 * 60 * 60 * 1000L // two weeks; matches the server's SESSION_IDLE_MINUTES
 private const val RENEW_EVERY_MS = 10 * 60 * 1000L
 
 @Composable
@@ -228,6 +242,19 @@ fun ParkItApp(sessionStore: SessionStore) {
                 onOpenSettings = { navController.navigate("settings") },
                 onOpenDriver = { navController.navigate("driver") },
                 onOpenDetails = { navController.navigate("details-edit") },
+                onOpenRewards = { navController.navigate("rewards") },
+                onSessionExpired = goToLogin,
+            )
+        }
+        composable(
+            "rewards",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
+        ) {
+            RewardsScreen(
+                api = api,
+                sessionStore = sessionStore,
+                onBack = { navController.popBackStack() },
                 onSessionExpired = goToLogin,
             )
         }

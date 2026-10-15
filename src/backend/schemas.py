@@ -15,6 +15,8 @@ class SpotCreate(BaseModel):
     vehicle_size: VehicleSize | None = None
     photo_staging_id: str | None = None
     address: str | None = Field(default=None, max_length=200)
+    # Optional heads-up for the next driver: a hazard, a low branch, a tight fit.
+    note: str | None = Field(default=None, max_length=120)
     # Where the reporter's phone is (and how sure it is), so a spot can only
     # be reported by someone standing near it — not from a sofa in another
     # city by dragging the map. Optional only so 0.3.3 beta installs keep
@@ -22,6 +24,8 @@ class SpotCreate(BaseModel):
     reporter_lat: float | None = Field(default=None, ge=-90, le=90)
     reporter_lng: float | None = Field(default=None, ge=-180, le=180)
     reporter_accuracy_m: float | None = Field(default=None, ge=0)
+    # Sent by "I'm leaving" (the driver's own saved car): +5 on top of a report.
+    handoff: bool = False
 
 
 class SpotOut(BaseModel):
@@ -34,6 +38,7 @@ class SpotOut(BaseModel):
     vehicle_size: VehicleSize | None
     photo_url: str | None
     address: str | None
+    note: str | None = None
     status: SpotStatus
     reported_at: datetime
     claimed_by: uuid.UUID | None
@@ -51,7 +56,7 @@ class ContentReport(BaseModel):
     """'This photo / this name is offensive' — Google Play requires a way to
     report what other users post, separate from 'the spot is taken'."""
 
-    reason: Literal["photo", "user", "other"]
+    reason: Literal["photo", "note", "user", "other"]
     note: str | None = Field(default=None, max_length=500)
 
 
@@ -72,6 +77,7 @@ class ProfileOut(BaseModel):
     display_name: str
     points: int
     weekly_points: int
+    points_balance: int = 0  # what's left to spend in the rewards shop
     avatar: str | None = None
     weekly_rank: int | None = None  # place in this week's league; None = no points yet
     weekly_city_rank: int | None = None  # same, among drivers with the same preferred city
@@ -104,6 +110,7 @@ class ReverseGeocodeOut(BaseModel):
 class Preferences(BaseModel):
     vehicle_size: VehicleSize | None = None
     car_label: str | None = Field(default=None, max_length=120)
+    car_paint: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     has_disabled_permit: bool = False
     home_city: str | None = Field(default=None, max_length=120)
 
@@ -113,6 +120,7 @@ class PreferencesUpdate(BaseModel):
 
     vehicle_size: VehicleSize | None = None
     car_label: str | None = Field(default=None, max_length=120)
+    car_paint: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     has_disabled_permit: bool | None = None
     home_city: str | None = Field(default=None, max_length=120)
 
@@ -131,6 +139,7 @@ class VehicleLookupOut(BaseModel):
     body: str | None
     size: VehicleSize
     label: str
+    paint: str | None = None
 
 
 class DetailsUpdate(BaseModel):
@@ -153,4 +162,5 @@ ProfileOut.model_rebuild()
 
 
 class AvatarUpdate(BaseModel):
-    avatar: str | None = Field(default=None, pattern=r"^avatar_(0[1-9]|1[0-6])$")
+    # avatar_01..16 are free; avatar_legend_* are bought in the rewards shop.
+    avatar: str | None = Field(default=None, pattern=r"^avatar_((0[1-9]|1[0-6])|legend_[a-z]+)$")

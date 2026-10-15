@@ -27,7 +27,7 @@ CLAIM_TTL_SECONDS = 120
 NEARBY_LIMIT = 50
 RECONCILE_EVERY_SECONDS = 15
 SPOT_TTL_MINUTES = 30  # the same for everyone: a stale spot helps no one
-REPORT_COOLDOWN_SECONDS = 120
+REPORT_COOLDOWN_SECONDS = 30
 CANCEL_WINDOW_MINUTES = 2
 DEDUP_RADIUS_M = 15
 SAME_SPOT_WINDOW_SECONDS = 600
@@ -41,6 +41,9 @@ POINTS_REPORT = 10
 POINTS_CONFIRM_BONUS = 5
 POINTS_REFRESH_BONUS = 3
 POINTS_FALSE_PENALTY = 5
+# "I'm leaving" from a saved car: the driver hands their own spot to the
+# next one — the most reliable report there is, so it earns a little more.
+POINTS_HANDOFF_BONUS = 5
 CONTENT_REPORTS_PER_HOUR = 10
 # A report must come from near the spot. GPS in a street is often 20–50 m
 # off, so the phone's own accuracy is added on top — capped, so a "±5 km"
@@ -130,6 +133,7 @@ async def report_spot(
     # label is only a fallback for areas our OSM tables don't cover.
     address = (await reverse_cached(db, redis, payload.lat, payload.lng, "he")).street
     address = address or (payload.address or "").strip() or None
+    note = " ".join((payload.note or "").split()) or None
 
     origin = ST_SetSRID(ST_MakePoint(payload.lng, payload.lat), 4326)
     # Serialise reports around the same place (≈100 m cell) for the rest of
@@ -154,6 +158,8 @@ async def report_spot(
         existing.hot_minutes = hot
         if existing.address is None and address:
             existing.address = address
+        if note:
+            existing.note = note  # the latest heads-up is the one that matters
         # "Blue-white" is an optional tick, so a report without it says
         # nothing about the curb: it can mark a spot paid, never un-mark it.
         if payload.payment == Payment.paid:
@@ -171,11 +177,16 @@ async def report_spot(
             payment=payload.payment,
             vehicle_size=payload.vehicle_size,
             address=address,
+            note=note,
             ttl_minutes=SPOT_TTL_MINUTES,
             hot_minutes=hot,
         )
         db.add(spot)
-        award_points(user, POINTS_REPORT)
+        award_points(user, POINTS_REPORT + (POINTS_HANDOFF_BONUS if payload.handoff else 0))
+        if payload.handoff:
+            # Remembered for the cancel window, so taking it back returns the bonus too.
+            await db.flush()
+            await redis.set(f"handoff:{spot.id}", "1", ex=CANCEL_WINDOW_MINUTES * 60 + 60)
 
     if payload.photo_staging_id:
         await db.flush()  # assigns spot.id (a new spot's PK default runs at INSERT, not construction)
@@ -297,11 +308,17 @@ async def report_content(
         delete_photo(spot.photo_url)
         spot.photo_url = None
         photo_removed = True
+    reported_note = spot.note
+    note_removed = False
+    if payload.reason == "note" and spot.note:
+        spot.note = None
+        note_removed = True
 
     who = (reporter.display_name or "?") if reporter else "deleted user"
     message = (
         f"Content report: {payload.reason}\nSpot {spot.id} ({spot.address or f'{spot.lat:.5f},{spot.lng:.5f}'})"
         f"\nPosted by: {who} ({spot.reporter_id})\nPhoto removed: {'yes' if photo_removed else 'no'}"
+        f"\nSpot note: {reported_note or '-'} (removed: {'yes' if note_removed else 'no'})"
     )
     if payload.note:
         message += f"\nNote: {payload.note.strip()}"
@@ -396,7 +413,8 @@ async def cancel_report(
         raise HTTPException(409, "Cancel window has passed")
 
     user = await db.get(User, user_id)
-    award_points(user, -POINTS_REPORT)
+    handoff = await redis.delete(f"handoff:{spot_id}")
+    award_points(user, -(POINTS_REPORT + (POINTS_HANDOFF_BONUS if handoff else 0)))
     delete_photo(spot.photo_url)
 
     bucket = _location_bucket(spot.lat, spot.lng)

@@ -70,6 +70,7 @@ async def my_profile(
         display_name=user.display_name,
         points=user.points,
         weekly_points=user.weekly_points,
+        points_balance=max(0, user.points - user.points_spent),
         avatar=user.avatar,
         weekly_rank=weekly_rank,
         weekly_city_rank=weekly_city_rank,

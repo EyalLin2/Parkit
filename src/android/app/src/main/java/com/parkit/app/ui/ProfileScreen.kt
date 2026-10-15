@@ -63,6 +63,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -88,6 +91,7 @@ private const val REPORTS_PREVIEW = 4
  * header (who you are), one hero card (where you stand + what's next), then
  * flat outlined sections. Settings no longer live here at all — they have
  * their own screen behind the gear, like every mainstream app. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(
     api: ApiService,
@@ -96,6 +100,7 @@ fun ProfileScreen(
     onOpenSettings: () -> Unit,
     onOpenDriver: () -> Unit,
     onOpenDetails: () -> Unit,
+    onOpenRewards: () -> Unit = {},
     onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -123,6 +128,8 @@ fun ProfileScreen(
     val p = profile
     var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
     var pickAvatar by remember { mutableStateOf(false) }
+    var pickPaint by remember { mutableStateOf(false) }
+    var carPaint by remember { mutableStateOf(sessionStore.carPaint) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding(),
@@ -146,7 +153,19 @@ fun ProfileScreen(
                 item { Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
             }
         } else {
-            item { ProfileHero(p, onChangeAvatar = { pickAvatar = true }) }
+            item {
+                ProfileHero(
+                    p,
+                    onChangeAvatar = { pickAvatar = true },
+                    car = p.preferences,
+                    paint = CarPaints.getOrNull(carPaint)
+                        ?: p.preferences.carPaint?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+                        ?: CarPaints[0],
+                    onCarClick = { if (p.preferences.vehicleSize == null) onOpenDriver() else pickPaint = true },
+                    special = sessionStore.carSpecial,
+                    onOpenRewards = onOpenRewards,
+                )
+            }
             item { NextLevelCard(p, onReport = onBack) }
             // Three tabs instead of one endless scroll: what you have, how
             // you rank, what you reported. The tab bar sticks under the top.
@@ -200,6 +219,34 @@ fun ProfileScreen(
                 scope.launch { runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(id)) } }
             },
             onDismiss = { pickAvatar = false },
+        )
+    }
+    if (pickPaint) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickPaint = false },
+            title = { Text(stringResource(R.string.car_art_pick_paint)) },
+            text = {
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                ) {
+                    CarPaints.forEachIndexed { i, c ->
+                        Box(
+                            Modifier.size(40.dp).clip(CircleShape)
+                                .background(c)
+                                .border(if (i == carPaint) 3.dp else 1.dp, if (i == carPaint) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
+                                .clickable {
+                                    carPaint = i
+                                    sessionStore.carPaint = i
+                                    pickPaint = false
+                                },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { pickPaint = false; onOpenDriver() }) { Text(stringResource(R.string.car_art_edit)) }
+            },
         )
     }
 }
@@ -372,11 +419,21 @@ private fun MyReportRow(item: ActivityItem) {
  * you're doing — total points, drivers you helped park, your place this
  * week. */
 @Composable
-private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit) {
+private fun ProfileHero(
+    p: ProfileOut,
+    onChangeAvatar: () -> Unit,
+    car: com.parkit.app.api.Preferences,
+    paint: Color,
+    onCarClick: () -> Unit,
+    special: String? = null,
+    onOpenRewards: () -> Unit = {},
+) {
     val level = ParkItLevel.of(p.level)
     val progress = levelProgress(p)
     val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+        // Avatar with "your car" parked beside it: a nudge to add the car.
+        Box(contentAlignment = Alignment.Center) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(108.dp).clip(CircleShape).clickable(onClick = onChangeAvatar)) {
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 val stroke = 5.dp.toPx()
@@ -395,14 +452,84 @@ private fun ProfileHero(p: ProfileOut, onChangeAvatar: () -> Unit) {
                 Icon(androidx.compose.material.icons.Icons.Filled.Edit, contentDescription = stringResource(R.string.avatar_pick_title), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(13.dp))
             }
         }
+        // Size shows at a glance: a small car is drawn small, an SUV big.
+        val carW = when (car.vehicleSize) { "compact" -> 62.dp; "large" -> 90.dp; else -> 76.dp }
+        val carX = 58.dp + carW / 2 // parked just beside the 108dp avatar ring
+        CarArt(
+            size = car.vehicleSize,
+            paint = paint,
+            special = special,
+            outline = MaterialTheme.colorScheme.outline,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(x = carX, y = 4.dp)
+                .width(carW)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onCarClick)
+                .semantics { contentDescription = car.carLabel ?: "" },
+        )
+        // Disabled permit: the blue tag on the windscreen, like the real one.
+        if (car.hasDisabledPermit && car.vehicleSize != null) {
+            Box(
+                modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX - 8.dp, y = -(carW / 1.7f) + 18.dp).size(15.dp)
+                    .background(Color(0xFF1565C0), RoundedCornerShape(3.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    androidx.compose.material.icons.Icons.AutoMirrored.Filled.Accessible,
+                    contentDescription = stringResource(R.string.driver_disabled_permit),
+                    tint = Color.White,
+                    modifier = Modifier.size(11.dp),
+                )
+            }
+        }
+        // "+" when there's no car yet, a pencil once there is: the paint is editable.
+        Box(
+            modifier = Modifier.align(Alignment.BottomCenter).offset(x = carX + carW / 2, y = -(carW / 1.7f) + 26.dp).size(22.dp)
+                .background(MaterialTheme.colorScheme.surface, CircleShape).padding(2.dp)
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                .clickable(onClick = onCarClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (car.vehicleSize == null) androidx.compose.material.icons.Icons.Filled.Add else androidx.compose.material.icons.Icons.Filled.Edit,
+                contentDescription = stringResource(if (car.vehicleSize == null) R.string.car_art_add else R.string.car_art_pick_paint),
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(12.dp),
+            )
+        }
+        }
         Text(isolate(p.displayName), style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
         LevelChip(level, modifier = Modifier.padding(top = 4.dp))
+        val carLine = car.carLabel?.let { isolate(it) } ?: if (car.vehicleSize == null) stringResource(R.string.car_art_add) else null
+        if (carLine != null) Text(
+            carLine,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp).clip(RoundedCornerShape(50)).clickable(onClick = onCarClick).padding(horizontal = 8.dp, vertical = 2.dp),
+        )
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
             HeroStat(p.points.toString(), stringResource(R.string.hero_points), Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outline))
             HeroStat(p.successfulReports.toString(), stringResource(R.string.hero_helped), Modifier.weight(1f))
             Box(Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outline))
             HeroStat(p.weeklyRank?.let { "#$it" } ?: "—", stringResource(R.string.hero_rank), Modifier.weight(1f))
+        }
+        // The rewards shop: what points are for.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 14.dp).clip(RoundedCornerShape(50))
+                .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFFF9AB00), Color(0xFFE37400))))
+                .clickable(onClick = onOpenRewards)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            Icon(androidx.compose.material.icons.Icons.Filled.CardGiftcard, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Text(
+                stringResource(R.string.rewards_entry, p.pointsBalance),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
         if (p.successfulReports == 0) {
             // How "drivers helped" goes up — a zero shouldn't look like a dead number.

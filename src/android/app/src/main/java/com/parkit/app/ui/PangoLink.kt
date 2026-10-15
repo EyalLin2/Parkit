@@ -4,22 +4,135 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import com.parkit.app.R
 
-/** Hand-off to Pango for paying blue-white street parking. No API or deal
- * involved: we just open their app (or its store page). The package must
- * also be listed under <queries> in the manifest, or Android 11+ hides it. */
-object PangoLink {
-    private const val PACKAGE = "com.unicell.pangoandroid"
+/** Hand-off to the apps Israelis pay blue-white street parking with. No API
+ * or deal involved: we open their app (or its store page). Every package
+ * must also be listed under <queries> in the manifest, or Android 11+ hides
+ * it and we'd think it isn't installed. */
+object ParkingPay {
+    /** [brand] is the main colour of each app's own Play Store icon. */
+    enum class App(val packageName: String, val label: Int, val brand: Long) {
+        Pango("com.unicell.pangoandroid", R.string.pay_pango, 0xFF2E69E7),
+        Cellopark("air.com.cellogroup.Cellopark", R.string.pay_cellopark, 0xFF05A1AA),
+    }
 
-    fun open(context: Context) {
-        context.packageManager.getLaunchIntentForPackage(PACKAGE)?.let {
+    private fun prefs(context: Context) = context.getSharedPreferences("parkit_device", Context.MODE_PRIVATE)
+
+    /** The driver's default payment app (Settings), or null = ask each time. */
+    fun preferred(context: Context): App? =
+        prefs(context).getString("pay_app", null)?.let { name -> App.entries.firstOrNull { it.name == name } }
+
+    fun setPreferred(context: Context, app: App?) {
+        prefs(context).edit().apply {
+            if (app == null) remove("pay_app") else putString("pay_app", app.name).putBoolean("pay_off", false)
+        }.apply()
+    }
+
+    /** One tap to pay: the default app, else the only one installed, else
+     * [choose] (the app shows a picker). */
+    fun pay(context: Context, choose: () -> Unit) {
+        val app = preferred(context) ?: installed(context).singleOrNull()
+        if (app != null) open(context, app) else choose()
+    }
+
+    /** The driver said they don't pay for street parking: no pay window. */
+    fun isOff(context: Context): Boolean = prefs(context).getBoolean("pay_off", false)
+
+    fun setOff(context: Context, off: Boolean) {
+        prefs(context).edit().putBoolean("pay_off", off).apply()
+        if (off) setPreferred(context, null)
+    }
+
+    fun installed(context: Context): List<App> =
+        App.entries.filter { context.packageManager.getLaunchIntentForPackage(it.packageName) != null }
+
+    /** The app a paid session was started in for the car parked now — so
+     * leaving can say "don't forget to stop it in Pango". */
+    fun sessionApp(context: Context): App? =
+        prefs(context).getString("pay_session_app", null)?.let { name -> App.entries.firstOrNull { it.name == name } }
+
+    fun clearSession(context: Context) {
+        prefs(context).edit().remove("pay_session_app").apply()
+    }
+
+    fun open(context: Context, app: App) {
+        prefs(context).edit().putString("pay_session_app", app.name).apply()
+        context.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
             context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             return
         }
         try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$PACKAGE")))
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${app.packageName}")))
         } catch (_: ActivityNotFoundException) {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$PACKAGE")))
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${app.packageName}")))
         }
     }
 }
+
+/** Big tappable tiles, one per payment app — just the name. */
+@androidx.compose.runtime.Composable
+fun PayAppTiles(selected: ParkingPay.App?, onPick: (ParkingPay.App) -> Unit) {
+    androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+        ParkingPay.App.entries.forEach { app ->
+            val chosen = app == selected
+            val brand = androidx.compose.ui.graphics.Color(app.brand)
+            androidx.compose.material3.Surface(
+                onClick = { onPick(app) },
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                color = androidx.compose.ui.graphics.Color.Transparent,
+                border = if (chosen) androidx.compose.foundation.BorderStroke(3.dp, androidx.compose.material3.MaterialTheme.colorScheme.onSurface) else null,
+                shadowElevation = 4.dp,
+                modifier = androidx.compose.ui.Modifier.weight(1f),
+            ) {
+                androidx.compose.foundation.layout.Box(
+                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                    modifier = androidx.compose.ui.Modifier
+                        .fillMaxWidth()
+                        .background(
+                            androidx.compose.ui.graphics.Brush.linearGradient(
+                                listOf(androidx.compose.ui.graphics.lerp(brand, androidx.compose.ui.graphics.Color.White, 0.18f), brand),
+                            ),
+                        )
+                        .padding(vertical = 22.dp, horizontal = 8.dp),
+                ) {
+                    androidx.compose.foundation.layout.Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        androidx.compose.material3.Text(
+                            androidx.compose.ui.res.stringResource(app.label),
+                            style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = androidx.compose.ui.graphics.Color.White,
+                        )
+                        BlueWhiteCurb(androidx.compose.ui.Modifier.padding(top = 8.dp).fillMaxWidth(0.62f).height(7.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A strip of blue-white painted curb — Israel's sign for paid street parking. */
+@androidx.compose.runtime.Composable
+fun BlueWhiteCurb(modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier) {
+    androidx.compose.foundation.Canvas(modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))) {
+        val segment = size.height * 2.2f
+        var x = 0f
+        var blue = true
+        while (x < size.width) {
+            drawRect(
+                if (blue) androidx.compose.ui.graphics.Color(0xFF0D3C9E) else androidx.compose.ui.graphics.Color.White,
+                topLeft = androidx.compose.ui.geometry.Offset(x, 0f),
+                size = androidx.compose.ui.geometry.Size(segment, size.height),
+            )
+            x += segment
+            blue = !blue
+        }
+    }
+}
+
