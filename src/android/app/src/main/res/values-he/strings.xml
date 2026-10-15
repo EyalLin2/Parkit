@@ -540,12 +540,12 @@
     <string name="car_bt_leave_title">יוצא מהחניה?</string>
     <string name="car_bt_leave_text">לחיצה אחת ומסרת אותה לנהג הבא · ‎+15</string>
     <string name="dock_parked">חניתי</string>
-    <string name="dock_my_car">הרכב שלי</string>
+    <string name="dock_my_car">חניתי ✓</string>
     <string name="dock_report">דווח</string>
     <string name="dock_leave">יוצא מהחניה</string>
     <string name="dock_reminder">⏰ %1$d דק׳ לשינוי</string>
     <string name="dock_sign">מותר לחנות?</string>
-    <string name="car_line_title">הרכב שלך</string>
+    <string name="car_line_title">הרכב שלך:</string>
     <string name="parked_pay_title">חנית! הרכב נשמר</string>
     <string name="parked_pay_body">כחול-לבן? מפעילים תשלום בלחיצה:</string>
     <string name="parked_pay_free">חינם, לא צריך</string>

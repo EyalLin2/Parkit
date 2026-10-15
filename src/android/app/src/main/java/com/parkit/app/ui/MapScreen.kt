@@ -1143,6 +1143,7 @@ fun MapScreen(
                     CarLine(
                         car = car,
                         look = myCarLook(),
+                        onWalk = { walkTo(context, car.lat, car.lng) },
                         distanceM = deviceLocation?.distanceTo(LatLng(car.lat, car.lng)),
                         onClick = { showCarSheet = true },
                         modifier = Modifier.padding(horizontal = 12.dp),
@@ -2402,7 +2403,7 @@ private fun DockSide(label: String, modifier: Modifier, onClick: () -> Unit, ico
 
 /** The parked car as one thin line — tap for walk / leaving / pay. */
 @Composable
-private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM: Double?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM: Double?, onClick: () -> Unit, onWalk: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Surface(
         onClick = onClick,
@@ -2411,12 +2412,11 @@ private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM
         shadowElevation = 6.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)) {
             CarArt(look.size ?: "regular", look.paint, MaterialTheme.colorScheme.outline, Modifier.width(34.dp), special = look.special, animate = false)
             Text(
-                listOfNotNull(
-                    stringResource(R.string.car_line_title),
-                    car.address,
+                stringResource(R.string.car_line_title) + " " + listOfNotNull(
+                    car.address?.substringBefore(",")?.trim(), // the street is enough here
                     distanceM?.let { formatDistanceShort(context, it) },
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.labelLarge,
@@ -2425,7 +2425,18 @@ private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM
                 modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
             )
             ReminderCountdownInline()
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            // The one thing people want from this line: get back to the car.
+            Surface(
+                onClick = onWalk,
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 6.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.DirectionsWalk, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+                    Text(stringResource(R.string.car_navigate), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(start = 4.dp))
+                }
+            }
         }
     }
 }

@@ -531,12 +531,12 @@
     <string name="car_bt_leave_title">Leaving your spot?</string>
     <string name="car_bt_leave_text">One tap hands it to the next driver · +15</string>
     <string name="dock_parked">Parked</string>
-    <string name="dock_my_car">My car</string>
+    <string name="dock_my_car">Parked ✓</string>
     <string name="dock_report">Report</string>
     <string name="dock_leave">I\'m leaving</string>
     <string name="dock_reminder">⏰ %1$d min to change</string>
     <string name="dock_sign">Can I park?</string>
-    <string name="car_line_title">Your car</string>
+    <string name="car_line_title">Your car:</string>
     <string name="parked_pay_title">Parked! Car saved</string>
     <string name="parked_pay_body">Blue-white curb? Start paying in one tap:</string>
     <string name="parked_pay_free">It\'s free, no need</string>
