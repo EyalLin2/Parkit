@@ -239,7 +239,7 @@ fun AiBadge(modifier: Modifier = Modifier, small: Boolean = false) {
             color = Color.White,
             modifier = modifier
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF1B4F91))
+                .background(Color(0xFF202124))
                 .padding(horizontal = 3.dp, vertical = 1.dp),
         )
         return

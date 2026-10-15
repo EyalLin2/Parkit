@@ -541,4 +541,6 @@
     <string name="parked_pay_body">Blue-white curb? Start paying in one tap:</string>
     <string name="parked_pay_free">It\'s free, no need</string>
     <string name="settings_pay_none">None — I don\'t pay for street parking</string>
+    <string name="car_next_to_you">next to you</string>
+    <string name="car_from_you">%1$s from you</string>
 </resources>

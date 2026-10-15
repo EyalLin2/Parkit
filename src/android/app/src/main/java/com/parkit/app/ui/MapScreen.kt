@@ -307,6 +307,8 @@ private const val OPEN_AD_EVERY_MS = 6 * 60 * 60 * 1000L
 private val DOCK_HEIGHT = 64.dp
 private const val NEAR_CAR_M = 150.0 // standing by the car → "leaving?" is the main action
 private const val REMINDER_SOON_MIN = 15L
+private const val LIVE_FIX_EVERY_MS = 5_000L
+private const val NEAR_ME_M = 20.0 // GPS noise: closer than this is "next to you"
 private const val SOURCE_CAR = "parked-car"
 private const val LAYER_CAR = "parked-car-pin"
 private const val CAR_ICON = "car-pin"
@@ -909,7 +911,7 @@ fun MapScreen(
     var clock by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(20_000)
+            kotlinx.coroutines.delay(5_000)
             clock = System.currentTimeMillis()
         }
     }
@@ -941,6 +943,45 @@ fun MapScreen(
             rememberCar(LatLng(fix.latitude, fix.longitude), null)
             flyTo(LatLng(fix.latitude, fix.longitude))
             offerPango()
+        }
+    }
+
+    // Follow the phone while the map is on screen (not in the background):
+    // the distance to the car and "leaving?" need where you are *now*, not
+    // where you were when the app opened. Balanced power: Wi-Fi/cell + GPS.
+    val liveLifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(liveLifecycle, style) {
+        val client = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+        val request = com.google.android.gms.location.LocationRequest.Builder(
+            com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+            LIVE_FIX_EVERY_MS,
+        ).setMinUpdateDistanceMeters(5f).build()
+        val callback = object : com.google.android.gms.location.LocationCallback() {
+            override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
+                val loc = result.lastLocation ?: return
+                val here = LatLng(loc.latitude, loc.longitude)
+                if (!inServiceArea(here)) return
+                deviceLocation = here
+                runCatching { map?.locationComponent?.takeIf { it.isLocationComponentActivated }?.forceLocationUpdate(loc) }
+            }
+        }
+        fun start() {
+            if (!hasLocationPermission()) return
+            @SuppressLint("MissingPermission")
+            fun request() = runCatching { client.requestLocationUpdates(request, callback, android.os.Looper.getMainLooper()) }
+            request()
+        }
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_START -> start()
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> client.removeLocationUpdates(callback)
+                else -> Unit
+            }
+        }
+        liveLifecycle.addObserver(observer)
+        onDispose {
+            liveLifecycle.removeObserver(observer)
+            client.removeLocationUpdates(callback)
         }
     }
 
@@ -1144,6 +1185,7 @@ fun MapScreen(
                         car = car,
                         look = myCarLook(),
                         onWalk = { walkTo(context, car.lat, car.lng) },
+                        // From where the phone is now (followed live while the map is open).
                         distanceM = deviceLocation?.distanceTo(LatLng(car.lat, car.lng)),
                         onClick = { showCarSheet = true },
                         modifier = Modifier.padding(horizontal = 12.dp),
@@ -2417,7 +2459,7 @@ private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM
             Text(
                 stringResource(R.string.car_line_title) + " " + listOfNotNull(
                     car.address?.substringBefore(",")?.trim(), // the street is enough here
-                    distanceM?.let { formatDistanceShort(context, it) },
+                    distanceM?.let { if (it < NEAR_ME_M) context.getString(R.string.car_next_to_you) else context.getString(R.string.car_from_you, formatDistanceShort(context, it)) },
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,

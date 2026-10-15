@@ -550,4 +550,6 @@
     <string name="parked_pay_body">כחול-לבן? מפעילים תשלום בלחיצה:</string>
     <string name="parked_pay_free">חינם, לא צריך</string>
     <string name="settings_pay_none">בלי — לא משתמש בכחול-לבן</string>
+    <string name="car_next_to_you">לידך</string>
+    <string name="car_from_you">%1$s ממך</string>
 </resources>
