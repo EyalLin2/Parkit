@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Face
 import com.parkit.app.api.friendlyMessage
@@ -78,6 +80,28 @@ fun SettingsScreen(
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<String?>(null) } // "language" | "theme" | "logout" | "delete"
     var deleting by remember { mutableStateOf(false) }
+    var payApp by remember { mutableStateOf(ParkingPay.preferred(context)) }
+    var payOff by remember { mutableStateOf(ParkingPay.isOff(context)) }
+    var carBt by remember { mutableStateOf(com.parkit.app.remind.CarBluetooth.chosenName(context)) }
+    var btDevices by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    val btPermissions = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
+    ) {
+        btDevices = com.parkit.app.remind.CarBluetooth.pairedDevices(context)
+        if (com.parkit.app.remind.CarBluetooth.canUse(context)) dialog = "carbt"
+    }
+    fun openCarBt() {
+        val needed = buildList {
+            if (android.os.Build.VERSION.SDK_INT >= 31) add(android.Manifest.permission.BLUETOOTH_CONNECT)
+            if (android.os.Build.VERSION.SDK_INT >= 33) add(android.Manifest.permission.POST_NOTIFICATIONS)
+        }.filter { androidx.core.content.ContextCompat.checkSelfPermission(context, it) != android.content.pm.PackageManager.PERMISSION_GRANTED }
+        if (needed.isEmpty()) {
+            btDevices = com.parkit.app.remind.CarBluetooth.pairedDevices(context)
+            dialog = "carbt"
+        } else {
+            btPermissions.launch(needed.toTypedArray())
+        }
+    }
     var deleteError by remember { mutableStateOf<String?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
@@ -117,6 +141,19 @@ fun SettingsScreen(
                 SettingsRow(Icons.Filled.Language, stringResource(R.string.profile_language_label), value = languageLabel) { dialog = "language" }
                 RowDivider()
                 SettingsRow(Icons.Filled.DarkMode, stringResource(R.string.settings_appearance), value = themeLabel) { dialog = "theme" }
+                RowDivider()
+                SettingsRow(
+                    Icons.Filled.Bluetooth,
+                    stringResource(R.string.car_bt_setting),
+                    subtitle = stringResource(R.string.car_bt_setting_sub),
+                    value = carBt ?: stringResource(R.string.car_bt_off),
+                ) { openCarBt() }
+                RowDivider()
+                SettingsRow(Icons.Filled.Payments, stringResource(R.string.settings_pay_app), value = when {
+                        payOff -> stringResource(R.string.settings_pay_none)
+                        payApp != null -> stringResource(payApp!!.label)
+                        else -> stringResource(R.string.settings_pay_ask)
+                    }) { dialog = "pay" }
             }
         }
 
@@ -188,6 +225,47 @@ fun SettingsScreen(
                     LocaleManager.setLanguage(context, code)
                     (context as? Activity)?.recreate()
                 }
+            },
+        )
+        "carbt" -> ChoiceDialog(
+            title = stringResource(R.string.car_bt_pick),
+            options = listOf<Pair<Pair<String, String>?, String>>(null to stringResource(R.string.car_bt_off)) +
+                btDevices.map { it to it.first },
+            selected = btDevices.firstOrNull { it.first == carBt },
+            onDismiss = { dialog = null },
+            onSelect = { device ->
+                dialog = null
+                carBt = device?.first
+                com.parkit.app.remind.CarBluetooth.choose(context, device?.first, device?.second)
+            },
+        )
+        "pay" -> AlertDialog(
+            onDismissRequest = { dialog = null },
+            title = { Text(stringResource(R.string.settings_pay_app)) },
+            text = {
+                PayAppTiles(selected = payApp) { app ->
+                    dialog = null
+                    payApp = app
+                    payOff = false
+                    ParkingPay.setPreferred(context, app)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    dialog = null
+                    payApp = null
+                    payOff = false
+                    ParkingPay.setOff(context, false)
+                    ParkingPay.setPreferred(context, null)
+                }) { Text(stringResource(R.string.settings_pay_ask)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    dialog = null
+                    payApp = null
+                    payOff = true
+                    ParkingPay.setOff(context, true)
+                }) { Text(stringResource(R.string.settings_pay_none)) }
             },
         )
         "theme" -> ChoiceDialog(

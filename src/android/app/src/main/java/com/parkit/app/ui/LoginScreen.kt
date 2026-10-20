@@ -162,11 +162,42 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
             textAlign = TextAlign.Center,
         )
 
+        if (com.parkit.app.ApiConfig.GOOGLE_WEB_CLIENT_ID.isNotEmpty()) {
+            GoogleButton(
+                enabled = !loading,
+                modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                onClick = {
+                    error = null
+                    loading = true
+                    scope.launch {
+                        try {
+                            val idToken = googleIdToken(context)
+                            if (idToken != null) {
+                                val token = api.googleLogin(com.parkit.app.api.GoogleLogin(idToken))
+                                sessionStore.save(token.accessToken, token.userId, "")
+                                onLoggedIn(token.needsProfile)
+                            }
+                        } catch (e: Exception) {
+                            error = context.getString(R.string.login_google_failed)
+                        } finally {
+                            loading = false
+                        }
+                    }
+                },
+            )
+            Text(
+                stringResource(R.string.login_or),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 14.dp),
+            )
+        }
+
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 4.dp,
-            modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = if (com.parkit.app.ApiConfig.GOOGLE_WEB_CLIENT_ID.isNotEmpty()) 14.dp else 28.dp),
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                 val target = sentTo
@@ -231,7 +262,10 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
                     // code back, shown like the message that would have arrived.
                     devCode?.let {
                         androidx.compose.material3.Surface(
-                            onClick = { code = it },
+                            onClick = {
+                                code = it
+                                if (!loading) verify() // same as typing the 6th digit
+                            },
                             shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                             modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
@@ -319,3 +353,44 @@ internal fun displayTarget(target: String): String {
     val (prefix, mid, end) = m.destructured
     return "0$prefix-$mid-$end"
 }
+
+/** Google's account picker (Credential Manager). Returns the ID token, or
+ * null when the user backed out. */
+private suspend fun googleIdToken(context: android.content.Context): String? {
+    val option = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+        .Builder(com.parkit.app.ApiConfig.GOOGLE_WEB_CLIENT_ID)
+        .build()
+    val request = androidx.credentials.GetCredentialRequest.Builder().addCredentialOption(option).build()
+    return try {
+        val result = androidx.credentials.CredentialManager.create(context).getCredential(context, request)
+        com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+    } catch (_: androidx.credentials.exceptions.GetCredentialCancellationException) {
+        null
+    }
+}
+
+/** White pill with Google's "G" colours spelled out — Google's own sign-in
+ * button style, no logo file shipped. */
+@Composable
+private fun GoogleButton(enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(50),
+        modifier = modifier.height(52.dp),
+    ) {
+        Text(
+            "G",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = androidx.compose.ui.graphics.Color(0xFF4285F4),
+        )
+        Text(
+            stringResource(R.string.login_google),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(start = 10.dp),
+        )
+    }
+}
+

@@ -196,6 +196,28 @@ object MarkerBitmaps {
 
     const val LOT_COLOR = "#4A5B78"
 
+    /** "Your car": a brand-blue disc with a car glyph — round, so it never
+     * reads as one of the green "free spot" pins. */
+    fun carPin(context: Context): Bitmap {
+        val d = context.resources.displayMetrics.density
+        val radius = 17f * d
+        val pad = PAD_DP * d
+        val size = (2 * (radius + pad)).toInt()
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val c = size / 2f
+        canvas.drawCircle(c, c, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            setShadowLayer(3f * d, 0f, 1f * d, Color.argb(100, 0, 0, 0))
+        })
+        canvas.drawCircle(c, c, radius - 2.5f * d, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#1B4F91") })
+        val glyph = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_car_marker)!!
+        val g = (18f * d).toInt()
+        glyph.setBounds((c - g / 2f).toInt(), (c - g / 2f).toInt(), (c + g / 2f).toInt(), (c + g / 2f).toInt())
+        glyph.draw(canvas)
+        return bmp
+    }
+
     /** "2m" / "1h" / "3d" / "now" — compact enough to fit on a small pin. */
     fun relativeTimeShort(context: Context, iso: String): String = try {
         val minutes = Duration.between(Instant.parse(iso), Instant.now()).toMinutes()

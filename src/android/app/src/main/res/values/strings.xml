@@ -4,30 +4,15 @@
 
     <!-- Login -->
     <string name="login_tagline">Find and share free parking, in seconds.</string>
-    <string name="login_demo_notice">Demo client for a backend-only project — not the real native app.</string>
-    <string name="login_name_label">Your name</string>
-    <string name="login_continue">Continue</string>
-    <string name="login_default_name">Demo User</string>
-    <string name="login_error_backend">Couldn\'t reach the backend at %1$s (%2$s). Is it running?</string>
 
     <!-- Map -->
     <string name="map_filter_all">All</string>
     <string name="map_filter_regular">Regular</string>
     <string name="map_filter_disabled">Disabled</string>
-    <string name="map_profile_cd">Profile</string>
     <string name="map_logout_cd">Log out</string>
-    <string name="map_zoom_in_cd">Zoom in</string>
-    <string name="map_zoom_out_cd">Zoom out</string>
     <string name="map_my_location_cd">My location</string>
-    <string name="map_report_location_cd">Report location</string>
-    <string name="map_report_fab_cd">Report parking here</string>
     <string name="map_locating">Finding address…</string>
-    <string name="map_load_error">Couldn\'t load spots: %1$s</string>
     <string name="map_reported_snackbar">Spot reported</string>
-    <plurals name="spots_available">
-        <item quantity="one">%1$d spot available within %2$dm</item>
-        <item quantity="other">%1$d spots available within %2$dm</item>
-    </plurals>
 
     <!-- Report flow -->
     <string name="report_title">Report a free spot</string>
@@ -36,8 +21,6 @@
     <string name="report_preview_cd">Blurred photo preview</string>
     <string name="report_photo_upload_failed">Photo upload failed: %1$s</string>
     <string name="report_type_question">What kind of spot?</string>
-    <string name="report_type_regular">Regular</string>
-    <string name="report_type_disabled">Disabled</string>
     <string name="report_size_question">Fits which car size?</string>
     <string name="report_size_compact">Compact</string>
     <string name="report_size_regular">Regular</string>
@@ -47,16 +30,13 @@
     <!-- Spot actions -->
     <string name="spot_type_disabled">Disabled</string>
     <string name="spot_type_regular">Regular</string>
-    <string name="spot_status">Status: %1$s</string>
     <string name="spot_fits">Fits a %1$s car</string>
     <string name="spot_navigate">Navigate</string>
     <string name="spot_go">On my way · Navigate</string>
     <string name="spot_status_free">Free</string>
-    <string name="spot_claim">On my way</string>
     <string name="spot_i_took_it">I parked here</string>
     <string name="spot_flag_taken">Already taken</string>
     <string name="spot_cancel_report">Cancel my report</string>
-    <string name="spot_action_failed">Action failed</string>
     <string name="error_not_found">That spot isn\'t there anymore.</string>
     <string name="error_conflict">Someone else just did that first.</string>
     <string name="error_server">Something went wrong on our end. Try again in a moment.</string>
@@ -83,32 +63,14 @@
     </plurals>
 
     <!-- Profile / Leaderboard -->
-    <string name="profile_title">Profile</string>
     <string name="profile_back_cd">Back</string>
-    <string name="profile_member">ParkIt member</string>
-    <string name="profile_total_points">Total points</string>
-    <string name="profile_this_week">This week</string>
-    <string name="profile_successful_reports">Successful reports</string>
-    <string name="profile_badges_title">Badges &amp; Achievements</string>
-    <string name="profile_badge_rookie">Rookie</string>
-    <string name="profile_badge_pro">Pro</string>
-    <string name="profile_badge_legend">Legend</string>
-    <string name="profile_unlocked">Unlocked</string>
-    <plurals name="profile_activity_count">
-        <item quantity="one">%1$d report in your activity</item>
-        <item quantity="other">%1$d reports in your activity</item>
-    </plurals>
-    <string name="profile_leaderboard_title">Weekly leaderboard</string>
     <string name="profile_leaderboard_empty">No one has weekly points yet.</string>
-    <string name="profile_top_parker">Top parker this week</string>
     <string name="profile_points_suffix">%1$d pts</string>
-    <string name="profile_rank_prefix">#%1$d</string>
     <string name="profile_language_label">Language</string>
     <string name="profile_language_english">English</string>
     <string name="profile_language_hebrew">עברית</string>
 
     <!-- My Reports -->
-    <string name="profile_my_reports_title">My Reports</string>
     <string name="profile_my_reports_empty">You haven\'t reported any spots yet.</string>
     <string name="report_status_active">Active</string>
     <string name="report_status_claimed">Claimed</string>
@@ -122,13 +84,12 @@
     <string name="profile_share_message">I\'m using ParkIt to find and report free street parking — give it a try: https://eyallin2.github.io/Parkit/</string>
 
     <!-- Theme -->
-    <string name="profile_theme_label">Theme</string>
     <string name="profile_theme_system">System</string>
     <string name="profile_theme_light">Light</string>
     <string name="profile_theme_dark">Dark</string>
 
     <!-- Map v2 (vector map + nearby sheet) -->
-    <string name="map_pin_label">Parking location</string>
+    <string name="map_pin_label">Searching near</string>
     <plurals name="map_nearby_count">
         <item quantity="one">1 free spot nearby</item>
         <item quantity="other">%1$d free spots nearby</item>
@@ -142,15 +103,9 @@
 
     <!-- Profile v2 -->
     <string name="profile_settings_cd">Settings</string>
-    <string name="profile_level_progress">%1$d more successful reports to %2$s</string>
-    <string name="profile_max_level">Top tier reached — you\'re a legend</string>
-    <string name="profile_level_none">New member</string>
-    <string name="profile_total_reports">Reports</string>
-    <string name="profile_achievements">Achievements</string>
     <string name="profile_see_all">Show all</string>
     <string name="profile_show_less">Show less</string>
     <string name="profile_you">You</string>
-    <string name="profile_week_delta">+%1$d this week</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -170,7 +125,7 @@
     <string name="report_points_reward">+10 pts</string>
     <string name="report_needs_photo">Take a photo to continue</string>
     <string name="report_take_photo">Take a photo of the spot</string>
-    <string name="report_blurring">Blurring faces for privacy…</string>
+    <string name="report_blurring">Blurring faces and licence plates…</string>
     <string name="report_privacy_checked">Checked for privacy</string>
     <string name="report_retake">Retake</string>
     <string name="spot_close_cd">Close</string>
@@ -197,10 +152,7 @@
     <string name="perk_silver">Silver frame on your pins</string>
     <string name="perk_gold">Gold frame on your pins</string>
     <string name="perk_legend">A solid purple pin of your own</string>
-    <string name="level_title">%1$s level</string>
-    <string name="level_points_total">%1$d points</string>
     <string name="level_to_next">%1$d pts to %2$s</string>
-    <string name="level_next_perk">%1$s unlocks: %2$s</string>
     <string name="level_max">Top level reached — you\'re a legend</string>
     <string name="levels_title">Levels &amp; perks</string>
     <string name="level_threshold">%1$d pts</string>
@@ -210,7 +162,6 @@
     <string name="spot_reported_by_level">Reported by a %1$s driver</string>
     <string name="claim_trip_title">You\'re on your way</string>
     <string name="claim_drive_safely">Held for you. No need to rush — drive safely, and only touch the phone when parked.</string>
-    <string name="claim_held_for_you">held for you</string>
     <string name="claim_taken_thanks">Thanks — we warned other drivers</string>
     <string name="claim_expired">The spot went back on the map. Take your time — there are more around.</string>
     <!-- Driver profile: car, permits, preferred area -->
@@ -240,10 +191,7 @@
     <string name="driver_close">Close</string>
     <string name="driver_save">Save</string>
     <string name="driver_save_and_continue">Save and continue</string>
-    <string name="driver_summary_size">%1$s car</string>
-    <string name="driver_summary_empty_title">Add your car</string>
     <string name="driver_summary_empty_body">See which spots fit your car and your parking permits</string>
-    <string name="driver_edit_cd">Edit car and preferences</string>
     <string name="fit_needs_disabled_permit">Disabled permit holders only</string>
     <string name="fit_too_small">May be too small for your car</string>
     <string name="fit_needs_disabled_permit_long">Disabled bay — for vehicles with a disabled parking permit only.</string>
@@ -266,11 +214,8 @@
     <string name="lot_kind_surface">Open-air</string>
     <string name="lot_capacity">%1$d spaces</string>
     <string name="lot_source_note">Lot data from OpenStreetMap — check the entrance for hours and prices.</string>
-    <string name="parked_pango_prompt">Parked! Blue-white? Start parking in Pango</string>
-    <string name="parked_pango_action">Pango</string>
     <string name="spot_no_photo_cd">No photo for this spot</string>
     <string name="spot_age_short">%1$s\u00A0ago</string>
-    <string name="profile_tab_overview">Overview</string>
     <string name="profile_tab_league">League</string>
     <string name="profile_tab_reports">My reports</string>
     <string name="league_not_ranked">You\'re not in this week\'s league yet — report a spot to get on the board.</string>
@@ -286,7 +231,6 @@
     <string name="badge_reports_100">100 reports</string>
     <string name="badge_helped_10">Helped 10 drivers</string>
     <string name="badge_helped_50">Parking hero</string>
-    <string name="login_phone_title">Sign in with your phone</string>
     <string name="login_phone_body">We\'ll text you a 6-digit code</string>
     <string name="login_phone_label">Mobile number</string>
     <string name="login_send_code">Send code</string>
@@ -300,7 +244,7 @@
     <string name="login_dev_code_title">📩 Beta version — your code</string>
     <string name="login_dev_code">Your code is %1$s · tap to fill it in</string>
     <string name="login_phone_invalid">Enter an Israeli mobile number (05X-XXXXXXX)</string>
-    <string name="login_too_many">Too many tries — wait a minute and try again</string>
+    <string name="login_too_many">Hold on — wait a few seconds and try again</string>
     <string name="login_code_wrong">Wrong code — check the SMS and try again</string>
     <string name="login_code_expired">The code expired — send a new one</string>
     <string name="login_terms_note">Your phone or email is used only to sign you in. Other drivers never see it.</string>
@@ -312,7 +256,6 @@
     <string name="details_email">Email</string>
     <string name="details_email_invalid">That doesn\'t look like an email address</string>
     <string name="details_privacy">Other drivers see only your first name and last initial.</string>
-    <string name="details_missing">Add your name</string>
     <string name="login_by_email">Email</string>
     <string name="login_by_phone">Phone</string>
     <string name="login_email_body">We\'ll email you a 6-digit code</string>
@@ -324,15 +267,9 @@
     <string name="level_up_title">You reached %1$s!</string>
     <string name="level_up_ok">Awesome</string>
     <string name="avatar_pick_title">Choose your avatar</string>
-    <string name="profile_helped_none">Report your first spot and help a driver park</string>
-    <string name="profile_report_cta">Report a spot · +10 pts</string>
     <string name="settings_avatars">Avatars</string>
     <string name="settings_avatars_value">DiceBear "Personas" by Draftbit · CC BY 4.0</string>
     <string name="details_pick_avatar">Pick an avatar</string>
-    <plurals name="profile_helped">
-        <item quantity="one">You helped 1 driver park 🙌</item>
-        <item quantity="other">You helped %d drivers park 🙌</item>
-    </plurals>
     <string-array name="avatar_names">
         <item>Tech guy</item>
         <item>Surfer</item>
@@ -367,7 +304,7 @@
     <string name="error_blocked">Reporting is paused for a while after several reports were flagged.</string>
     <string name="error_photo_large">That photo is too large.</string>
     <string name="error_invalid">Some details aren\'t valid — check and try again.</string>
-    <string name="error_too_many">Too many attempts — wait a minute and try again.</string>
+    <string name="error_too_many">Hold on — wait a few seconds and try again.</string>
     <string name="error_unavailable">This service isn\'t available right now. Try again soon.</string>
     <string name="error_with_code">%1$s (%2$s)</string>
     <string name="feedback_title">Send feedback</string>
@@ -377,63 +314,58 @@
     <string name="feedback_send">Send</string>
     <string name="feedback_thanks_title">Thank you!</string>
     <string name="feedback_thanks_body">We read every message.</string>
-    <string name="intro_find_title">Free street spots, live</string>
-    <string name="intro_find_body">Drivers who just left a spot report it — you see it on the map, nearest and freshest first.</string>
-    <string name="intro_report_title">Leaving a spot? One tap.</string>
-    <string name="intro_report_body">Snap a photo — faces and plates are blurred automatically — and earn +10 points.</string>
-    <string name="intro_climb_title">Climb the levels</string>
-    <string name="intro_climb_body">Badges, a weekly league in your city and a pin frame of your own as you help more drivers park.</string>
+    <string name="intro_find_title">Free spots, right now</string>
+    <string name="intro_find_body">Drivers report — you park.</string>
+    <string name="intro_report_title">Leaving? One tap</string>
+    <string name="intro_report_body">Report it and earn points.</string>
+    <string name="intro_climb_title">Points = rewards</string>
+    <string name="intro_climb_body">Car paints, characters and more.</string>
     <string name="intro_next">Next</string>
     <string name="intro_start">Let\'s go</string>
-    <string name="intro_welcome_body">Free street parking all over Israel, reported live by drivers like you.</string>
+    <string name="intro_welcome_body">Free parking spots, all over Israel.</string>
     <string name="intro_choose_language">Choose your language</string>
     <string name="intro_how_it_works">How it works</string>
-    <string name="intro_go_title">Tap, navigate, go</string>
-    <string name="intro_go_body">See how fresh it is and what car it fits. Tap On my way — navigation opens and other drivers see someone is coming. 🔥 = busy area, the spot may be gone when you arrive. Never rush.</string>
-    <string name="hero_helped_hint">Every time a driver taps "I parked here" on a spot you reported, this goes up.</string>
+    <string name="intro_go_title">See it, drive there</string>
+    <string name="intro_go_body">\"On my way\" opens navigation.</string>
     <string name="tips_header">How ParkIt works</string>
     <string name="tips_done">Got it, let\'s go</string>
     <string name="tip_map_title">Reading the map</string>
-    <string name="tip_map_body">Each pin is a free spot. Dark green = just reported, pale = waiting a while. The number is minutes since the report. Orange = someone is on the way.</string>
+    <string name="tip_map_body">Green = free. Orange = someone is on the way.</string>
     <string name="tip_tag_fresh">2m</string>
     <string name="tip_tag_old">40m</string>
     <string name="tip_cap_fresh">Fresh</string>
     <string name="tip_cap_old">Older</string>
     <string name="tip_cap_claimed">Someone on the way</string>
     <string name="tip_hot_title">🔥 Busy area</string>
-    <string name="tip_hot_body">Flames mean spots there usually go within minutes, so it may be gone when you arrive. That\'s information — never a reason to rush. Drive safely.</string>
+    <string name="tip_hot_body">Spots here go fast.</string>
     <string name="tip_go_title">Heading to a spot</string>
-    <string name="tip_go_body">Tap a pin, then On my way. Navigation opens and other drivers see someone is coming. Set it up before you drive — don\'t touch the phone on the road.</string>
+    <string name="tip_go_body">\"On my way\" → navigation opens.</string>
     <string name="tip_report_title">Leaving? Report it</string>
-    <string name="tip_report_body">Pulling out of a free spot? Tap Report a spot here — when you\'re stopped. A photo earns extra points; faces and plates are blurred automatically.</string>
-    <string name="tip_photo_points">Photo = extra points</string>
-    <string name="tip_close_title">Close the loop, level up</string>
-    <string name="tip_close_body">When you get there, tap I parked here or Already taken — it keeps the map honest. Every report and answer earns points, and each level gets a new pin frame.</string>
+    <string name="tip_report_body">Snap, send, +10.</string>
+    <string name="tip_photo_points">Faces and plates blurred</string>
+    <string name="tip_close_title">Close the loop</string>
+    <string name="tip_close_body">Got there? \"I parked here\".</string>
     <string name="settings_tips">How ParkIt works</string>
     <string name="location_off">Location is turned off on your phone</string>
     <string name="location_turn_on">Turn on</string>
     <string name="report_too_far">You can only report a spot that\'s near you</string>
     <string name="report_needs_location">Turn on location to report a spot</string>
     <string name="report_go_to_me">Go to me</string>
-    <string name="content_report_action">Report an offensive photo or user</string>
+    <string name="content_report_action">Report offensive content or user</string>
     <string name="content_report_title">What\'s wrong?</string>
     <string name="content_report_photo">The photo is offensive or inappropriate</string>
     <string name="content_report_user">The user\'s name is offensive</string>
     <string name="content_report_other">Something else</string>
     <string name="content_report_sent">Thanks, your report was sent and we\'ll review it</string>
-    <string name="map_empty_show_lots">Show car parks</string>
+    <string name="map_empty_show_lots">Paid car parks</string>
     <string name="map_empty_invite">Invite friends</string>
     <string name="map_open_profile_cd">My profile</string>
     <string name="report_blue_white">Blue-white curb (paid)</string>
     <string name="spot_blue_white">Blue-white curb · paid, you can use Pango</string>
     <string name="spot_blue_white_short">Blue-white</string>
-    <string name="car_park_here">I parked here</string>
-    <string name="car_saved">Saved where you parked</string>
     <string name="car_card_title">Your car · %1$s</string>
     <string name="car_navigate">Walk to car</string>
-    <string name="car_leaving">I\'m leaving</string>
-    <string name="car_leaving_thanks">Thanks! Your spot is now shown to other drivers</string>
-    <string name="car_forget_cd">Forget where the car is</string>
+    <string name="car_leaving_thanks">Thanks! +15 points · your spot is now on the map</string>
     <string name="car_just_now">just now</string>
     <string name="legal_privacy">Privacy policy</string>
     <string name="legal_terms">Terms of use</string>
@@ -442,4 +374,124 @@
     <string name="location_why_body">ParkIt uses your location only while the app is open: to show free spots near you, and to make sure reports come from someone actually at the spot. We never track you in the background.</string>
     <string name="location_why_continue">Continue</string>
     <string name="location_why_not_now">Not now</string>
+    <string name="report_note_label">Note for the next driver (optional)</string>
+    <string name="report_note_hint">e.g. broken glass, low branch, tight fit</string>
+    <string name="spot_note">Reporter\'s note: %1$s</string>
+    <string name="content_report_note">The note is offensive</string>
+    <string name="car_art_add">Add your car</string>
+    <string name="car_art_pick_paint">What colour is your car?</string>
+    <string name="car_art_edit">Edit car</string>
+    <string name="lot_charge">Price: %1$s</string>
+    <string name="lot_charge_unknown">Price: posted at the entrance</string>
+    <string name="lot_hours">Hours: %1$s</string>
+    <string name="lot_hours_always">Open 24/7</string>
+    <string name="lot_data_note">Data from OpenStreetMap, updated %1$s. It may not be fully up to date — check at the entrance.</string>
+    <string name="pay_pango">Pango</string>
+    <string name="pay_cellopark">Cellopark</string>
+    <string name="pay_chooser_title">Pay for blue-white parking</string>
+    <string name="pay_chooser_body">Which app do you pay with?</string>
+    <string name="car_explain_title">Parked? Save your car</string>
+    <string name="car_explain_ok">Save my car here</string>
+    <string name="car_explain_body">We\'ll remember where it is. When you leave, one tap hands the spot on, and you get +15 points.</string>
+    <string name="settings_pay_app">Parking payment app</string>
+    <string name="settings_pay_ask">Ask every time</string>
+    <string name="pay_chooser_remember">We\'ll remember your choice. Change it any time in Settings.</string>
+    <string name="rewards_title">Rewards</string>
+    <string name="rewards_level_safe">Spending never lowers your level.</string>
+    <string name="rewards_partners_soon_title">Coming soon: real rewards</string>
+    <string name="rewards_partners_soon_body">A free hour of parking, a car wash, a coffee — from partner businesses. Start collecting.</string>
+    <string name="rewards_missing">%1$d pts to go</string>
+    <string name="rewards_buy">Redeem</string>
+    <string name="rewards_confirm_body">Redeem for %1$d points? Your level stays.</string>
+    <string name="rewards_my_codes">My codes</string>
+    <string name="rewards_code_title">Your code</string>
+    <string name="rewards_code_body">Show it at the business. It stays here under \"My codes\".</string>
+    <string name="sign_title">Can I park here?</string>
+    <string name="sign_intro">Snap the parking sign and get a clear answer for right now.</string>
+    <string name="sign_shoot">Snap a sign</string>
+    <string name="sign_again">Snap another sign</string>
+    <string name="sign_reading">Reading the sign…</string>
+    <string name="sign_allowed">You can park now</string>
+    <string name="sign_not_allowed">No parking now</string>
+    <string name="sign_unclear">The sign isn\'t clear</string>
+    <string name="sign_until">until %1$s</string>
+    <string name="sign_paid">Paid parking</string>
+    <string name="sign_disclaimer">An AI answer for a driver without a permit — it can be wrong. Always check the sign itself.</string>
+    <string name="report_auto_filled">AI · Filled in from the photo — change anything</string>
+    <string name="report_not_a_spot">This photo doesn\'t look like a free spot. If that\'s wrong, carry on — or retake it.</string>
+    <string name="login_google">Continue with Google</string>
+    <string name="login_or">or with a code</string>
+    <string name="login_google_failed">Google sign-in didn\'t work. Try again, or sign in with a code.</string>
+    <string name="ad_label">Sponsored</string>
+    <string name="ad_open_link">Learn more</string>
+    <string name="ad_navigate">Take me there</string>
+    <string name="ad_close">Close</string>
+    <string name="reminder_button">Remind me 10 min before %1$s</string>
+    <string name="reminder_set">✓ We\'ll remind you at %1$s</string>
+    <string name="reminder_channel">Parking reminders</string>
+    <string name="reminder_title">Your parking changes in 10 minutes</string>
+    <string name="reminder_text_paid">From %1$s parking is paid — pay in Pango/Cellopark or move the car.</string>
+    <string name="reminder_text_forbidden">From %1$s no parking here — better move the car.</string>
+    <string name="reminder_text_allowed">From %1$s you may park here.</string>
+    <string name="reminder_countdown">⏰ %1$s until your parking changes</string>
+    <string name="forecast_tag">Forecast</string>
+    <string name="tip_best_hour">Around you, parking is easiest to find between %1$s and %2$s</string>
+    <plurals name="forecast_every">
+        <item quantity="one">At this hour a spot frees up here about every minute</item>
+        <item quantity="two">At this hour a spot frees up here about every %d min</item>
+        <item quantity="other">At this hour a spot frees up here about every %d min</item>
+    </plurals>
+    <string name="car_bt_setting">Automatic parking detection</string>
+    <string name="car_bt_setting_sub">From your car\'s Bluetooth — no location tracking</string>
+    <string name="car_bt_off">Off</string>
+    <string name="car_bt_pick">Which device is your car?</string>
+    <string name="car_bt_channel">Parked / leaving</string>
+    <string name="car_bt_park_title">Parked? 🚗</string>
+    <string name="car_bt_park_text">One tap and we\'ll remember where your car is.</string>
+    <string name="car_bt_leave_title">Leaving your spot?</string>
+    <string name="car_bt_leave_text">One tap hands it to the next driver · +15</string>
+    <string name="dock_parked">Parked</string>
+    <string name="dock_my_car">Parked ✓</string>
+    <string name="dock_report">Report</string>
+    <string name="dock_leave">I\'m leaving</string>
+    <string name="dock_reminder">⏰ %1$d min to change</string>
+    <string name="dock_sign">Can I park?</string>
+    <string name="car_line_title">Your car:</string>
+    <string name="parked_pay_title">Parked! Car saved</string>
+    <string name="parked_pay_body">Blue-white curb? Start paying in one tap:</string>
+    <string name="parked_pay_free">It\'s free, no need</string>
+    <string name="settings_pay_none">None — I don\'t pay for street parking</string>
+    <string name="car_next_to_you">next to you</string>
+    <string name="car_from_you">%1$s from you</string>
+    <string name="stop_pay_title">Don\'t forget to stop parking in %1$s</string>
+    <string name="stop_pay_body">If you started paying, stop it now so you don\'t pay for time you weren\'t parked.</string>
+    <string name="stop_pay_open">Stop in %1$s</string>
+    <string name="stop_pay_done">Already stopped</string>
+    <string name="car_end_parking">End parking</string>
+    <string name="profile_points_count">%1$d points</string>
+    <string name="profile_rewards_hint">%1$d to spend</string>
+    <string name="profile_levels_link">Levels and perks</string>
+    <string name="badges_progress_short">%1$d of %2$d</string>
+    <plurals name="profile_reports_count">
+        <item quantity="one">1 report</item>
+        <item quantity="other">%d reports</item>
+    </plurals>
+    <string name="rewards_tab_partners">Partners</string>
+    <string name="rewards_tab_legends">Characters</string>
+    <string name="rewards_tab_car">Car</string>
+    <string name="rewards_tab_backdrops">Backgrounds</string>
+    <string name="rewards_balance_line">points to spend</string>
+    <string name="rewards_owned">Yours</string>
+    <string name="rewards_in_use">In use</string>
+    <string name="profile_change_backdrop">Change background</string>
+    <string name="car_line_hint">Details, payment and ending parking</string>
+    <string name="car_pay_short">Pay in Pango / Cellopark</string>
+    <string name="car_handoff_title">Hand the spot to the next driver?</string>
+    <string name="car_handoff_body">It shows on the map for drivers looking nearby, and you get +15 points.</string>
+    <string name="car_handoff_yes">Yes, hand it on (+15)</string>
+    <string name="car_handoff_no">Just end</string>
+    <string name="forecast_scope_area">by neighbourhood</string>
+    <string name="forecast_scope_city">by city</string>
+    <string name="forecast_no_data">Not enough reports here yet. Every report helps.</string>
+    <string name="forecast_rare">Spots rarely free up here at this hour</string>
 </resources>

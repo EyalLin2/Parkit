@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.ui.graphics.graphicsLayer
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -147,12 +149,12 @@ fun SpotActionsSheet(
     val canClaim = spot.status == "active" && !isMine
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding()) {
             // 1. Where — the address, with the close button.
             Row(verticalAlignment = Alignment.Top) {
                 Text(
@@ -269,6 +271,7 @@ fun SpotActionsSheet(
             // 4. Details — each on its own line with an icon, in one soft
             // panel, so nothing is lost and nothing competes with the button.
             val details = buildList {
+                spot.note?.let { add(Triple(Icons.Filled.Info, stringResource(R.string.spot_note, it), Color(0xFFE37400))) }
                 spot.vehicleSize?.let { size ->
                     val label = stringResource(
                         when (size) {
@@ -398,9 +401,10 @@ fun SpotActionsSheet(
                 Column {
                     listOf(
                         "photo" to R.string.content_report_photo,
+                        "note" to R.string.content_report_note,
                         "user" to R.string.content_report_user,
                         "other" to R.string.content_report_other,
-                    ).filter { (reason, _) -> reason != "photo" || photoUrl != null }.forEach { (reason, label) ->
+                    ).filter { (reason, _) -> (reason != "photo" || photoUrl != null) && (reason != "note" || spot.note != null) }.forEach { (reason, label) ->
                         TextButton(
                             onClick = {
                                 showContentReport = false

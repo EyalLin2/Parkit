@@ -69,10 +69,14 @@ data class SpotCreate(
     @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "photo_staging_id") val photoStagingId: String? = null,
     val address: String? = null,
+    /** Optional heads-up for the next driver (max 120 chars). */
+    val note: String? = null,
     // Where the phone is — the server only accepts reports made near the spot.
     @Json(name = "reporter_lat") val reporterLat: Double? = null,
     @Json(name = "reporter_lng") val reporterLng: Double? = null,
     @Json(name = "reporter_accuracy_m") val reporterAccuracyM: Float? = null,
+    /** "I'm leaving" from a saved car: the server adds a hand-off bonus. */
+    val handoff: Boolean = false,
 )
 
 @JsonClass(generateAdapter = true)
@@ -86,6 +90,7 @@ data class SpotOut(
     @Json(name = "vehicle_size") val vehicleSize: String?,
     @Json(name = "photo_url") val photoUrl: String?,
     val address: String? = null,
+    val note: String? = null,
     val status: String,
     @Json(name = "reported_at") val reportedAt: String,
     @Json(name = "claimed_by") val claimedBy: String?,
@@ -97,7 +102,7 @@ data class SpotOut(
 @JsonClass(generateAdapter = true)
 data class FeedbackCreate(val type: String)
 
-/** "This photo / name is offensive" — reason is photo, user or other. */
+/** "This photo / note / name is offensive" — reason is photo, note, user or other. */
 @JsonClass(generateAdapter = true)
 data class ContentReport(val reason: String, val note: String? = null)
 
@@ -126,6 +131,8 @@ data class ProfileOut(
     @Json(name = "display_name") val displayName: String,
     val points: Int,
     @Json(name = "weekly_points") val weeklyPoints: Int,
+    /** Left to spend in the rewards shop (the level follows [points]). */
+    @Json(name = "points_balance") val pointsBalance: Int = 0,
     val avatar: String? = null,
     @Json(name = "weekly_rank") val weeklyRank: Int? = null,
     @Json(name = "weekly_city_rank") val weeklyCityRank: Int? = null,
@@ -147,6 +154,8 @@ data class ProfileOut(
 data class Preferences(
     @Json(name = "vehicle_size") val vehicleSize: String? = null,
     @Json(name = "car_label") val carLabel: String? = null,
+    /** "#RRGGBB" from the registry's colour for the car. */
+    @Json(name = "car_paint") val carPaint: String? = null,
     @Json(name = "has_disabled_permit") val hasDisabledPermit: Boolean = false,
     @Json(name = "home_city") val homeCity: String? = null,
 ) {
@@ -162,6 +171,7 @@ data class VehicleLookupOut(
     val body: String?,
     val size: String,
     val label: String,
+    val paint: String? = null,
 )
 
 /** A public off-street car park (OpenStreetMap). Most fields are often
@@ -177,7 +187,11 @@ data class ParkingLotOut(
     val fee: String?,
     val capacity: Int?,
     val operator: String?,
+    /** OSM "charge" (e.g. "12 ILS/hour") — rarely mapped. */
+    val charge: String? = null,
+    @Json(name = "opening_hours") val openingHours: String? = null,
     @Json(name = "distance_m") val distanceM: Double,
+    @Json(name = "data_updated_at") val dataUpdatedAt: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -216,3 +230,85 @@ data class ApiErrorBody(val detail: String? = null)
  * looked up again in English (see SpotAddressCache), so this is null there. */
 val SpotOut.localAddress: String?
     get() = address.takeIf { java.util.Locale.getDefault().language != "en" }
+
+/** One item in the rewards shop: a ParkIt car finish ("cosmetic") or a
+ * business's benefit ("partner"). */
+@JsonClass(generateAdapter = true)
+data class RewardOut(
+    val id: Int,
+    val kind: String,
+    val key: String?,
+    @Json(name = "title_he") val titleHe: String,
+    @Json(name = "title_en") val titleEn: String,
+    val partner: String?,
+    @Json(name = "description_he") val descriptionHe: String?,
+    @Json(name = "description_en") val descriptionEn: String?,
+    val cost: Int,
+    val owned: Boolean = false,
+)
+
+@JsonClass(generateAdapter = true)
+data class RedemptionOut(
+    @Json(name = "reward_id") val rewardId: Int,
+    @Json(name = "title_he") val titleHe: String,
+    @Json(name = "title_en") val titleEn: String,
+    val partner: String?,
+    val code: String,
+    @Json(name = "created_at") val createdAt: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class ShopOut(
+    val balance: Int,
+    val rewards: List<RewardOut>,
+    val redemptions: List<RedemptionOut>,
+)
+
+/** The sign reader's answer for a regular driver, right now. */
+@JsonClass(generateAdapter = true)
+data class SignReading(
+    val verdict: String, // allowed | not_allowed | unclear
+    val until: String? = null,
+    /** Next change today ("19:00") and what it changes to — the reminder's time. */
+    @Json(name = "changes_at") val changesAt: String? = null,
+    @Json(name = "changes_to") val changesTo: String? = null,
+    val paid: Boolean? = null,
+    @Json(name = "summary_he") val summaryHe: String,
+    @Json(name = "summary_en") val summaryEn: String,
+)
+
+/** What the report photo seems to show — pre-fills the form (advice only). */
+@JsonClass(generateAdapter = true)
+data class PhotoHints(
+    @Json(name = "looks_like_free_spot") val looksLikeFreeSpot: Boolean = true,
+    @Json(name = "blue_white_curb") val blueWhiteCurb: Boolean = false,
+    @Json(name = "disabled_spot") val disabledSpot: Boolean = false,
+)
+
+@JsonClass(generateAdapter = true)
+data class GoogleLogin(@Json(name = "id_token") val idToken: String)
+
+/** A local sponsored card ("ממומן"), picked by location only. */
+@JsonClass(generateAdapter = true)
+data class AdOut(
+    val id: Int,
+    val advertiser: String,
+    @Json(name = "title_he") val titleHe: String,
+    @Json(name = "title_en") val titleEn: String,
+    @Json(name = "body_he") val bodyHe: String?,
+    @Json(name = "body_en") val bodyEn: String?,
+    val category: String,
+    val lat: Double,
+    val lng: Double,
+    @Json(name = "distance_m") val distanceM: Double,
+    @Json(name = "link_url") val linkUrl: String?,
+)
+
+/** From report history: at this hour a spot frees up here about every N minutes. */
+@JsonClass(generateAdapter = true)
+data class AreaForecast(@Json(name = "every_minutes") val everyMinutes: Int, val reports: Int, val days: Int, val scope: String = "street")
+
+/** From report history: the hour with the most free spots reported nearby. */
+@JsonClass(generateAdapter = true)
+data class BestHour(val hour: Int, val reports: Int, val scope: String = "street")
+

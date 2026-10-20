@@ -98,6 +98,39 @@ class SessionStore(context: Context) {
             e.apply()
         }
 
+    /** A finish bought in the rewards shop that the car wears ("paint_gold"…), or null. */
+    // Per account (cleared on logout): a finish one driver bought must not
+    // show up for the next person who signs in on this phone.
+    /** The profile header background bought in the shop ("bg_*"), null = default. */
+    var profileBackground: String?
+        get() = prefs.getString("profile_bg", null)
+        set(value) = prefs.edit().apply { if (value == null) remove("profile_bg") else putString("profile_bg", value) }.apply()
+
+    var carSpecial: String?
+        get() = prefs.getString("car_special", null)
+        set(value) = prefs.edit().apply { if (value == null) remove("car_special") else putString("car_special", value) }.apply()
+
+    /** The day (yyyy-MM-dd) the daily parking tip was last shown or closed. */
+    var tipShownDay: String?
+        get() = device.getString("tip_shown_day", null)
+        set(value) = device.edit().putString("tip_shown_day", value).apply()
+
+    /** When the full-screen "on open" ad was last shown (epoch ms). */
+    var lastOpenAdAt: Long
+        get() = device.getLong("last_open_ad_at", 0L)
+        set(value) = device.edit().putLong("last_open_ad_at", value).apply()
+
+    /** "I just parked" was explained once on this install. */
+    var carExplained: Boolean
+        get() = device.getBoolean("car_explained", false)
+        set(value) = device.edit().putBoolean("car_explained", value).apply()
+
+    /** Paint the driver picked by hand for the car illustration (index into
+     * CarPaints); -1 = use the colour from the vehicle registry. */
+    var carPaint: Int
+        get() = prefs.getInt("car_paint", -1)
+        set(value) = prefs.edit().putInt("car_paint", value).apply()
+
     /** The post-sign-up "how ParkIt works" tips were shown on this install. */
     var tipsSeen: Boolean
         get() = device.getBoolean("tips_seen", false)
@@ -108,6 +141,7 @@ class SessionStore(context: Context) {
         prefs.edit()
             .putString(KEY_VEHICLE_SIZE, p.vehicleSize)
             .putString(KEY_CAR_LABEL, p.carLabel)
+            .putString(KEY_CAR_PAINT, p.carPaint)
             .putBoolean(KEY_DISABLED_PERMIT, p.hasDisabledPermit)
             .putString(KEY_HOME_CITY, p.homeCity)
             .putString(KEY_HOME_LAT, d.homeLat?.toString())
@@ -128,6 +162,7 @@ class SessionStore(context: Context) {
         Preferences(
             vehicleSize = prefs.getString(KEY_VEHICLE_SIZE, null),
             carLabel = prefs.getString(KEY_CAR_LABEL, null),
+            carPaint = prefs.getString(KEY_CAR_PAINT, null),
             hasDisabledPermit = prefs.getBoolean(KEY_DISABLED_PERMIT, false),
             homeCity = prefs.getString(KEY_HOME_CITY, null),
         ),
@@ -169,6 +204,7 @@ class SessionStore(context: Context) {
         private const val KEY_LAST_LEVEL = "last_seen_level"
         private const val KEY_VEHICLE_SIZE = "vehicle_size"
         private const val KEY_CAR_LABEL = "car_label"
+        private const val KEY_CAR_PAINT = "car_paint_hex"
         private const val KEY_DISABLED_PERMIT = "has_disabled_permit"
         private const val KEY_HOME_CITY = "home_city"
         private const val KEY_HOME_LAT = "home_lat"

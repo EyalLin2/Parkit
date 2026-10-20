@@ -11,9 +11,17 @@
          installed before opening it (see PangoLink). -->
     <queries>
         <package android:name="com.unicell.pangoandroid" />
+        <package android:name="air.com.cellogroup.Cellopark" />
         <package android:name="com.waze" />
         <package android:name="com.google.android.apps.maps" />
     </queries>
+
+    <!-- The parking reminder ("paid from 19:00") — asked for only when the driver sets one. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- "Parked? / Leaving?" from the car's own Bluetooth — asked only when the
+         driver turns it on in Settings. No scanning, no location. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
         android:allowBackup="false"
@@ -45,5 +53,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <receiver android:name=".remind.ReminderReceiver" android:exported="false" />
+        <receiver android:name=".remind.CarBluetoothReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
 from database import get_db
-from models import User
+from models import Redemption, Reward, User
 from redis_client import get_redis
 from schemas import AccountOut, AvatarUpdate, CityOut, DetailsUpdate, Preferences, PreferencesUpdate, VehicleLookupOut
 from vehicles import lookup, normalise_plate
@@ -21,6 +21,7 @@ def preferences_of(user: User) -> Preferences:
     return Preferences(
         vehicle_size=user.vehicle_size,
         car_label=user.car_label,
+        car_paint=user.car_paint,
         has_disabled_permit=user.has_disabled_permit,
         home_city=user.home_city,
     )
@@ -51,6 +52,17 @@ async def set_avatar(
     user = await db.get(User, user_id)
     if user is None:
         raise HTTPException(404, "Unknown user")
+    if payload.avatar and payload.avatar.startswith("avatar_legend_"):
+        # A legend is worn only after it's bought in the rewards shop.
+        owned = (
+            await db.execute(
+                select(Redemption.id)
+                .join(Reward, Reward.id == Redemption.reward_id)
+                .where(Redemption.user_id == user_id, Reward.key == payload.avatar)
+            )
+        ).first()
+        if owned is None:
+            raise HTTPException(403, "Unlock this avatar in the rewards shop first")
     user.avatar = payload.avatar
     await db.commit()
 
@@ -99,7 +111,13 @@ async def vehicle_lookup(
     if info is None:
         raise HTTPException(404, "Plate not found in the registry")
     return VehicleLookupOut(
-        make=info.make, model=info.model, year=info.year, body=info.body, size=info.size, label=info.label
+        make=info.make,
+        model=info.model,
+        year=info.year,
+        body=info.body,
+        size=info.size,
+        label=info.label,
+        paint=info.paint,
     )
 
 

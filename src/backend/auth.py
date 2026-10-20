@@ -8,10 +8,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from config import settings
 
 JWT_ALGORITHM = "HS256"
-# Sessions are short and sliding: a token lives settings.session_idle_minutes
-# (30 by default) and the app swaps it for a fresh one while it's in use
-# (POST /auth/refresh). Leave the app for longer than that and the next
-# open asks for a new SMS code.
+# Sessions are sliding: a token lives settings.session_idle_minutes (two
+# weeks by default) and the app swaps it for a fresh one while it's in use
+# (POST /auth/refresh). Stay away longer than that and the next open asks
+# for a new code.
 
 _security = HTTPBearer()
 

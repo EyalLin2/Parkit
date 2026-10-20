@@ -72,6 +72,9 @@ class User(Base):
 
     points: Mapped[int] = mapped_column(default=0)
     weekly_points: Mapped[int] = mapped_column(default=0)
+    # Redeemed in the rewards shop. Levels go by lifetime points; what's left
+    # to spend is points - points_spent.
+    points_spent: Mapped[int] = mapped_column(default=0)
     weekly_points_reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     consecutive_bad_reports: Mapped[int] = mapped_column(default=0)
     reporting_blocked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -80,6 +83,7 @@ class User(Base):
     # never stored — only what was derived from it (size + a display label).
     vehicle_size: Mapped[VehicleSize | None] = mapped_column(Enum(VehicleSize, name="vehicle_size"), nullable=True)
     car_label: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    car_paint: Mapped[str | None] = mapped_column(String(7), nullable=True)  # "#RRGGBB"
     has_disabled_permit: Mapped[bool] = mapped_column(default=False, server_default="false")
     home_city: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
@@ -104,6 +108,8 @@ class Spot(Base):
     # client at report time — stored once so every viewer's nearby list can
     # show it without each client re-geocoding every spot.
     address: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Optional heads-up from the reporter ("broken glass", "low branch").
+    note: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     status: Mapped[SpotStatus] = mapped_column(Enum(SpotStatus, name="spot_status"), default=SpotStatus.active)
     # How long the report stays on the map; set from the reporter's level
@@ -203,6 +209,18 @@ class OsmParkingLot(Base):
     fee: Mapped[str | None] = mapped_column(String(40), nullable=True)  # "yes" / "no" / unknown
     capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     operator: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    charge: Mapped[str | None] = mapped_column(String(120), nullable=True)  # OSM "charge", e.g. "12 ILS/hour"
+    opening_hours: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class OsmMeta(Base):
+    """Bookkeeping for the OSM import — when it last ran, so the app can say
+    how fresh the car park data is."""
+
+    __tablename__ = "osm_meta"
+
+    key: Mapped[str] = mapped_column(String(40), primary_key=True)
+    value: Mapped[str] = mapped_column(String(200))
 
 
 class AppFeedback(Base):
@@ -219,4 +237,66 @@ class AppFeedback(Base):
     message: Mapped[str] = mapped_column(String(8000))
     app_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     device: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class Reward(Base):
+    """Something points buy. "cosmetic" items are ParkIt's own (special car
+    paints); "partner" items are real-world benefits a business offers,
+    added by the admin, redeemed for a one-time code."""
+
+    __tablename__ = "rewards"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    kind: Mapped[str] = mapped_column(String(16))  # "cosmetic" | "partner"
+    key: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True)  # cosmetic id, e.g. "paint_gold"
+    title_he: Mapped[str] = mapped_column(String(120))
+    title_en: Mapped[str] = mapped_column(String(120))
+    partner: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    description_he: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    description_en: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    cost: Mapped[int] = mapped_column(Integer)
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class Redemption(Base):
+    """One reward bought by one driver; partner rewards carry the code the
+    driver shows at the business."""
+
+    __tablename__ = "redemptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    reward_id: Mapped[int] = mapped_column(ForeignKey("rewards.id", ondelete="CASCADE"))
+    code: Mapped[str] = mapped_column(String(12), unique=True)
+    cost: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class Ad(Base):
+    """A local sponsored card ("ממומן"): a business near the driver. Chosen
+    by location only — no personal data — and sold directly to businesses
+    (added on /admin/ads)."""
+
+    __tablename__ = "ads"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    advertiser: Mapped[str] = mapped_column(String(120))
+    title_he: Mapped[str] = mapped_column(String(80))
+    title_en: Mapped[str] = mapped_column(String(80))
+    body_he: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    body_en: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    category: Mapped[str] = mapped_column(String(20), default="other")  # car_wash | garage | cafe | parking | other
+    geom: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326))
+    radius_m: Mapped[int] = mapped_column(Integer, default=1500)
+    # "card" = a row in the nearby list; "open" = full screen when the app opens.
+    placement: Mapped[str] = mapped_column(String(10), default="card")
+    link_url: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    active: Mapped[bool] = mapped_column(default=True)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    impressions: Mapped[int] = mapped_column(Integer, default=0)
+    clicks: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
