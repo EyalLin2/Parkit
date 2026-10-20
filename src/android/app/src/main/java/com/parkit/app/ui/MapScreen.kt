@@ -1403,7 +1403,6 @@ fun MapScreen(
                 ParkedCarCard(
                     car = car,
                     nearCar = nearMyCar,
-                    showWalk = deviceLocation?.distanceTo(LatLng(car.lat, car.lng))?.let { it >= NEAR_ME_M } ?: true,
                     onNavigate = { walkTo(context, car.lat, car.lng) },
                     onLeaving = { showCarSheet = false; leaveSpot(car) },
                     onPay = { ParkingPay.pay(context) { showPayChooser = true } },
@@ -2194,7 +2193,6 @@ private fun ClaimTripCard(
 private fun ParkedCarCard(
     car: com.parkit.app.auth.ParkedCar,
     nearCar: Boolean,
-    showWalk: Boolean,
     onNavigate: () -> Unit,
     onLeaving: () -> Unit,
     onPay: () -> Unit,
@@ -2233,7 +2231,7 @@ private fun ParkedCarCard(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
-                if (showWalk) TripAction(stringResource(R.string.car_navigate), Icons.AutoMirrored.Filled.DirectionsWalk, primary, Modifier.weight(1f), onNavigate)
+                TripAction(stringResource(R.string.car_navigate), Icons.AutoMirrored.Filled.DirectionsWalk, primary, Modifier.weight(1f), onNavigate)
                 // Blue-white curb? Pay in Pango / Cellopark without hunting for the app.
                 TripAction(stringResource(R.string.car_pay_short), Icons.Filled.Payments, Color(0xFF1565C0), Modifier.weight(1f), onPay)
             }
@@ -2580,9 +2578,8 @@ private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
-            // The one thing people want from this line: get back to the car
-            // (not when you're already standing by it).
-            if (distanceM == null || distanceM >= NEAR_ME_M) Surface(
+            // The one thing people want from this line: get back to the car.
+            Surface(
                 onClick = onWalk,
                 shape = RoundedCornerShape(50),
                 color = MaterialTheme.colorScheme.primary,
