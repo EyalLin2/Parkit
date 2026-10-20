@@ -67,7 +67,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.StopCircle
-import androidx.compose.material.icons.filled.Garage
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material3.BottomSheetScaffold
@@ -1736,7 +1735,13 @@ private fun LotsChip(checked: Boolean, onClick: () -> Unit) {
         modifier = Modifier.height(36.dp).clickable(onClick = onClick),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 11.dp)) {
-            Icon(Icons.Filled.Garage, contentDescription = null, tint = if (checked) Color.White else slate, modifier = Modifier.size(18.dp))
+            // ₪ where the other chips have an icon: says "paid" at a glance.
+            Text(
+                "₪",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = if (checked) Color.White else slate,
+            )
             Text(
                 stringResource(R.string.map_filter_lots),
                 style = MaterialTheme.typography.labelLarge,
