@@ -93,7 +93,7 @@ async def _reconcile_spot_states(db: AsyncSession) -> None:
             Spot.status == SpotStatus.active,
             Spot.reported_at + func.make_interval(0, 0, 0, 0, 0, Spot.ttl_minutes) < now,
         )
-        .values(status=SpotStatus.expired, removed_reason=RemovedReason.expired, removed_at=now)
+        .values(status=SpotStatus.expired, removed_reason=RemovedReason.expired, removed_at=now, photo_url=None)
     )
     await db.commit()
 
@@ -364,6 +364,7 @@ async def submit_feedback(
         spot.removed_reason = RemovedReason.taken_confirmed
         spot.removed_at = now
         delete_photo(spot.photo_url)
+        spot.photo_url = None
         reporter.consecutive_bad_reports = 0
         if now - spot.reported_at <= timedelta(minutes=CONFIRM_BONUS_WINDOW_MINUTES):
             award_points(reporter, POINTS_CONFIRM_BONUS)
@@ -380,6 +381,7 @@ async def submit_feedback(
             spot.removed_reason = RemovedReason.flagged_false
             spot.removed_at = now
             delete_photo(spot.photo_url)
+            spot.photo_url = None
             award_points(reporter, -POINTS_FALSE_PENALTY)
             reporter.consecutive_bad_reports += 1
             if reporter.consecutive_bad_reports >= BAD_REPORT_BLOCK_THRESHOLD:

@@ -101,6 +101,11 @@ class SessionStore(context: Context) {
     /** A finish bought in the rewards shop that the car wears ("paint_gold"…), or null. */
     // Per account (cleared on logout): a finish one driver bought must not
     // show up for the next person who signs in on this phone.
+    /** The profile header background bought in the shop ("bg_*"), null = default. */
+    var profileBackground: String?
+        get() = prefs.getString("profile_bg", null)
+        set(value) = prefs.edit().apply { if (value == null) remove("profile_bg") else putString("profile_bg", value) }.apply()
+
     var carSpecial: String?
         get() = prefs.getString("car_special", null)
         set(value) = prefs.edit().apply { if (value == null) remove("car_special") else putString("car_special", value) }.apply()

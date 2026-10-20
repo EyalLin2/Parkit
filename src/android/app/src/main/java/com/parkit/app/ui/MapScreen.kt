@@ -66,6 +66,10 @@ import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material.icons.filled.Garage
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -867,7 +871,12 @@ fun MapScreen(
                 cameraMoving = false
                 // While we're still finding the user, the overview camera is
                 // not a place anyone wants spots or an address for.
-                if (!locating || userTookOver) geocodeTarget = m.cameraPosition.target ?: geocodeTarget
+                if (!locating || userTookOver) {
+                    val target = m.cameraPosition.target ?: geocodeTarget
+                    if (target == geocodeTarget) addressLoading = false else geocodeTarget = target
+                } else {
+                    addressLoading = false
+                }
             }
             m.addOnMapClickListener { latLng ->
                 val point = m.projection.toScreenLocation(latLng)
@@ -1025,8 +1034,11 @@ fun MapScreen(
 
     // Forecast for the area on screen (silent until there's enough history).
     var forecast by remember { mutableStateOf<com.parkit.app.api.AreaForecast?>(null) }
+    var forecastNoData by remember { mutableStateOf(false) }
     LaunchedEffect(geocodeTarget) {
-        forecast = runCatching { api.areaForecast(geocodeTarget.latitude, geocodeTarget.longitude) }.getOrNull()
+        runCatching { api.areaForecast(geocodeTarget.latitude, geocodeTarget.longitude) }
+            .onSuccess { forecast = it; forecastNoData = it == null }
+            .onFailure { forecast = null; forecastNoData = false }
     }
     // Daily tip: once a day, the best hour to find parking around you.
     var dailyTip by remember { mutableStateOf<com.parkit.app.api.BestHour?>(null) }
@@ -1138,6 +1150,7 @@ fun MapScreen(
                 ad = nearbyAd,
                 onAdShown = { ad -> scope.launch { runCatching { api.adView(ad.id) } } },
                 forecast = forecast,
+                forecastNoData = forecastNoData,
                 dailyTip = dailyTip,
                 onTipShown = { sessionStore.tipShownDay = java.time.LocalDate.now().toString() },
                 onTipClose = { dailyTip = null },
@@ -1322,12 +1335,12 @@ fun MapScreen(
     }
 
     stopPayIn?.let { app ->
-        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { stopPayIn = null }) {
+        androidx.compose.material3.ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = { stopPayIn = null }) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 20.dp).navigationBarsPadding(),
             ) {
-                Text("⏹", fontSize = 34.sp)
+                Icon(Icons.Filled.StopCircle, contentDescription = null, tint = Color(app.brand), modifier = Modifier.size(44.dp))
                 Text(
                     stringResource(R.string.stop_pay_title, stringResource(app.label)),
                     style = MaterialTheme.typography.titleLarge,
@@ -1359,7 +1372,7 @@ fun MapScreen(
     }
 
     if (showParkedPay) {
-        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showParkedPay = false }) {
+        androidx.compose.material3.ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = { showParkedPay = false }) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 20.dp).navigationBarsPadding()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF188038), modifier = Modifier.size(26.dp))
@@ -1387,9 +1400,11 @@ fun MapScreen(
 
     if (showCarSheet) {
         parkedCar?.let { car ->
-            androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showCarSheet = false }) {
+            androidx.compose.material3.ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = { showCarSheet = false }) {
                 ParkedCarCard(
                     car = car,
+                    nearCar = nearMyCar,
+                    showWalk = deviceLocation?.distanceTo(LatLng(car.lat, car.lng))?.let { it >= NEAR_ME_M } ?: true,
                     onNavigate = { walkTo(context, car.lat, car.lng) },
                     onLeaving = { showCarSheet = false; leaveSpot(car) },
                     onPay = { ParkingPay.pay(context) { showPayChooser = true } },
@@ -1407,7 +1422,7 @@ fun MapScreen(
     if (showCarExplainer) {
         // Short and visual: your own car, one line, one button.
         val prefs = sessionStore.driver.value.preferences
-        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showCarExplainer = false }) {
+        androidx.compose.material3.ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = { showCarExplainer = false }) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding(),
@@ -1448,7 +1463,7 @@ fun MapScreen(
     }
 
     if (showPayChooser) {
-        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showPayChooser = false }) {
+        androidx.compose.material3.ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = { showPayChooser = false }) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
                 Text(stringResource(R.string.pay_chooser_title), style = MaterialTheme.typography.titleLarge)
                 Text(
@@ -1709,8 +1724,8 @@ private fun MapChip(label: String, icon: ImageVector, selected: Boolean, onClick
     }
 }
 
-/** An on/off toggle, not one of the single-choice type filters above: a
- * checkbox and the car-park slate, so it reads as "also show lots". */
+/** An on/off toggle, not one of the single-choice type filters above: it
+ * fills with the car-park slate when lots are shown. */
 @Composable
 private fun LotsChip(checked: Boolean, onClick: () -> Unit) {
     val slate = Color(android.graphics.Color.parseColor(MarkerBitmaps.LOT_COLOR))
@@ -1721,12 +1736,7 @@ private fun LotsChip(checked: Boolean, onClick: () -> Unit) {
         modifier = Modifier.height(36.dp).clickable(onClick = onClick),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 11.dp)) {
-            Icon(
-                if (checked) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
-                contentDescription = null,
-                tint = if (checked) Color.White else slate,
-                modifier = Modifier.size(18.dp),
-            )
+            Icon(Icons.Filled.Garage, contentDescription = null, tint = if (checked) Color.White else slate, modifier = Modifier.size(18.dp))
             Text(
                 stringResource(R.string.map_filter_lots),
                 style = MaterialTheme.typography.labelLarge,
@@ -1789,6 +1799,7 @@ private fun NearbySheet(
     ad: com.parkit.app.api.AdOut? = null,
     onAdClick: (com.parkit.app.api.AdOut) -> Unit = {},
     forecast: com.parkit.app.api.AreaForecast? = null,
+    forecastNoData: Boolean = false,
     onAdShown: (com.parkit.app.api.AdOut) -> Unit = {},
     dailyTip: com.parkit.app.api.BestHour? = null,
     onTipShown: () -> Unit = {},
@@ -1825,7 +1836,7 @@ private fun NearbySheet(
                     else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
                     style = MaterialTheme.typography.titleLarge,
                 )
-                forecast?.let {
+                if (forecast != null || forecastNoData) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                         Text(
                             stringResource(R.string.forecast_tag),
@@ -1837,9 +1848,18 @@ private fun NearbySheet(
                                 .padding(horizontal = 6.dp),
                         )
                         Text(
-                            pluralStringResource(R.plurals.forecast_every, it.everyMinutes, it.everyMinutes),
+                            forecast?.let {
+                                // Past an hour and a half a number reads as noise.
+                                (if (it.everyMinutes > 90) stringResource(R.string.forecast_rare) else pluralStringResource(R.plurals.forecast_every, it.everyMinutes, it.everyMinutes)) + when (it.scope) {
+                                    "area" -> " · " + stringResource(R.string.forecast_scope_area)
+                                    "city" -> " · " + stringResource(R.string.forecast_scope_city)
+                                    else -> ""
+                                }
+                            } ?: stringResource(R.string.forecast_no_data),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(start = 6.dp),
                         )
                     }
@@ -1847,7 +1867,7 @@ private fun NearbySheet(
                 dailyTip?.let { tip ->
                     LaunchedEffect(tip) { onTipShown() }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
-                        Text("💡", fontSize = 13.sp)
+                        Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = Color(0xFFE37400), modifier = Modifier.size(15.dp))
                         Text(
                             stringResource(R.string.tip_best_hour, "%d:00".format(tip.hour), "%d:00".format((tip.hour + 1) % 24)),
                             style = MaterialTheme.typography.bodySmall,
@@ -2168,6 +2188,8 @@ private fun ClaimTripCard(
 @Composable
 private fun ParkedCarCard(
     car: com.parkit.app.auth.ParkedCar,
+    nearCar: Boolean,
+    showWalk: Boolean,
     onNavigate: () -> Unit,
     onLeaving: () -> Unit,
     onPay: () -> Unit,
@@ -2204,25 +2226,36 @@ private fun ParkedCarCard(
                     )
                     ReminderCountdown()
                 }
-                androidx.compose.material3.IconButton(onClick = onForget) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.car_forget_cd), modifier = Modifier.size(18.dp))
-                }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
-                TripAction(stringResource(R.string.car_navigate), Icons.AutoMirrored.Filled.DirectionsWalk, primary, Modifier.weight(1f), onNavigate)
-                TripAction(stringResource(R.string.car_leaving), Icons.AutoMirrored.Filled.Logout, green, Modifier.weight(1f), onLeaving)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+                if (showWalk) TripAction(stringResource(R.string.car_navigate), Icons.AutoMirrored.Filled.DirectionsWalk, primary, Modifier.weight(1f), onNavigate)
+                // Blue-white curb? Pay in Pango / Cellopark without hunting for the app.
+                TripAction(stringResource(R.string.car_pay_short), Icons.Filled.Payments, Color(0xFF1565C0), Modifier.weight(1f), onPay)
             }
-            // Blue-white curb? Pay in Pango / Cellopark without hunting for the app.
-            TripAction(
-                stringResource(R.string.car_pay),
-                Icons.Filled.Payments,
-                Color(0xFF1565C0),
-                Modifier.fillMaxWidth().padding(top = 8.dp),
-                onPay,
-            )
-            // Not at the car, or not handing the spot on: just end the parking.
-            androidx.compose.material3.TextButton(onClick = onForget, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp)) {
-                Text(stringResource(R.string.car_end_parking), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // One way to finish. By the car it offers to hand the spot on
+            // (+15); away from it, it just ends the parking.
+            var askHandOff by remember { mutableStateOf(false) }
+            androidx.compose.material3.Button(
+                onClick = { if (nearCar) askHandOff = true else onForget() },
+                shape = RoundedCornerShape(14.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = green),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(48.dp),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(stringResource(R.string.car_end_parking), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 6.dp))
+            }
+            if (askHandOff) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { askHandOff = false },
+                    title = { Text(stringResource(R.string.car_handoff_title)) },
+                    text = { Text(stringResource(R.string.car_handoff_body)) },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { askHandOff = false; onLeaving() }) { Text(stringResource(R.string.car_handoff_yes)) }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { askHandOff = false; onForget() }) { Text(stringResource(R.string.car_handoff_no)) }
+                    },
+                )
             }
         }
     }
@@ -2280,7 +2313,7 @@ private fun BrandedMapLoader() {
 }
 
 /** The same invite as Settings → "Invite friends", one tap from an empty map. */
-private fun inviteFriends(context: android.content.Context) {
+internal fun inviteFriends(context: android.content.Context) {
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, context.getString(R.string.profile_share_message))
@@ -2510,26 +2543,41 @@ private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM
     val context = LocalContext.current
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 6.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)) {
             CarArt(look.size ?: "regular", look.paint, MaterialTheme.colorScheme.outline, Modifier.width(34.dp), special = look.special, animate = false)
-            Text(
-                stringResource(R.string.car_line_title) + " " + listOfNotNull(
-                    car.address?.substringBefore(",")?.trim(), // the street is enough here
-                    distanceM?.let { if (it < NEAR_ME_M) context.getString(R.string.car_next_to_you) else context.getString(R.string.car_from_you, formatDistanceShort(context, it)) },
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-            )
+            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                Text(
+                    stringResource(R.string.car_line_title) + " " + listOfNotNull(
+                        car.address?.substringBefore(",")?.trim(), // the street is enough here
+                        distanceM?.let { if (it < NEAR_ME_M) context.getString(R.string.car_next_to_you) else context.getString(R.string.car_from_you, formatDistanceShort(context, it)) },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // Says the line opens something — it looked like a label before.
+                Text(
+                    stringResource(R.string.car_line_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                )
+            }
             ReminderCountdownInline()
-            // The one thing people want from this line: get back to the car.
-            Surface(
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+            // The one thing people want from this line: get back to the car
+            // (not when you're already standing by it).
+            if (distanceM == null || distanceM >= NEAR_ME_M) Surface(
                 onClick = onWalk,
                 shape = RoundedCornerShape(50),
                 color = MaterialTheme.colorScheme.primary,
@@ -2557,7 +2605,8 @@ private fun ReminderCountdownInline() {
     }
     val ms = left ?: return
     val minutes = ms / 60_000
-    Text("⏰ %d:%02d".format(minutes / 60, minutes % 60), style = MaterialTheme.typography.labelMedium, color = Color(0xFFE37400))
+    Icon(Icons.Filled.Alarm, contentDescription = null, tint = Color(0xFFE37400), modifier = Modifier.size(14.dp))
+    Text("%d:%02d".format(minutes / 60, minutes % 60), style = MaterialTheme.typography.labelMedium, color = Color(0xFFE37400), modifier = Modifier.padding(start = 2.dp))
 }
 
 /** How the driver's own car is drawn (same as the profile and the map). */

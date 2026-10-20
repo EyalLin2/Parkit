@@ -282,3 +282,27 @@ async def test_taking_a_handed_on_spot_back_returns_the_bonus_too(client, make_u
     assert (await client.delete(f"/spots/{spot['id']}", headers=headers)).status_code == 204
     me = (await client.get("/users/me", headers=headers)).json()
     assert me["points"] == 0
+
+
+async def test_cleanup_expires_spots_and_drops_their_photo_pointer(client, make_user):
+    from sqlalchemy import text as sql
+
+    import cleanup
+    from database import engine
+
+    _, headers = await make_user("cleaner")
+    spot = (await _report(client, headers)).json()
+    async with engine.begin() as conn:
+        await conn.execute(
+            sql(
+                "UPDATE spots SET reported_at = now() - interval '2 hours', photo_url = '/media/x.jpg', note = 'old' "
+                "WHERE id = :id"
+            ),
+            {"id": spot["id"]},
+        )
+    await cleanup.run_once()
+    async with engine.begin() as conn:
+        row = (
+            await conn.execute(sql("SELECT status, photo_url, note FROM spots WHERE id = :id"), {"id": spot["id"]})
+        ).one()
+    assert row.status == "expired" and row.photo_url is None and row.note == "old"

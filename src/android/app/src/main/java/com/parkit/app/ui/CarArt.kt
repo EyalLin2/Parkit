@@ -2,6 +2,9 @@ package com.parkit.app.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -70,6 +73,55 @@ fun CarArt(size: String?, paint: Color, outline: Color, modifier: Modifier = Mod
             drawRoad(phase)
             val bob = kotlin.math.sin(phase * 2f * Math.PI.toFloat() * 2f) * this.size.height * 0.008f
             translate(top = bob) { drawCar(size, paint, phase, special) }
+        }
+    }
+}
+
+/** The profile header strip: a full-width road, your car driving in the
+ * middle. Same drawing and the same loop as [CarArt]: the wheels turn exactly
+ * once and the markings move exactly one gap per cycle, so it never jumps. */
+@Composable
+fun CarOnRoad(size: String?, paint: Color, modifier: Modifier = Modifier, special: String? = null, height: androidx.compose.ui.unit.Dp = 78.dp) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val moving = remember {
+        android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+    }
+    val transition = rememberInfiniteTransition(label = "road")
+    val phaseState = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
+        label = "phase",
+    )
+    val phase = if (moving && size != null) phaseState.value else 0f
+    val line = CAR_H - 0.09f // where the wheels meet the road, as a share of the height
+    androidx.compose.foundation.layout.Box(modifier.height(height)) {
+        Canvas(Modifier.matchParentSize()) {
+            val roadTop = this.size.height * line
+            val roadH = this.size.height - roadTop
+            drawRect(Color(0xFF8A94A3), Offset(0f, roadTop - 1.5f * density), Size(this.size.width, 1.5f * density))
+            drawRect(Color(0xFF2B2F36), Offset(0f, roadTop), Size(this.size.width, roadH))
+            val dash = roadH * 1.1f
+            val step = dash * 1.9f
+            var x = -phase * step
+            while (x < this.size.width) {
+                drawRect(Color(0xFFE8EAED), Offset(x, roadTop + roadH * 0.5f), Size(dash, roadH * 0.14f))
+                x += step
+            }
+        }
+        if (size != null) {
+            // The car keeps its own proportions (its canvas is 1.7:1, like the
+            // profile art); a small car is drawn smaller, wheels on the same line.
+            val k = when (size) { "compact" -> 0.8f; "large" -> 1f; else -> 0.9f }
+            Canvas(
+                Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+                    .offset(y = -(height * (1f - line) * (1f - k)))
+                    .height(height * k)
+                    .aspectRatio(1.7f),
+            ) {
+                val bob = kotlin.math.sin(phase * 2f * Math.PI.toFloat() * 2f) * this.size.height * 0.008f
+                translate(top = bob) { drawCar(size, paint, phase, special) }
+            }
         }
     }
 }

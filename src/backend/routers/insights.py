@@ -4,8 +4,9 @@
 - /insights/best-hour: in this area, which hour of the day has the most
   free spots reported?
 
-Both stay silent (null) until there's enough history to mean something,
-so a new area never shows a made-up number.
+Both widen the circle when the street has too little history (street →
+neighbourhood → city) and say which one they used; they stay silent (null)
+only when even the city has too little, so nobody sees a made-up number.
 """
 
 from datetime import datetime, timezone
@@ -23,10 +24,13 @@ router = APIRouter(prefix="/insights", tags=["insights"])
 ISRAEL = ZoneInfo("Asia/Jerusalem")
 LOOKBACK_DAYS = 28
 AREA_RADIUS_M = 400
+# Street, neighbourhood, city — the first circle with enough history wins.
+AREA_SCOPES = ((AREA_RADIUS_M, "street"), (1500, "area"), (6000, "city"))
 AREA_HOUR_WINDOW = 1  # this hour ± 1
 AREA_MIN_REPORTS = 12
 AREA_MIN_DAYS = 4
 BEST_RADIUS_M = 800
+BEST_SCOPES = ((BEST_RADIUS_M, "street"), (2500, "area"), (8000, "city"))
 BEST_MIN_REPORTS = 30
 BEST_MIN_IN_HOUR = 6
 
@@ -35,11 +39,13 @@ class AreaForecast(BaseModel):
     every_minutes: int  # a spot frees up about this often, at this hour
     reports: int
     days: int
+    scope: str = "street"  # street | area | city: how wide we had to look
 
 
 class BestHour(BaseModel):
     hour: int  # 0-23, Israel time: the window hour:00–hour+1:00
     reports: int
+    scope: str = "street"
 
 
 def _hour_now() -> int:
@@ -67,25 +73,31 @@ async def area_forecast(
     lng: float = Query(ge=-180, le=180),
     db: AsyncSession = Depends(get_db),
 ) -> AreaForecast | None:
-    row = (
-        await db.execute(
-            _AREA,
-            {
-                "lat": lat,
-                "lng": lng,
-                "radius": AREA_RADIUS_M,
-                "lookback": LOOKBACK_DAYS,
-                "hour": _hour_now(),
-                "window": AREA_HOUR_WINDOW,
-            },
-        )
-    ).one()
-    if row.n < AREA_MIN_REPORTS or row.days < AREA_MIN_DAYS:
-        return None
-    # Reports per minute across the days we saw this window (3 hours a day).
-    minutes_observed = row.days * (2 * AREA_HOUR_WINDOW + 1) * 60
-    every = max(1, round(minutes_observed / row.n))
-    return AreaForecast(every_minutes=every, reports=row.n, days=row.days)
+    hour = _hour_now()
+    for radius, scope in AREA_SCOPES:
+        row = (
+            await db.execute(
+                _AREA,
+                {
+                    "lat": lat,
+                    "lng": lng,
+                    "radius": radius,
+                    "lookback": LOOKBACK_DAYS,
+                    "hour": hour,
+                    "window": AREA_HOUR_WINDOW,
+                },
+            )
+        ).one()
+        if row.n < AREA_MIN_REPORTS or row.days < AREA_MIN_DAYS:
+            continue
+        # Reports per minute across the days we saw this window (3 hours a
+        # day), scaled down to a street-sized circle so a wide look doesn't
+        # promise a spot every minute.
+        street_share = (AREA_RADIUS_M / radius) ** 2
+        minutes_observed = row.days * (2 * AREA_HOUR_WINDOW + 1) * 60
+        every = max(1, round(minutes_observed / (row.n * street_share)))
+        return AreaForecast(every_minutes=every, reports=row.n, days=row.days, scope=scope)
+    return None
 
 
 _BEST = text(
@@ -106,7 +118,14 @@ async def best_hour(
     lng: float = Query(ge=-180, le=180),
     db: AsyncSession = Depends(get_db),
 ) -> BestHour | None:
-    rows = (await db.execute(_BEST, {"lat": lat, "lng": lng, "radius": BEST_RADIUS_M, "lookback": LOOKBACK_DAYS})).all()
-    if sum(r.n for r in rows) < BEST_MIN_REPORTS or not rows or rows[0].n < BEST_MIN_IN_HOUR:
-        return None
-    return BestHour(hour=rows[0].hour, reports=rows[0].n)
+    now = _hour_now()
+    for radius, scope in BEST_SCOPES:
+        rows = (await db.execute(_BEST, {"lat": lat, "lng": lng, "radius": radius, "lookback": LOOKBACK_DAYS})).all()
+        if sum(r.n for r in rows) < BEST_MIN_REPORTS:
+            continue
+        # It's a tip for today: an hour that already passed is no help.
+        ahead = [r for r in rows if r.hour >= now]
+        if not ahead or ahead[0].n < BEST_MIN_IN_HOUR:
+            return None
+        return BestHour(hour=ahead[0].hour, reports=ahead[0].n, scope=scope)
+    return None

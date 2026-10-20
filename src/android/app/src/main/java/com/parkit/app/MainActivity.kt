@@ -243,17 +243,20 @@ fun ParkItApp(sessionStore: SessionStore) {
                 onOpenDriver = { navController.navigate("driver") },
                 onOpenDetails = { navController.navigate("details-edit") },
                 onOpenRewards = { navController.navigate("rewards") },
+                onOpenBackdrops = { navController.navigate("rewards?tab=3") },
                 onSessionExpired = goToLogin,
             )
         }
         composable(
-            "rewards",
+            "rewards?tab={tab}",
+            arguments = listOf(androidx.navigation.navArgument("tab") { type = androidx.navigation.NavType.IntType; defaultValue = 1 }),
             enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = offsetSpec) },
             popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = offsetSpec) },
         ) {
             RewardsScreen(
                 api = api,
                 sessionStore = sessionStore,
+                initialTab = it.arguments?.getInt("tab") ?: 1,
                 onBack = { navController.popBackStack() },
                 onSessionExpired = goToLogin,
             )

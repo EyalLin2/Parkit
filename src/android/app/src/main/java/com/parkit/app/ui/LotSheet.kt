@@ -52,7 +52,7 @@ fun LotSheet(lot: ParkingLotOut, onDismiss: () -> Unit) {
         stringResource(R.string.spot_distance_away, formatLotDistance(context, lot.distanceM)),
     )
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(48.dp).background(slate, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {

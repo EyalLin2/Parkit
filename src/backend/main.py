@@ -1,10 +1,13 @@
+import asyncio
 import mimetypes
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
+import cleanup
 from database import check_postgres
 from media import MEDIA_DIR
 from ratelimit import RateLimitMiddleware
@@ -31,7 +34,15 @@ mimetypes.add_type("application/vnd.android.package-archive", ".apk")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-app = FastAPI(title="ParkIt API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    task = asyncio.create_task(cleanup.loop())
+    yield
+    task.cancel()
+
+
+app = FastAPI(title="ParkIt API", lifespan=lifespan)
 # Spot lists and geocoder answers are JSON that compresses ~5×.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(RateLimitMiddleware)

@@ -141,7 +141,7 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
         if (granted) camera.launch(photoUri) else permission.launch(Manifest.permission.CAMERA)
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding(),
@@ -248,15 +248,17 @@ fun AiBadge(modifier: Modifier = Modifier, small: Boolean = false) {
         )
         return
     }
+    val ai = androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6), Color(0xFF00B4D8)))
     Text(
         "AI",
         fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color.White,
+        fontWeight = FontWeight.Black,
+        style = androidx.compose.ui.text.TextStyle(brush = ai),
         modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFF7B3FC4), Color(0xFF2E7BD6))))
-            .padding(horizontal = 7.dp, vertical = 2.dp),
+            .clip(RoundedCornerShape(7.dp))
+            .background(Color.White)
+            .border(1.5.dp, ai, RoundedCornerShape(7.dp))
+            .padding(horizontal = 6.dp, vertical = 1.dp),
     )
 }
 

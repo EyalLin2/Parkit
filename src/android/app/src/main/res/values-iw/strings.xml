@@ -4,31 +4,15 @@
 
     <!-- Login -->
     <string name="login_tagline">מוצאים ומשתפים חניה חינם, בשניות.</string>
-    <string name="login_demo_notice">לקוח דמו לפרויקט בקאנד — לא האפליקציה הנייטיבית האמיתית.</string>
-    <string name="login_name_label">השם שלך</string>
-    <string name="login_continue">המשך</string>
-    <string name="login_default_name">משתמש דמו</string>
-    <string name="login_error_backend">לא הצלחתי להתחבר לשרת בכתובת %1$s (%2$s). הוא רץ?</string>
 
     <!-- Map -->
     <string name="map_filter_all">הכל</string>
     <string name="map_filter_regular">רגיל</string>
     <string name="map_filter_disabled">נכים</string>
-    <string name="map_profile_cd">פרופיל</string>
     <string name="map_logout_cd">התנתקות</string>
-    <string name="map_zoom_in_cd">התקרבות</string>
-    <string name="map_zoom_out_cd">התרחקות</string>
     <string name="map_my_location_cd">המיקום שלי</string>
-    <string name="map_report_location_cd">מיקום לדיווח</string>
-    <string name="map_report_fab_cd">דווח על חניה כאן</string>
     <string name="map_locating">מאתר כתובת…</string>
-    <string name="map_load_error">טעינת החניות נכשלה: %1$s</string>
     <string name="map_reported_snackbar">החניה דווחה</string>
-    <plurals name="spots_available">
-        <item quantity="one">חניה אחת פנויה בטווח %2$d מ\'</item>
-        <item quantity="two">%1$d חניות פנויות בטווח %2$d מ\'</item>
-        <item quantity="other">%1$d חניות פנויות בטווח %2$d מ\'</item>
-    </plurals>
 
     <!-- Report flow -->
     <string name="report_title">דיווח על חניה פנויה</string>
@@ -37,8 +21,6 @@
     <string name="report_preview_cd">תצוגה מקדימה של התמונה המטושטשת</string>
     <string name="report_photo_upload_failed">העלאת התמונה נכשלה: %1$s</string>
     <string name="report_type_question">איזה סוג חניה?</string>
-    <string name="report_type_regular">רגילה</string>
-    <string name="report_type_disabled">נכים</string>
     <string name="report_size_question">מתאימה לאיזה גודל רכב?</string>
     <string name="report_size_compact">קטן</string>
     <string name="report_size_regular">רגיל</string>
@@ -48,16 +30,13 @@
     <!-- Spot actions -->
     <string name="spot_type_disabled">נכים</string>
     <string name="spot_type_regular">רגילה</string>
-    <string name="spot_status">סטטוס: %1$s</string>
     <string name="spot_fits">מתאים לרכב %1$s</string>
     <string name="spot_navigate">ניווט</string>
     <string name="spot_go">אני בדרך · ניווט</string>
     <string name="spot_status_free">פנויה</string>
-    <string name="spot_claim">אני בדרך</string>
     <string name="spot_i_took_it">חניתי כאן</string>
     <string name="spot_flag_taken">כבר תפוסה</string>
     <string name="spot_cancel_report">ביטול הדיווח שלי</string>
-    <string name="spot_action_failed">הפעולה נכשלה</string>
     <string name="error_not_found">החניה הזו כבר לא קיימת.</string>
     <string name="error_conflict">מישהו אחר כבר הקדים אותך.</string>
     <string name="error_server">משהו השתבש אצלנו. נסה שוב בעוד רגע.</string>
@@ -87,33 +66,14 @@
     </plurals>
 
     <!-- Profile / Leaderboard -->
-    <string name="profile_title">פרופיל</string>
     <string name="profile_back_cd">חזרה</string>
-    <string name="profile_member">חבר/ה ב-ParkIt</string>
-    <string name="profile_total_points">סה״כ נקודות</string>
-    <string name="profile_this_week">השבוע</string>
-    <string name="profile_successful_reports">דיווחים מוצלחים</string>
-    <string name="profile_badges_title">באדג׳ים והישגים</string>
-    <string name="profile_badge_rookie">מתחיל</string>
-    <string name="profile_badge_pro">מקצוען</string>
-    <string name="profile_badge_legend">אגדה</string>
-    <string name="profile_unlocked">נפתח</string>
-    <plurals name="profile_activity_count">
-        <item quantity="one">דיווח אחד בפעילות שלך</item>
-        <item quantity="two">%1$d דיווחים בפעילות שלך</item>
-        <item quantity="other">%1$d דיווחים בפעילות שלך</item>
-    </plurals>
-    <string name="profile_leaderboard_title">ליגה שבועית</string>
     <string name="profile_leaderboard_empty">עדיין אין למישהו נקודות השבוע.</string>
-    <string name="profile_top_parker">החונה המוביל השבוע</string>
     <string name="profile_points_suffix">%1$d נק\'</string>
-    <string name="profile_rank_prefix">#%1$d</string>
     <string name="profile_language_label">שפה</string>
     <string name="profile_language_english">English</string>
     <string name="profile_language_hebrew">עברית</string>
 
     <!-- My Reports -->
-    <string name="profile_my_reports_title">הדיווחים שלי</string>
     <string name="profile_my_reports_empty">עדיין לא דיווחת על אף חניה.</string>
     <string name="report_status_active">פעיל</string>
     <string name="report_status_claimed">נתפס</string>
@@ -127,7 +87,6 @@
     <string name="profile_share_message">אני משתמש/ת ב-ParkIt כדי למצוא ולדווח על חניות חינם ברחוב — נסו גם אתם: https://eyallin2.github.io/Parkit/</string>
 
     <!-- Theme -->
-    <string name="profile_theme_label">מצב תצוגה</string>
     <string name="profile_theme_system">אוטומטי</string>
     <string name="profile_theme_light">בהיר</string>
     <string name="profile_theme_dark">כהה</string>
@@ -148,15 +107,9 @@
 
     <!-- Profile v2 -->
     <string name="profile_settings_cd">הגדרות</string>
-    <string name="profile_level_progress">עוד %1$d דיווחים מוצלחים לדרגת %2$s</string>
-    <string name="profile_max_level">הגעת לדרגה הגבוהה ביותר — אגדה</string>
-    <string name="profile_level_none">חבר חדש</string>
-    <string name="profile_total_reports">דיווחים</string>
-    <string name="profile_achievements">הישגים</string>
     <string name="profile_see_all">הצג הכל</string>
     <string name="profile_show_less">הצג פחות</string>
     <string name="profile_you">את/ה</string>
-    <string name="profile_week_delta">⁦+%1$d⁩ השבוע</string>
 
     <!-- Settings -->
     <string name="settings_title">הגדרות</string>
@@ -203,10 +156,7 @@
     <string name="perk_silver">מסגרת כסף לפינים שלך</string>
     <string name="perk_gold">מסגרת זהב לפינים שלך</string>
     <string name="perk_legend">פין סגול מלא, רק שלך</string>
-    <string name="level_title">רמת %1$s</string>
-    <string name="level_points_total">%1$d נקודות</string>
     <string name="level_to_next">עוד %1$d נק׳ לרמת %2$s</string>
-    <string name="level_next_perk">רמת %1$s פותחת: %2$s</string>
     <string name="level_max">הגעת לרמה הגבוהה ביותר — אגדה</string>
     <string name="levels_title">הרמות וההטבות</string>
     <string name="level_threshold">%1$d נק׳</string>
@@ -216,7 +166,6 @@
     <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
     <string name="claim_trip_title">בדרך לחניה</string>
     <string name="claim_drive_safely">שמורה לך. אין צורך למהר — סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
-    <string name="claim_held_for_you">שמורה לך</string>
     <string name="claim_taken_thanks">תודה — עדכנו את שאר הנהגים</string>
     <string name="claim_expired">החניה חזרה למפה. בלי לחץ — יש עוד חניות בסביבה.</string>
     <!-- פרופיל נהג: רכב, תגים, אזור מועדף -->
@@ -246,10 +195,7 @@
     <string name="driver_close">סגירה</string>
     <string name="driver_save">שמירה</string>
     <string name="driver_save_and_continue">שמירה והמשך</string>
-    <string name="driver_summary_size">רכב %1$s</string>
-    <string name="driver_summary_empty_title">הוסיפו את הרכב שלכם</string>
     <string name="driver_summary_empty_body">כדי לראות אילו חניות מתאימות לרכב ולתגים שלכם</string>
-    <string name="driver_edit_cd">עריכת הרכב וההעדפות</string>
     <string name="fit_needs_disabled_permit">לבעלי תג נכה בלבד</string>
     <string name="fit_too_small">ייתכן שקטנה לרכב שלך</string>
     <string name="fit_needs_disabled_permit_long">חניית נכים — לרכב עם תג נכה בתוקף בלבד.</string>
@@ -266,7 +212,7 @@
         <item quantity="two">טושטשו %1$d פנים או לוחיות</item>
         <item quantity="other">טושטשו %1$d פנים או לוחיות</item>
     </plurals>
-    <string name="map_filter_lots">₪ חניונים</string>
+    <string name="map_filter_lots">חניונים</string>
     <string name="lot_unnamed">חניון</string>
     <string name="lot_kind_underground">תת-קרקעי</string>
     <string name="lot_kind_multistorey">רב-קומות</string>
@@ -274,11 +220,8 @@
     <string name="lot_kind_surface">פתוח</string>
     <string name="lot_capacity">%1$d מקומות</string>
     <string name="lot_source_note">חניונים בתשלום, מ-OpenStreetMap. המחירים והשעות כתובים בכניסה לחניון.</string>
-    <string name="parked_pango_prompt">חנית! כחול-לבן? אפשר להפעיל תשלום באפליקציה שלך</string>
-    <string name="parked_pango_action">תשלום</string>
     <string name="spot_no_photo_cd">אין תמונה לחניה הזו</string>
     <string name="spot_age_short">לפני\u00A0%1$s</string>
-    <string name="profile_tab_overview">סקירה</string>
     <string name="profile_tab_league">ליגה</string>
     <string name="profile_tab_reports">הדיווחים שלי</string>
     <string name="league_not_ranked">עוד לא נכנסת לליגה השבוע — דווח על חניה כדי להופיע בטבלה.</string>
@@ -294,7 +237,6 @@
     <string name="badge_reports_100">100 דיווחים</string>
     <string name="badge_helped_10">עזרת ל־10 נהגים</string>
     <string name="badge_helped_50">גיבור החניה</string>
-    <string name="login_phone_title">כניסה עם הטלפון</string>
     <string name="login_phone_body">נשלח לך קוד בן 6 ספרות ב-SMS</string>
     <string name="login_phone_label">מספר נייד</string>
     <string name="login_send_code">שליחת קוד</string>
@@ -320,7 +262,6 @@
     <string name="details_email">אימייל</string>
     <string name="details_email_invalid">זו לא נראית כתובת אימייל תקינה</string>
     <string name="details_privacy">נהגים אחרים רואים רק את השם הפרטי ואת האות הראשונה של שם המשפחה.</string>
-    <string name="details_missing">הוסיפו את השם שלכם</string>
     <string name="login_by_email">אימייל</string>
     <string name="login_by_phone">טלפון</string>
     <string name="login_email_body">נשלח לך קוד בן 6 ספרות למייל</string>
@@ -332,16 +273,9 @@
     <string name="level_up_title">עלית לרמת %1$s!</string>
     <string name="level_up_ok">מעולה</string>
     <string name="avatar_pick_title">בחירת אווטאר</string>
-    <string name="profile_helped_none">דווח על החניה הראשונה שלך ועזור לנהג לחנות</string>
-    <string name="profile_report_cta">דיווח על חניה · ‎+10 נק׳</string>
     <string name="settings_avatars">אווטארים</string>
     <string name="settings_avatars_value">DiceBear "Personas" מאת Draftbit · CC BY 4.0</string>
     <string name="details_pick_avatar">בחרו אווטאר</string>
-    <plurals name="profile_helped">
-        <item quantity="one">עזרת לנהג אחד לחנות 🙌</item>
-        <item quantity="two">עזרת ל-%d נהגים לחנות 🙌</item>
-        <item quantity="other">עזרת ל-%d נהגים לחנות 🙌</item>
-    </plurals>
     <string-array name="avatar_names">
         <item>הייטקיסט</item>
         <item>גולש</item>
@@ -399,7 +333,6 @@
     <string name="intro_how_it_works">איך זה עובד</string>
     <string name="intro_go_title">רואים ונוסעים</string>
     <string name="intro_go_body">\"אני בדרך\" פותח ניווט.</string>
-    <string name="hero_helped_hint">בכל פעם שנהג לוחץ "חניתי כאן" על חניה שדיווחת — המספר עולה.</string>
     <string name="tips_header">איך משתמשים ב-ParkIt</string>
     <string name="tips_done">הבנתי, יאללה</string>
     <string name="tip_map_title">קוראים את המפה</string>
@@ -436,13 +369,9 @@
     <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>
     <string name="spot_blue_white">כחול־לבן · בתשלום, אפשר דרך פנגו</string>
     <string name="spot_blue_white_short">כחול־לבן</string>
-    <string name="car_park_here">חניתי עכשיו</string>
-    <string name="car_saved">הרכב סומן על המפה. כשתצא, לחץ \"אני יוצא מהחניה\" — והחניה תעבור לנהג הבא.</string>
     <string name="car_card_title">הרכב שלך · %1$s</string>
     <string name="car_navigate">ללכת לרכב</string>
-    <string name="car_leaving">אני יוצא מהחניה</string>
     <string name="car_leaving_thanks">תודה! ‎+15 נקודות · החניה שלך הופיעה לנהגים</string>
-    <string name="car_forget_cd">לשכוח את מיקום הרכב</string>
     <string name="car_just_now">עכשיו</string>
     <string name="legal_privacy">מדיניות פרטיות</string>
     <string name="legal_terms">תנאי שימוש</string>
@@ -467,7 +396,6 @@
     <string name="pay_cellopark">סלופארק</string>
     <string name="pay_chooser_title">תשלום על כחול-לבן</string>
     <string name="pay_chooser_body">באיזו אפליקציה אתה משלם?</string>
-    <string name="car_pay">כחול-לבן? תשלום בפנגו / סלופארק</string>
     <string name="car_explain_title">חנית? שמור את הרכב</string>
     <string name="car_explain_ok">שמור את הרכב כאן</string>
     <string name="car_explain_body">נזכור איפה הרכב. כשתצא — לחיצה אחת והחניה עוברת לנהג הבא, ואתה מקבל ‎+15 נקודות.</string>
@@ -475,25 +403,15 @@
     <string name="settings_pay_ask">לשאול כל פעם</string>
     <string name="pay_chooser_remember">נזכור את הבחירה. אפשר לשנות בכל רגע בהגדרות.</string>
     <string name="rewards_title">הטבות</string>
-    <string name="rewards_entry">%1$d נק׳ לממש · הטבות</string>
-    <string name="rewards_balance_label">יש לך לממש</string>
-    <string name="rewards_balance_value">%1$d נקודות</string>
     <string name="rewards_level_safe">הרמה שלך לא יורדת כשמממשים.</string>
-    <string name="rewards_partners">הטבות מעסקים</string>
     <string name="rewards_partners_soon_title">בקרוב: הטבות אמיתיות</string>
     <string name="rewards_partners_soon_body">שעת חניה חינם, שטיפת רכב, קפה — מעסקים שותפים. כדאי כבר לצבור.</string>
-    <string name="rewards_car_section">עיצובים לרכב שלך</string>
-    <string name="rewards_cost">%1$d נק׳</string>
     <string name="rewards_missing">חסרות %1$d נק׳</string>
     <string name="rewards_buy">מימוש</string>
     <string name="rewards_confirm_body">לממש ב-%1$d נקודות? הרמה שלך לא תרד.</string>
-    <string name="rewards_wear">להלביש</string>
-    <string name="rewards_wearing">על הרכב</string>
     <string name="rewards_my_codes">הקודים שלי</string>
     <string name="rewards_code_title">הקוד שלך</string>
     <string name="rewards_code_body">מראים את הקוד בעסק. הוא נשמר כאן ב\"הקודים שלי\".</string>
-    <string name="rewards_legends_section">דמויות מהעבר — לפרופיל שלך</string>
-    <string name="rewards_wearing_avatar">בפרופיל</string>
     <string name="sign_title">מותר לחנות כאן?</string>
     <string name="sign_intro">מצלמים את שלט החניה, ומקבלים תשובה ברורה לעכשיו.</string>
     <string name="sign_shoot">צלם שלט</string>
@@ -514,7 +432,6 @@
     <string name="ad_open_link">לפרטים</string>
     <string name="ad_navigate">ניווט לשם</string>
     <string name="ad_close">סגירה</string>
-    <string name="sign_button_caption">צלם שלט</string>
     <string name="reminder_button">תזכיר לי 10 דק׳ לפני %1$s</string>
     <string name="reminder_set">✓ נזכיר לך ב-%1$s</string>
     <string name="reminder_channel">תזכורות חניה</string>
@@ -557,4 +474,31 @@
     <string name="stop_pay_open">סגור ב%1$s</string>
     <string name="stop_pay_done">כבר סגרתי</string>
     <string name="car_end_parking">סיום חניה</string>
+    <string name="profile_points_count">%1$d נקודות</string>
+    <string name="profile_rewards_hint">%1$d לממש</string>
+    <string name="profile_levels_link">רמות ומה מקבלים</string>
+    <string name="badges_progress_short">%1$d מתוך %2$d</string>
+    <plurals name="profile_reports_count">
+        <item quantity="one">דיווח אחד</item>
+        <item quantity="two">%d דיווחים</item>
+        <item quantity="other">%d דיווחים</item>
+    </plurals>
+    <string name="rewards_tab_partners">מעסקים</string>
+    <string name="rewards_tab_legends">דמויות</string>
+    <string name="rewards_tab_car">לרכב</string>
+    <string name="rewards_tab_backdrops">רקעים</string>
+    <string name="rewards_balance_line">נקודות לממש</string>
+    <string name="rewards_owned">שלך</string>
+    <string name="rewards_in_use">בשימוש</string>
+    <string name="profile_change_backdrop">החלפת רקע</string>
+    <string name="car_line_hint">לפרטים, תשלום וסיום חניה</string>
+    <string name="car_pay_short">תשלום בפנגו / סלופארק</string>
+    <string name="car_handoff_title">למסור את החניה לנהג הבא?</string>
+    <string name="car_handoff_body">החניה תופיע במפה לנהגים שמחפשים, ואתה מקבל ‎+15 נק׳.</string>
+    <string name="car_handoff_yes">כן, למסור (‎+15)</string>
+    <string name="car_handoff_no">רק לסיים</string>
+    <string name="forecast_scope_area">לפי השכונה</string>
+    <string name="forecast_scope_city">לפי העיר</string>
+    <string name="forecast_no_data">עוד אין כאן מספיק דיווחים. כל דיווח עוזר.</string>
+    <string name="forecast_rare">בשעה הזו חניות מתפנות כאן לעיתים רחוקות</string>
 </resources>
