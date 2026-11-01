@@ -728,6 +728,7 @@ struct DriverProfileScreen: View {
             .padding(.bottom, 16)
         }
         .scrollDismissesKeyboard(.interactively)
+        .clipped()
     }
 
     private var cityName: String {
@@ -984,6 +985,7 @@ struct SettingsScreen: View {
                 Spacer().frame(height: 24)
             }
         }
+        .clipped()
         .background(Color.pkBackground.ignoresSafeArea())
         .confirmationDialog(L("profile_language_label"), isPresented: dialogBinding("language"), titleVisibility: .visible) {
             Button(L("profile_language_hebrew")) { session.setLanguage("he") }

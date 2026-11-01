@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import UIKit
 
@@ -67,6 +68,14 @@ enum SimulatorPhoto {
 
 /// Camera access: the permission prompt comes from iOS the first time the camera opens.
 private func cameraAvailable() -> Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
+
+private func cameraAllowed() async -> Bool {
+    switch AVCaptureDevice.authorizationStatus(for: .video) {
+    case .authorized: true
+    case .notDetermined: await AVCaptureDevice.requestAccess(for: .video)
+    default: false
+    }
+}
 
 /// Reporting stays the fewest possible decisions: photo (mandatory), regular or disabled,
 /// car size, confirm. Every choice is visible up front, and the button says what's missing.
@@ -244,7 +253,9 @@ struct ReportSheet: View {
 
     private func takePhoto() {
         if cameraAvailable() {
-            camera = true
+            Task {
+                if await cameraAllowed() { camera = true } else { error = L("permission_camera_needed") }
+            }
         } else if SimulatorPhoto.available {
             upload(SimulatorPhoto.make())
         } else {
@@ -392,7 +403,9 @@ struct SignReaderSheet: View {
 
     private func shoot() {
         if cameraAvailable() {
-            camera = true
+            Task {
+                if await cameraAllowed() { camera = true } else { error = L("permission_camera_needed") }
+            }
         } else if SimulatorPhoto.available {
             send(SimulatorPhoto.make())
         } else {

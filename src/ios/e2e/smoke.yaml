@@ -237,7 +237,7 @@ appId: com.parkit.israel
     timeout: 30000
 - takeScreenshot: 28-sign-reader-server-off
 - tapOn:
-    point: "50%,8%"
+    point: "50%,25%"
 
 # Profile, rewards, league, reports
 - extendedWaitUntil:
