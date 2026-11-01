@@ -145,13 +145,15 @@ fun SettingsScreen(
                 SettingsRow(Icons.Filled.Language, stringResource(R.string.profile_language_label), value = languageLabel) { dialog = "language" }
                 RowDivider()
                 SettingsRow(Icons.Filled.DarkMode, stringResource(R.string.settings_appearance), value = themeLabel) { dialog = "theme" }
-                RowDivider()
-                SettingsRow(
-                    Icons.Filled.Bluetooth,
-                    stringResource(R.string.car_bt_setting),
-                    subtitle = stringResource(R.string.car_bt_setting_sub),
-                    value = carBt ?: stringResource(R.string.car_bt_off),
-                ) { openCarBt() }
+                if (com.parkit.app.Features.CAR_BLUETOOTH) {
+                    RowDivider()
+                    SettingsRow(
+                        Icons.Filled.Bluetooth,
+                        stringResource(R.string.car_bt_setting),
+                        subtitle = stringResource(R.string.car_bt_setting_sub),
+                        value = carBt ?: stringResource(R.string.car_bt_off),
+                    ) { openCarBt() }
+                }
                 RowDivider()
                 SettingsRow(Icons.Filled.Payments, stringResource(R.string.settings_pay_app), value = when {
                         payOff -> stringResource(R.string.settings_pay_none)

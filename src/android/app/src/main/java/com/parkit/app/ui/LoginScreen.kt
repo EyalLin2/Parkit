@@ -202,7 +202,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
             Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                 val target = sentTo
                 if (target == null) {
-                    LoginMethodToggle(byEmail) { byEmail = it; error = null }
+                    if (com.parkit.app.Features.SMS_LOGIN) LoginMethodToggle(byEmail) { byEmail = it; error = null }
                     Text(
                         stringResource(if (byEmail) R.string.login_email_body else R.string.login_phone_body),
                         style = MaterialTheme.typography.bodySmall,

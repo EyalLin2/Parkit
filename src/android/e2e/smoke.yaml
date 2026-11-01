@@ -11,6 +11,7 @@ appId: com.parkit.israel
 - tapOn:
     text: "English"
     optional: true
+- tapOn: "How it works"
 - repeat:
     while:
       visible: "Next"

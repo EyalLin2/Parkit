@@ -53,7 +53,7 @@ class SmtpMailer:
         try:
             await asyncio.to_thread(self._send_blocking, message)
         except (smtplib.SMTPException, OSError) as e:
-            log.error("SMTP send to %s failed: %s", to, e)
+            log.error("SMTP send to %s failed: %s", to.split("@")[-1], e)  # the domain only, no personal data in logs
             raise MailError(str(e)) from e
 
 

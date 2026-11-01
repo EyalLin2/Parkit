@@ -8,6 +8,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 import cleanup
+from config import settings
 from database import check_postgres
 from media import MEDIA_DIR
 from ratelimit import RateLimitMiddleware
@@ -42,7 +43,15 @@ async def lifespan(_: FastAPI):
     task.cancel()
 
 
-app = FastAPI(title="ParkIt API", lifespan=lifespan)
+# The API map and the web demo are for development; production serves neither.
+IS_PRODUCTION = settings.app_env == "production"
+app = FastAPI(
+    title="ParkIt API",
+    lifespan=lifespan,
+    docs_url=None if IS_PRODUCTION else "/docs",
+    redoc_url=None if IS_PRODUCTION else "/redoc",
+    openapi_url=None if IS_PRODUCTION else "/openapi.json",
+)
 # Spot lists and geocoder answers are JSON that compresses ~5×.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(RateLimitMiddleware)
@@ -60,7 +69,8 @@ app.include_router(signs_router)
 app.include_router(ads_router)
 app.include_router(insights_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
-app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
+if not IS_PRODUCTION:
+    app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 
 
 @app.get("/healthz")

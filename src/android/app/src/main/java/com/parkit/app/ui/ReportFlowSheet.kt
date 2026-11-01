@@ -137,7 +137,7 @@ fun ReportFlowSheet(
             stagingId = staged.stagingId
             // Ask what the photo shows in the background; the form never waits for it.
             val id = staged.stagingId
-            scope.launch {
+            if (com.parkit.app.Features.PHOTO_HINTS) scope.launch {
                 val hints = runCatching { api.analyzePhoto(id) }.getOrNull() ?: return@launch
                 if (stagingId != id) return@launch // a newer photo was taken meanwhile
                 notASpot = !hints.looksLikeFreeSpot

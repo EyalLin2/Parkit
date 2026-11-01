@@ -55,7 +55,7 @@ class TwilioSmsSender:
         if r.status_code >= 400:
             # Twilio's message explains why (unverified trial number, bad sender…);
             # it goes to our logs, never to the user.
-            log.error("Twilio refused SMS to %s: %s %s", phone, r.status_code, r.text[:300])
+            log.error("Twilio refused SMS to ...%s: %s %s", phone[-3:], r.status_code, r.text[:300])
             raise SmsError(f"twilio {r.status_code}")
 
 
@@ -75,7 +75,7 @@ class SmsGateSender:
         except httpx.HTTPError as e:
             raise SmsError(str(e)) from e
         if r.status_code >= 400:
-            log.error("SMS gateway refused SMS to %s: %s %s", phone, r.status_code, r.text[:300])
+            log.error("SMS gateway refused SMS to ...%s: %s %s", phone[-3:], r.status_code, r.text[:300])
             raise SmsError(f"smsgate {r.status_code}")
 
 

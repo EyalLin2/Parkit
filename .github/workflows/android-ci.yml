@@ -87,7 +87,7 @@ jobs:
             adb install src/android/app/build/outputs/apk/debug/app-debug.apk
             adb emu geo fix 34.7818 32.0853
             mkdir -p e2e-output
-            cd e2e-output && maestro test --debug-output=debug ../src/android/e2e/smoke.yaml
+            cd e2e-output && maestro test --debug-output="$PWD/debug" ../src/android/e2e/smoke.yaml
       - name: Backend log
         if: failure()
         run: docker compose -f deployments/docker/docker-compose.yml --env-file .env logs --tail=100 backend
