@@ -70,8 +70,9 @@ appId: com.parkit.israel
 - takeScreenshot: he-09-map
 
 - swipe:
-    start: "50%,86%"
-    end: "50%,40%"
+    from:
+      id: "nearby_handle"
+    direction: UP
 - takeScreenshot: he-10-nearby-list
 - tapOn:
     id: "spot_row_0"

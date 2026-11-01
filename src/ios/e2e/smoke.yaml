@@ -102,8 +102,9 @@ appId: com.parkit.israel
 
 # The list, then a spot's card and the report-content choice
 - swipe:
-    start: "50%,86%"
-    end: "50%,40%"
+    from:
+      id: "nearby_handle"
+    direction: UP
 - takeScreenshot: 12-nearby-list
 - tapOn:
     id: "spot_row_0"
@@ -129,8 +130,9 @@ appId: com.parkit.israel
     times: 3
     commands:
       - swipe:
-          start: "50%,86%"
-          end: "50%,40%"
+          from:
+            id: "nearby_handle"
+          direction: UP
 - tapOn:
     id: "spot_row_1"
 - tapOn: "On my way.*"
@@ -170,8 +172,9 @@ appId: com.parkit.israel
     times: 3
     commands:
       - swipe:
-          start: "50%,86%"
-          end: "50%,40%"
+          from:
+            id: "nearby_handle"
+          direction: UP
 - tapOn:
     id: "spot_row_1"
 - tapOn: "On my way.*"
@@ -210,9 +213,14 @@ appId: com.parkit.israel
     times: 3
     commands:
       - swipe:
-          start: "50%,86%"
-          end: "50%,40%"
+          from:
+            id: "nearby_handle"
+          direction: UP
 - takeScreenshot: 23-driver-just-left
+- swipe:
+    from:
+      id: "nearby_handle"
+    direction: DOWN
 
 # Parked again by hand, which takes the spot back; then end it without handing on
 - tapOn: "Parked"

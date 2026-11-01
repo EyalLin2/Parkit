@@ -117,7 +117,7 @@ jobs:
         run: |
           xcodebuild -project ParkIt.xcodeproj -scheme ParkIt -configuration Debug \
             -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO build -quiet
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- build -quiet
           xcrun simctl install "$UDID" build/Build/Products/Debug-iphonesimulator/ParkIt.app
       - name: Install Maestro
         run: |

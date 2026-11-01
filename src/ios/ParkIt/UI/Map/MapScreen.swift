@@ -313,6 +313,7 @@ private struct NearbySheet<G: Gesture>: View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 Capsule().fill(Color.pkMuted.opacity(0.4)).frame(width: 36, height: 4).padding(.vertical, 12)
+                    .accessibilityElement().accessibilityIdentifier("nearby_handle")
                 if model.spotsFailed {
                     failed
                 } else {
@@ -441,7 +442,7 @@ private struct SpotRow: View {
                 SpotThumb(url: spot.photoUrl.flatMap(ApiConfig.url(path:)), disabled: disabled, color: color)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(address ?? L("map_locating")).font(PKFont.titleSmall).foregroundStyle(address == nil ? Color.pkMuted : Color.pkText).lineLimit(1)
-                    Text(details(disabled: disabled)).font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).lineLimit(1)
+                    Text(details(disabled: disabled)).font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).lineLimit(2)
                     if fit.needsDisabledPermit {
                         Text(L("fit_needs_disabled_permit")).font(PKFont.labelMedium).foregroundStyle(Color.pkMuted).lineLimit(1)
                     } else if fit.tooSmall {
