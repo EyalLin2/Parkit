@@ -54,7 +54,11 @@ struct SpotSheet: View {
                 Text(L("spot_still_free_question")).font(PKFont.labelLarge).foregroundStyle(Color.pkMuted).padding(.top, 18).padding(.bottom, 8)
                 HStack(spacing: 0) {
                     half(L("spot_i_took_it"), "checkmark.circle.fill", .pkGreen) {
-                        try await API.shared.submitFeedback(spot.id, "confirmed_taken")
+                        do {
+                            try await API.shared.submitFeedback(spot.id, "confirmed_taken")
+                        } catch let e as APIError where e.status == 409 {
+                            // Already voted or closed: the driver still parked here.
+                        }
                         model.parkedOnSpot(spot, address: spot.localAddress ?? address)
                     }
                     Rectangle().fill(Color.pkOutline).frame(width: 1, height: 22)
@@ -240,6 +244,8 @@ struct SpotSheet: View {
                 claimed.reporterLevel = spot.reporterLevel
                 model.claimed(claimed)
                 DriveTo.open(lat: spot.lat, lng: spot.lng)
+            } catch let e as APIError where e.status == 403 {
+                self.error = L("map_get_closer_hint")
             } catch {
                 self.error = friendly(error)
             }

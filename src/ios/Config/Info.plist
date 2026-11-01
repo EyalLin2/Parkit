@@ -10,6 +10,8 @@
 	<array>
 		<string>waze</string>
 	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>heebo_regular.ttf</string>

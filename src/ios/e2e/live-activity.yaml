@@ -1,0 +1,44 @@
+# The lock-screen "I'm leaving": a Live Activity button that hands the spot on without
+# opening the app. Follows smoke-he.yaml, so the driver is signed in and the app is in Hebrew.
+appId: com.parkit.israel
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "דווח"
+    timeout: 20000
+- tapOn: "חניתי"
+- extendedWaitUntil:
+    visible: "שמור את הרכב כאן"
+    timeout: 8000
+- tapOn: "שמור את הרכב כאן"
+- extendedWaitUntil:
+    visible: "חינם, לא צריך"
+    timeout: 8000
+- tapOn: "חינם, לא צריך"
+- extendedWaitUntil:
+    visible: "יוצא מהחניה"
+    timeout: 8000
+- takeScreenshot: la-01-parked-in-app
+
+# Out of the app, on to the lock screen
+- pressKey: Lock
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 4000
+    optional: true
+- takeScreenshot: la-02-lock-screen
+- tapOn: "יוצא מהחניה"
+- extendedWaitUntil:
+    visible: "תודה, החניה על המפה"
+    timeout: 20000
+- takeScreenshot: la-03-lock-screen-thanks
+
+# Back in the app the car is gone: it was handed on from the lock screen.
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "דווח"
+    timeout: 20000
+- assertVisible: "חניתי"
+- takeScreenshot: la-04-app-after

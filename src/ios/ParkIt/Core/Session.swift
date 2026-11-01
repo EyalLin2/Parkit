@@ -61,6 +61,7 @@ final class Session: ObservableObject {
         static let lastLevel = "s.last_seen_level", parkedCar = "s.parked_car"
         static let leftAt = "s.left_app_at", bg = "s.profile_bg", special = "s.car_special", paint = "s.car_paint"
         static let claim = "s.active_claim", claimEnds = "s.claim_ends"
+        static let heading = "s.heading_to", headingSince = "s.heading_since", helped = "s.last_seen_helped"
         // Device keys
         static let introSeen = "introSeen", tipsSeen = "tipsSeen", lastLat = "lastLat", lastLng = "lastLng"
         static let tipDay = "tipShownDay", carExplained = "carExplained", theme = "themeMode"
@@ -134,6 +135,18 @@ final class Session: ObservableObject {
 
     var claimEndsAt: Date? { get { d.object(forKey: K.claimEnds) as? Date } set { d.set(newValue, forKey: K.claimEnds) } }
 
+    /// The spot this driver set out for. It outlives the 2-minute hold, so arriving there
+    /// can still ask "did you park here?".
+    var headingTo: SpotOut? {
+        get { d.data(forKey: K.heading).flatMap { try? JSONDecoder().decode(SpotOut.self, from: $0) } }
+        set { d.set(newValue.flatMap { try? JSONEncoder().encode($0) }, forKey: K.heading) }
+    }
+
+    var headingSince: Date? { get { d.object(forKey: K.headingSince) as? Date } set { d.set(newValue, forKey: K.headingSince) } }
+
+    /// Drivers helped when last checked, to say thanks when the number grows.
+    var lastSeenHelped: Int? { get { d.object(forKey: K.helped) as? Int } set { d.set(newValue, forKey: K.helped) } }
+
     func saveDriver(_ value: DriverPrefs) {
         driver = value
         d.set(try? JSONEncoder().encode(value), forKey: K.driver)
@@ -156,6 +169,7 @@ final class Session: ObservableObject {
 
     func signOut() {
         Keychain.write(nil)
+        ParkedActivity.sync(nil)
         for key in d.dictionaryRepresentation().keys where key.hasPrefix("s.") { d.removeObject(forKey: key) }
         token = nil
         userId = nil

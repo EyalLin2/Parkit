@@ -77,13 +77,19 @@ struct MapScreen: View {
         } message: {
             Text(L("location_why_body"))
         }
+        .alert(L("arrived_title"), isPresented: $model.askArrived) {
+            Button(L("spot_i_took_it"), action: model.arrivedYes)
+            Button(L("arrived_no"), role: .cancel, action: model.arrivedNo)
+        } message: {
+            Text(L("arrived_body"))
+        }
         .sheet(item: $model.sheet) { sheet in
             Group {
                 switch sheet {
                 case .spot(let spot): SpotSheet(spot: spot, model: model)
                 case .lot(let lot): LotSheet(lot: lot)
                 case .report: ReportSheet(model: model)
-                case .sign: SignReaderSheet()
+                case .sign: SignReaderSheet(place: model.deviceLocation)
                 case .car: CarSheet(model: model)
                 case .explainer: CarExplainerSheet(model: model)
                 case .parkedPay: ParkedPaySheet(model: model)
@@ -191,7 +197,7 @@ private struct LocationBar: View {
                     Text(L("map_address_unavailable")).font(PKFont.bodyLarge).foregroundStyle(Color.pkMuted).lineLimit(1)
                 } else {
                     HStack(spacing: 8) {
-                        RoundedRectangle(cornerRadius: 7).fill(Color.pkText.opacity(pulse ? 0.1 : 0.04)).frame(width: 150, height: 14)
+                        RoundedRectangle(cornerRadius: 7).fill(Color.pkText.opacity(pulse ? 0.1 : 0.04)).frame(maxWidth: 150).frame(height: 14)
                         Text(L("map_locating")).font(PKFont.labelSmall).foregroundStyle(Color.pkMuted.opacity(pulse ? 0.8 : 0.35))
                     }
                     .frame(height: 24)
@@ -379,7 +385,7 @@ private struct NearbySheet<G: Gesture>: View {
         HStack(spacing: 6) {
             Text(L("forecast_tag")).font(PKFont.labelSmall).foregroundStyle(.white).padding(.horizontal, 6)
                 .background(LinearGradient(colors: [Color(hex: 0x7B3FC4), Color(hex: 0x2E7BD6)], startPoint: .leading, endPoint: .trailing), in: Capsule())
-            Text(forecastText).font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).lineLimit(1)
+            Text(forecastText).font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).lineLimit(2)
         }
     }
 
@@ -513,6 +519,9 @@ private struct ClaimTripCard: View {
                 TripAction(label: L("spot_flag_taken"), icon: "minus.circle.fill", color: .pkOrange) { model.tripFeedback("flagged_false") }
             }
             .padding(.top, 12)
+            Button(L("claim_release"), action: model.releaseClaim)
+                .font(PKFont.labelLarge).foregroundStyle(Color.pkPrimary)
+                .frame(maxWidth: .infinity).frame(height: 40)
         }
         .padding(14)
         .background(Color.pkSurface, in: RoundedRectangle(cornerRadius: 20))

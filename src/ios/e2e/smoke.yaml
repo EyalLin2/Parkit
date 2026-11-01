@@ -146,34 +146,80 @@ appId: com.parkit.israel
 - takeScreenshot: 16-navigation-opened
 - launchApp:
     stopApp: false
+# Close to the spot already: "did you park here?" comes up by itself.
+- extendedWaitUntil:
+    visible: "Did you park here?"
+    timeout: 15000
+- takeScreenshot: 17-did-you-park-here
+- tapOn: "Not this one"
 - extendedWaitUntil:
     visible: "You're on your way"
+    timeout: 8000
+- takeScreenshot: 18-trip-card
+- tapOn: "Never mind, let it go"
+- extendedWaitUntil:
+    notVisible: "You're on your way"
+    timeout: 8000
+- takeScreenshot: 19-let-it-go
+
+# Again, and this time yes
+- repeat:
+    while:
+      notVisible:
+        id: "spot_row_1"
+    times: 3
+    commands:
+      - swipe:
+          start: "50%,86%"
+          end: "50%,40%"
+- tapOn:
+    id: "spot_row_1"
+- tapOn: "On my way.*"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 4000
+    optional: true
+- tapOn:
+    text: "Don.t Allow"
+    optional: true
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Did you park here?"
     timeout: 15000
-- takeScreenshot: 17-trip-card
 - tapOn: "I parked here"
 
 # Parked: offered the payment apps, then the car line and "I'm leaving"
 - extendedWaitUntil:
     visible: "It's free, no need"
     timeout: 10000
-- takeScreenshot: 18-parked-pay
+- takeScreenshot: 20-parked-pay
 - tapOn: "It's free, no need"
 - extendedWaitUntil:
     visible: "I'm leaving"
     timeout: 10000
-- takeScreenshot: 19-parked-car
+- takeScreenshot: 21-parked-car
 - tapOn: "I'm leaving"
 - extendedWaitUntil:
     visible: "Thanks! \\+15 points.*"
     timeout: 10000
-- takeScreenshot: 20-left-spot-handed-on
+- takeScreenshot: 22-left-spot-handed-on
+- repeat:
+    while:
+      notVisible: ".*A driver just left.*"
+    times: 3
+    commands:
+      - swipe:
+          start: "50%,86%"
+          end: "50%,40%"
+- takeScreenshot: 23-driver-just-left
 
-# Parked again by hand, then end it without handing on
+# Parked again by hand, which takes the spot back; then end it without handing on
 - tapOn: "Parked"
 - extendedWaitUntil:
     visible: "Save my car here"
     timeout: 8000
-- takeScreenshot: 21-parked-explained
+- takeScreenshot: 24-parked-explained
 - tapOn: "Save my car here"
 - extendedWaitUntil:
     visible: "It's free, no need"
@@ -183,7 +229,7 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "End parking"
     timeout: 8000
-- takeScreenshot: 22-car-sheet
+- takeScreenshot: 25-car-sheet
 - tapOn: "End parking"
 - tapOn: "Just end"
 
@@ -202,11 +248,11 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "You can only report a spot that's near you"
     timeout: 8000
-- takeScreenshot: 23-too-far
+- takeScreenshot: 26-too-far
 - tapOn: "Go to me"
 
-# Report flow: required photo (a drawn picture on a simulator, it has no camera), the
-# server's blur, then POST /spots. The server allows one report per 30 s.
+# Report flow: photo (a drawn picture on a simulator, it has no camera) and the server's
+# blur, then the required curb choice, then POST /spots. One report per 30 s.
 - extendedWaitUntil:
     visible: "Filter that never appears"
     timeout: 31000
@@ -215,29 +261,142 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "Report a free spot"
     timeout: 8000
-- takeScreenshot: 24-report-sheet
+- assertVisible: "Leaving your spot now? One tap, no photo"
+- takeScreenshot: 27-report-sheet
 - tapOn: "Take a photo of the spot"
 - extendedWaitUntil:
-    visible: "Confirm Report"
+    visible: "Choose the curb colour to continue"
     timeout: 30000
-- takeScreenshot: 25-report-photo-blurred
+- takeScreenshot: 28-report-send-off-until-curb
+- tapOn: "Gray \\(free\\)"
+- tapOn: "More details \\(optional\\)"
+- takeScreenshot: 29-report-more-details
+- scrollUntilVisible:
+    element:
+      id: "report_note"
+    direction: DOWN
+- tapOn:
+    id: "report_note"
+- inputText: "Low curb e2e"
+- tapOn: "Note for the next driver.*"
+- scrollUntilVisible:
+    element: "Confirm Report"
+    direction: DOWN
+- takeScreenshot: 30-report-ready
 - tapOn: "Confirm Report"
 - extendedWaitUntil:
     visible: "Spot reported"
     timeout: 15000
-- takeScreenshot: 26-reported
+- takeScreenshot: 31-reported
 
-# Sign reader opens. No Claude API key in CI, so the server's own refusal shows.
+# Another driver parks there: the reporter hears about it on the next start
+- runScript: helped.js
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "A spot you reported helped a driver.*"
+    timeout: 20000
+- takeScreenshot: 32-helped-thanks
+
+# "Leaving now" with no saved car, from somewhere new (same-spot reports are limited)
+- setLocation:
+    latitude: 32.0880
+    longitude: 34.7818
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 31000
+    optional: true
+- tapOn: "Report"
+- extendedWaitUntil:
+    visible: "Go to me|Report a free spot"
+    timeout: 8000
+- runFlow:
+    when:
+      visible: "Go to me"
+    commands:
+      - tapOn: "Go to me"
+      - extendedWaitUntil:
+          visible: "Filter that never appears"
+          timeout: 3000
+          optional: true
+      - tapOn: "Report"
+- tapOn: "Leaving your spot now? One tap, no photo"
+- extendedWaitUntil:
+    visible: "Spot reported"
+    timeout: 15000
+- takeScreenshot: 33-leaving-now-sent
+
+# Sign reader: answers from the sign seeded at the test location, then asks for a fresh read
+- setLocation:
+    latitude: 32.0853
+    longitude: 34.7818
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 4000
+    optional: true
 - tapOn: "Can I park?"
 - assertVisible: "Can I park here?"
-- takeScreenshot: 27-sign-reader
+- takeScreenshot: 34-sign-reader
 - tapOn: "Snap a sign"
+- extendedWaitUntil:
+    visible: "Read earlier from a sign that looks the same here."
+    timeout: 30000
+- takeScreenshot: 35-sign-from-cache
+- tapOn: "Remind me 10 min before .*"
+- tapOn:
+    text: "Allow"
+    optional: true
+- extendedWaitUntil:
+    visible: ".*We'll remind you at .*"
+    timeout: 8000
+- takeScreenshot: 36-reminder-set
+- tapOn: "Not this sign? Read it again"
 - extendedWaitUntil:
     visible: ".*PK-503.*"
     timeout: 30000
-- takeScreenshot: 28-sign-reader-server-off
+- takeScreenshot: 37-read-again-server-refused
 - tapOn:
-    point: "50%,25%"
+    point: "50%,10%"
+
+# The reminder shows while parked and goes when the parking ends
+- extendedWaitUntil:
+    visible: "Parked"
+    timeout: 8000
+- tapOn: "Parked"
+- extendedWaitUntil:
+    visible: "It's free, no need"
+    timeout: 8000
+- tapOn: "It's free, no need"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true
+- takeScreenshot: 38-parked-with-reminder
+- tapOn: "My car"
+- extendedWaitUntil:
+    visible: "End parking"
+    timeout: 8000
+- tapOn: "End parking"
+- tapOn: "Just end"
+- extendedWaitUntil:
+    visible: "Parked"
+    timeout: 8000
+- tapOn: "Parked"
+- extendedWaitUntil:
+    visible: "It's free, no need"
+    timeout: 8000
+- tapOn: "It's free, no need"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true
+- takeScreenshot: 39-parked-reminder-gone
+- tapOn: "My car"
+- extendedWaitUntil:
+    visible: "End parking"
+    timeout: 8000
+- tapOn: "End parking"
+- tapOn: "Just end"
 
 # Profile, rewards, league, reports
 - extendedWaitUntil:
@@ -247,27 +406,27 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: ".*Test D.*"
     timeout: 15000
-- takeScreenshot: 29-profile
+- takeScreenshot: 40-profile
 - tapOn: "Rewards"
 - extendedWaitUntil:
     visible: "points to spend"
     timeout: 15000
 - assertNotVisible: ".*PK-[0-9]+.*"
-- takeScreenshot: 30-rewards-characters
+- takeScreenshot: 41-rewards-characters
 - tapOn: "Car"
-- takeScreenshot: 31-rewards-car
+- takeScreenshot: 42-rewards-car
 - tapOn: "Themes"
-- takeScreenshot: 32-rewards-backgrounds
+- takeScreenshot: 43-rewards-themes
 - tapOn: "Back"
 - tapOn: "League"
 - extendedWaitUntil:
     visible: "All of Israel|.*Israel.*"
     timeout: 10000
     optional: true
-- takeScreenshot: 33-league
+- takeScreenshot: 44-league
 - tapOn: "Back"
 - tapOn: "My reports"
-- takeScreenshot: 34-my-reports
+- takeScreenshot: 45-my-reports
 - tapOn: "Back"
 
 # Settings: details (email locked), logout's question, account deletion
@@ -275,24 +434,24 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "My details"
     timeout: 8000
-- takeScreenshot: 35-settings
+- takeScreenshot: 46-settings
 - tapOn: "My details"
-- takeScreenshot: 36-my-details-email-locked
+- takeScreenshot: 47-my-details-email-locked
 - tapOn: "Back"
 - scrollUntilVisible:
     element: "Delete account"
     direction: DOWN
-- takeScreenshot: 37-settings-bottom
+- takeScreenshot: 48-settings-bottom
 - tapOn: "Log out"
-- takeScreenshot: 38-logout-question
+- takeScreenshot: 49-logout-question
 - tapOn: "Cancel"
 - tapOn: "Delete account"
 - assertVisible: "Delete your account\\?"
-- takeScreenshot: 39-delete-question
+- takeScreenshot: 50-delete-question
 - tapOn: "Delete for good"
 
 # Deleted: back at sign-in
 - extendedWaitUntil:
     visible: "Send code"
     timeout: 15000
-- takeScreenshot: 40-after-delete
+- takeScreenshot: 51-after-delete

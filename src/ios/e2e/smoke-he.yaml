@@ -77,8 +77,26 @@ appId: com.parkit.israel
     id: "spot_row_0"
 - assertVisible: ".*ניווט.*"
 - takeScreenshot: he-11-spot-sheet
+- tapOn: "אני בדרך.*"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 4000
+    optional: true
 - tapOn:
-    point: "50%,25%"
+    text: "Don.t Allow"
+    optional: true
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "חנית כאן?"
+    timeout: 15000
+- takeScreenshot: he-12-did-you-park-here
+- tapOn: "לא בחניה הזו"
+- extendedWaitUntil:
+    visible: "לא צריך, לשחרר את החניה"
+    timeout: 8000
+- takeScreenshot: he-13-trip-card
+- tapOn: "לא צריך, לשחרר את החניה"
 
 - extendedWaitUntil:
     visible: "דווח"
@@ -87,7 +105,15 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "דיווח על חניה פנויה"
     timeout: 8000
-- takeScreenshot: he-12-report-sheet
+- takeScreenshot: he-14-report-sheet
+- tapOn: "צלם את החניה"
+- extendedWaitUntil:
+    visible: "בחרו צבע מדרכה כדי להמשיך"
+    timeout: 30000
+- takeScreenshot: he-15-report-curb
+- tapOn: "אפור \\(חינם\\)"
+- tapOn: "פרטים נוספים \\(לא חובה\\)"
+- takeScreenshot: he-16-report-more-details
 - swipe:
     start: "50%,12%"
     end: "50%,95%"
@@ -98,9 +124,14 @@ appId: com.parkit.israel
     timeout: 8000
 - tapOn: "מותר לחנות?"
 - assertVisible: "מותר לחנות כאן?"
-- takeScreenshot: he-13-sign-reader
+- takeScreenshot: he-17-sign-reader
+- tapOn: "צלם שלט"
+- extendedWaitUntil:
+    visible: "נקרא קודם משלט שנראה זהה במקום הזה."
+    timeout: 30000
+- takeScreenshot: he-18-sign-from-cache
 - tapOn:
-    point: "50%,25%"
+    point: "50%,10%"
 
 - extendedWaitUntil:
     visible: "הפרופיל שלי"
@@ -109,12 +140,12 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: ".*Test D.*"
     timeout: 15000
-- takeScreenshot: he-14-profile
+- takeScreenshot: he-19-profile
 - tapOn: "הטבות"
-- takeScreenshot: he-15-rewards
+- takeScreenshot: he-20-rewards
 - tapOn: "חזרה"
 - tapOn: "ליגה"
-- takeScreenshot: he-16-league
+- takeScreenshot: he-21-league
 - tapOn: "חזרה"
 - tapOn: "הגדרות"
-- takeScreenshot: he-17-settings
+- takeScreenshot: he-22-settings

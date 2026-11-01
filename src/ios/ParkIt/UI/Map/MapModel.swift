@@ -25,6 +25,8 @@ enum MapConst {
     static let serviceRadiusM = 350_000.0
     static let nearCarM = 150.0
     static let nearMeM = 20.0
+    static let arrivedM = 80.0
+    static let arrivalPrompt: TimeInterval = 20 * 60
     static let claimHold: TimeInterval = 120 // the backend's CLAIM_TTL_SECONDS
     static let reminderSoonMin = 15
     static func inService(_ c: Coord) -> Bool { c.distance(to: telAviv) <= serviceRadiusM }
@@ -102,10 +104,12 @@ final class MapModel: NSObject, ObservableObject {
     @Published var parkedCar: ParkedCar? {
         didSet {
             session.parkedCar = parkedCar
+            ParkedActivity.sync(parkedCar)
             pushCar()
         }
     }
     @Published var showLocationWhy = false
+    @Published var askArrived = false
     @Published var forecast: AreaForecast?
     @Published var forecastNoData = false
     @Published var dailyTip: BestHour?
@@ -126,6 +130,8 @@ final class MapModel: NSObject, ObservableObject {
     private var snackTask: Task<Void, Never>?
     private var locateTimeout: Task<Void, Never>?
     private var started = false
+    private var handingOn = false
+    private var cell: String?
 
     override init() {
         let s = Session.shared
@@ -194,7 +200,8 @@ final class MapModel: NSObject, ObservableObject {
     }
 
     var mainAction: MainAction {
-        if let at = ParkingReminder.activeChangeAt {
+        // A reminder only takes over the main action while a car is saved.
+        if parkedCar != nil, let at = ParkingReminder.activeChangeAt {
             let left = Int(at.timeIntervalSince(clock) / 60)
             if (0...MapConst.reminderSoonMin).contains(left) { return .reminder(left) }
         }
@@ -212,6 +219,10 @@ final class MapModel: NSObject, ObservableObject {
         started = true
         Task { await refreshMyProfile() }
         targetChanged(debounced: false)
+        ParkedActivity.sync(parkedCar)
+        NotificationCenter.default.addObserver(forName: .parkedCarChanged, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.syncCarFromSession() }
+        }
         if hasPermission {
             locate()
         } else {
@@ -225,8 +236,17 @@ final class MapModel: NSObject, ObservableObject {
         }
     }
 
+    /// "I'm leaving" on the lock screen ends the parking while the map isn't looking.
+    private func syncCarFromSession() {
+        if parkedCar != session.parkedCar {
+            parkedCar = session.parkedCar
+            refreshSpotsNow()
+        }
+    }
+
     func becameActive() {
         guard started else { return }
+        syncCarFromSession()
         if hasPermission {
             manager.startUpdatingLocation()
             // Back from Settings: try again rather than staying on the fallback.
@@ -245,6 +265,9 @@ final class MapModel: NSObject, ObservableObject {
             sheet = .levelUp(reached)
         }
         session.lastSeenLevel = reached.rawValue
+        let helpedBefore = session.lastSeenHelped
+        session.lastSeenHelped = p.successfulReports
+        if let helpedBefore, p.successfulReports > helpedBefore { show(L("report_helped_someone")) }
     }
 
     func show(_ message: String, action: String? = nil, _ run: (() -> Void)? = nil) {
@@ -466,6 +489,14 @@ final class MapModel: NSObject, ObservableObject {
         lastAccuracy = location.horizontalAccuracy >= 0 ? location.horizontalAccuracy : nil
         session.lastFix = (here.latitude, here.longitude)
         if firstKnown { loadDailyTip(here) }
+        checkArrival()
+        // Moving about 100 m refreshes which spots are within reach.
+        let newCell = String(format: "%.3f,%.3f", here.latitude, here.longitude)
+        if newCell != cell {
+            let hadCell = cell != nil
+            cell = newCell
+            if hadCell, !pendingFly { refreshSpotsNow() }
+        }
         if pendingFly {
             pendingFly = false
             locating = false
@@ -516,6 +547,7 @@ final class MapModel: NSObject, ObservableObject {
     // MARK: The car
 
     func rememberCar(at: Coord, address: String?, spotType: String = "street") {
+        clearHeading()
         if let left = leftSpot {
             leftSpot = nil
             let near = at.distance(to: Coord(latitude: left.car.lat, longitude: left.car.lng)) < 60
@@ -569,6 +601,7 @@ final class MapModel: NSObject, ObservableObject {
 
     func forgetCar() {
         parkedCar = nil
+        ParkingReminder.cancel()
         let app = ParkingPay.session
         ParkingPay.clearSession()
         sheet = app.map { .stopPay($0) }
@@ -577,7 +610,10 @@ final class MapModel: NSObject, ObservableObject {
     /// "I'm leaving": the driver's own spot becomes a report in one tap, with no photo:
     /// they're standing right at it (the distance check still runs).
     func leave(_ car: ParkedCar) {
+        guard !handingOn else { return } // the answer can take a few seconds; a second tap adds nothing
+        handingOn = true
         Task {
+            defer { handingOn = false }
             do {
                 let spot = try await api.reportSpot(SpotCreate(
                     lat: car.lat, lng: car.lng, spotType: car.spotType, payment: "free",
@@ -592,6 +628,29 @@ final class MapModel: NSObject, ObservableObject {
                 refreshSpotsNow()
                 await refreshMyProfile()
                 show(L("car_leaving_thanks"))
+            } catch {
+                show(friendly(error))
+            }
+        }
+    }
+
+    /// "I'm leaving" without a saved car: the spot is where the phone is now.
+    func leaveHereNow() {
+        guard let here = deviceLocation else {
+            show(L("location_denied"))
+            return
+        }
+        Task {
+            do {
+                _ = try await api.reportSpot(SpotCreate(
+                    lat: here.latitude, lng: here.longitude, spotType: "street", payment: "free",
+                    vehicleSize: prefs.vehicleSize,
+                    reporterLat: here.latitude, reporterLng: here.longitude,
+                    reporterAccuracyM: lastAccuracy, leaving: true
+                ))
+                refreshSpotsNow()
+                await refreshMyProfile()
+                show(L("map_reported_snackbar"))
             } catch {
                 show(friendly(error))
             }
@@ -617,15 +676,65 @@ final class MapModel: NSObject, ObservableObject {
         session.claimEndsAt = end
         claimEndsAt = end
         activeClaim = spot
+        session.headingTo = spot
+        session.headingSince = Date()
         refreshSpotsNow()
+        // After the spot's card has gone, or the question would have nowhere to show.
+        Task {
+            try? await Task.sleep(for: .milliseconds(900))
+            checkArrival()
+        }
+    }
+
+    private func clearHeading() {
+        session.headingTo = nil
+        session.headingSince = nil
+        askArrived = false
+    }
+
+    func checkArrival() {
+        guard let spot = session.headingTo, let since = session.headingSince else { return }
+        if Date().timeIntervalSince(since) > MapConst.arrivalPrompt {
+            clearHeading()
+        } else if let here = deviceLocation, here.distance(to: coord(spot)) <= MapConst.arrivedM {
+            askArrived = true
+        }
+    }
+
+    func arrivedYes() {
+        guard let spot = session.headingTo else { return }
+        Task {
+            // The hold may be long over; the car is saved either way.
+            try? await api.submitFeedback(spot.id, "confirmed_taken")
+            rememberCar(at: coord(spot), address: spot.localAddress ?? spot.address, spotType: spot.spotType)
+            activeClaim = nil
+            refreshSpotsNow()
+            offerPay()
+        }
+    }
+
+    func arrivedNo() { clearHeading() }
+
+    func releaseClaim() {
+        guard let claim = activeClaim else { return }
+        activeClaim = nil
+        clearHeading()
+        Task {
+            try? await api.releaseClaim(claim.id)
+            refreshSpotsNow()
+        }
     }
 
     func tripFeedback(_ type: String) {
         guard let claim = activeClaim else { return }
         Task {
             do {
-                try await api.submitFeedback(claim.id, type)
                 let parked = type == "confirmed_taken"
+                do {
+                    try await api.submitFeedback(claim.id, type)
+                } catch let e as APIError where e.status == 409 && parked {
+                    // Already voted or closed: the driver still parked here.
+                }
                 if parked { rememberCar(at: coord(claim), address: claim.localAddress, spotType: claim.spotType) }
                 activeClaim = nil
                 refreshSpotsNow()

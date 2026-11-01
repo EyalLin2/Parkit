@@ -58,10 +58,10 @@ enum SimulatorPhoto {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         return UIGraphicsImageRenderer(size: size, format: format).image { r in
-            UIColor(red: 0.45, green: 0.47, blue: 0.5, alpha: 1).setFill()
-            r.fill(CGRect(origin: .zero, size: size))
-            UIColor.white.setFill()
-            for x in stride(from: 40, to: 1000, by: 180) { r.fill(CGRect(x: x, y: 700, width: 90, height: 14)) }
+            // Dark to light across: e2e/seed.sql stores a sign that "looks like" this.
+            let colors = [UIColor(white: 0.1, alpha: 1).cgColor, UIColor(white: 0.9, alpha: 1).cgColor] as CFArray
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceGray(), colors: colors, locations: [0, 1])!
+            r.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: size.width, y: 0), options: [])
         }
     }
 }
@@ -88,7 +88,8 @@ struct ReportSheet: View {
     @State private var uploading = false
     @State private var type = "street"
     @State private var size: String
-    @State private var blueWhite = false
+    @State private var blueWhite: Bool? // no choice yet
+    @State private var showDetails = false
     @State private var note = ""
     @State private var submitting = false
     @State private var error: String?
@@ -108,7 +109,10 @@ struct ReportSheet: View {
         _size = State(initialValue: model.prefs.vehicleSize ?? "regular")
     }
 
-    private var ready: Bool { stagingId != nil }
+    private var hasPhoto: Bool { stagingId != nil }
+    // Whether the next driver pays is the one thing every report must say.
+    private var curbKnown: Bool { type != "street" || blueWhite != nil }
+    private var ready: Bool { hasPhoto && curbKnown }
 
     var body: some View {
         ScrollView {
@@ -130,6 +134,21 @@ struct ReportSheet: View {
                 }
                 .padding(.top, 6)
 
+                if model.parkedCar == nil {
+                    // A saved car has its own one-tap "I'm leaving" next to the car.
+                    Button {
+                        model.sheet = nil
+                        model.leaveHereNow()
+                    } label: {
+                        Text(L("report_leaving_now")).font(PKFont.labelLarge).foregroundStyle(Color.pkPrimary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 12).padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .overlay(Capsule().stroke(Color.pkOutline, lineWidth: 1))
+                    }
+                    .padding(.top, 14)
+                }
+
                 photoArea.padding(.top, 18)
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "eye.slash").font(.system(size: 12)).foregroundStyle(Color.pkMuted)
@@ -137,40 +156,39 @@ struct ReportSheet: View {
                 }
                 .padding(.top, 8).padding(.horizontal, 4)
 
-                label(L("report_type_question"))
-                HStack(spacing: 10) {
-                    typeOption(L("map_spot_kind_regular"), "car.fill", "street")
-                    typeOption(L("map_spot_kind_disabled"), "figure.roll", "disabled")
-                }
                 if type == "street" {
-                    Button { blueWhite.toggle() } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: blueWhite ? "checkmark.square.fill" : "square").font(.system(size: 16))
-                            Text(L("report_blue_white")).font(PKFont.labelLarge)
-                        }
-                        .foregroundStyle(blueWhite ? Color.pkPrimary : Color.pkText)
-                        .padding(.horizontal, 12).frame(height: 36)
-                        .background(blueWhite ? Color.pkTint : .clear, in: RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(blueWhite ? .clear : Color.pkOutline, lineWidth: 1))
+                    label(L("report_curb_question"))
+                    HStack(spacing: 10) {
+                        curbOption(L("report_curb_blue_white"), "creditcard.fill", true)
+                        curbOption(L("report_curb_gray"), "banknote", false)
                     }
-                    .padding(.top, 10)
                 }
 
-                label(L("report_size_question"))
-                SizeSegments(selection: Binding(get: { size }, set: { size = $0 ?? "regular" }))
-
-                label(L("report_note_label"))
-                TextField(L("report_note_hint"), text: $note)
-                    .font(PKFont.bodyLarge)
-                    .padding(.horizontal, 14).frame(height: 52)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.pkMuted.opacity(0.6), lineWidth: 1))
-                    .onChange(of: note) { _, v in if v.count > noteMax { note = String(v.prefix(noteMax)) } }
-                Text(verbatim: "\(note.count)/\(noteMax)").font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).padding(.top, 4).padding(.horizontal, 14)
+                // The rest is for whoever wants to add it.
+                Button(L(showDetails ? "report_less" : "report_more")) { showDetails.toggle() }
+                    .font(PKFont.labelLarge).foregroundStyle(Color.pkPrimary).padding(.top, 14)
+                if showDetails {
+                    label(L("report_type_question"))
+                    HStack(spacing: 10) {
+                        typeOption(L("map_spot_kind_regular"), "car.fill", "street")
+                        typeOption(L("map_spot_kind_disabled"), "figure.roll", "disabled")
+                    }
+                    label(L("report_size_question"))
+                    SizeSegments(selection: Binding(get: { size }, set: { size = $0 ?? "regular" }))
+                    label(L("report_note_label"))
+                    TextField(L("report_note_hint"), text: $note)
+                        .font(PKFont.bodyLarge)
+                        .padding(.horizontal, 14).frame(height: 52)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.pkMuted.opacity(0.6), lineWidth: 1))
+                        .accessibilityIdentifier("report_note")
+                        .onChange(of: note) { _, v in if v.count > noteMax { note = String(v.prefix(noteMax)) } }
+                    Text(verbatim: "\(note.count)/\(noteMax)").font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).padding(.top, 4).padding(.horizontal, 14)
+                }
 
                 if let error { Text(error).font(PKFont.bodySmall).foregroundStyle(Color.pkError).padding(.top, 12) }
 
                 Button(action: submit) {
-                    if submitting { ProgressView().tint(Color.pkOnPrimary) } else { Text(L(ready ? "report_confirm" : "report_needs_photo")) }
+                    if submitting { ProgressView().tint(Color.pkOnPrimary) } else { Text(L(!hasPhoto ? "report_needs_photo" : !curbKnown ? "report_needs_curb" : "report_confirm")).multilineTextAlignment(.center) }
                 }
                 .buttonStyle(PillButtonStyle())
                 .disabled(!ready || submitting || uploading)
@@ -190,6 +208,20 @@ struct ReportSheet: View {
 
     private func label(_ text: String) -> some View {
         Text(text).font(PKFont.titleSmall).foregroundStyle(Color.pkText).padding(.top, 20).padding(.bottom, 10)
+    }
+
+    private func curbOption(_ title: String, _ icon: String, _ value: Bool) -> some View {
+        let selected = blueWhite == value
+        return Button { blueWhite = value } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.system(size: 18)).foregroundStyle(selected ? Color.pkPrimary : Color.pkMuted)
+                Text(title).font(PKFont.labelLarge).foregroundStyle(selected ? Color.pkPrimary : Color.pkText).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .padding(.horizontal, 6)
+            .frame(maxWidth: .infinity).frame(height: 56)
+            .background(selected ? Color.pkPrimary.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(selected ? Color.pkPrimary : Color.pkOutline, lineWidth: selected ? 2 : 1))
+        }
     }
 
     private func typeOption(_ title: String, _ icon: String, _ value: String) -> some View {
@@ -289,7 +321,7 @@ struct ReportSheet: View {
                 let fix = model.reportFields()
                 _ = try await API.shared.reportSpot(SpotCreate(
                     lat: lat, lng: lng, spotType: type,
-                    payment: blueWhite && type == "street" ? "paid" : "free",
+                    payment: blueWhite == true && type == "street" ? "paid" : "free",
                     vehicleSize: size, photoStagingId: stagingId, address: street,
                     note: note.trimmed.isEmpty ? nil : note.trimmed,
                     reporterLat: fix.lat, reporterLng: fix.lng, reporterAccuracyM: fix.accuracy
@@ -329,6 +361,8 @@ struct SizeSegments: View {
 /// "Can I park here?": photograph a parking sign, get a plain answer for a regular driver
 /// right now. The answer is advice, so the sheet always says to check the sign itself.
 struct SignReaderSheet: View {
+    let place: Coord?
+    @State private var lastPhoto: UIImage?
     @State private var reading: SignReading?
     @State private var busy = false
     @State private var error: String?
@@ -375,6 +409,13 @@ struct SignReaderSheet: View {
         if let until = r.until { Text(L("sign_until", until)).font(PKFont.titleMedium).foregroundStyle(Color.pkText).padding(.top, 4) }
         if r.paid == true { Text(L("sign_paid")).font(PKFont.bodyMedium).foregroundStyle(Color(hex: 0x1565C0)).padding(.top, 4) }
         Text(L10n.isHebrew ? r.summaryHe : r.summaryEn).font(PKFont.bodyMedium).foregroundStyle(Color.pkText).multilineTextAlignment(.center).padding(.top, 10)
+        if r.fromCache == true {
+            Text(L("sign_from_cache")).font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).multilineTextAlignment(.center).padding(.top, 6)
+            Button(L("sign_read_again")) {
+                if let lastPhoto { send(lastPhoto, fresh: true) }
+            }
+            .font(PKFont.labelLarge).foregroundStyle(Color.pkPrimary).frame(minHeight: 40)
+        }
         // The useful part: don't get a ticket when the rules change.
         if let at = r.changesAt ?? r.until, ParkingReminder.changeTime(at) != nil {
             if let reminderSet {
@@ -413,7 +454,8 @@ struct SignReaderSheet: View {
         }
     }
 
-    private func send(_ image: UIImage) {
+    private func send(_ image: UIImage, fresh: Bool = false) {
+        lastPhoto = image
         busy = true
         error = nil
         Task {
@@ -421,7 +463,7 @@ struct SignReaderSheet: View {
             do {
                 guard let jpeg = image.jpegData(compressionQuality: 0.85) else { return }
                 reminderSet = nil // a new sign: its own reminder
-                reading = try await API.shared.readSign(jpeg)
+                reading = try await API.shared.readSign(jpeg, at: place, fresh: fresh)
             } catch {
                 self.error = friendly(error, aboutSpot: false)
             }

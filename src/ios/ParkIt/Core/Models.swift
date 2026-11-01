@@ -42,6 +42,8 @@ struct SpotCreate: Codable {
     var reporterLng: Double?
     var reporterAccuracyM: Double?
     var handoff: Bool = false
+    /// "Leaving now" without a saved car.
+    var leaving: Bool = false
 }
 
 struct SpotOut: Codable, Identifiable, Equatable {
@@ -257,6 +259,8 @@ struct SignReading: Codable {
     var paid: Bool?
     let summaryHe: String
     let summaryEn: String
+    /// Read earlier from a sign that looks the same here, at no AI cost.
+    var fromCache: Bool?
 }
 
 struct AreaForecast: Codable { let everyMinutes: Int; let reports: Int; let days: Int; var scope: String? }

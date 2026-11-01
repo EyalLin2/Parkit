@@ -203,11 +203,16 @@ final class API {
         let items = me.map { [("me_lat", "\($0.latitude)"), ("me_lng", "\($0.longitude)")] } ?? []
         return try decoder.decode(SpotOut.self, from: try await send("POST", query("spots/\(id)/claim", items)))
     }
+    func releaseClaim(_ id: String) async throws { _ = try await send("DELETE", "spots/\(id)/claim") }
     func submitFeedback(_ id: String, _ type: String) async throws { try await postNoReply("spots/\(id)/feedback", FeedbackCreate(type: type)) }
     func reportContent(_ id: String, _ reason: String) async throws { try await postNoReply("spots/\(id)/report-content", ContentReport(reason: reason)) }
     func cancelSpot(_ id: String) async throws { _ = try await send("DELETE", "spots/\(id)") }
     func stagePhoto(_ jpeg: Data) async throws -> StagedPhotoOut { try await upload("photos/stage", field: "file", filename: "photo.jpg", jpeg: jpeg) }
-    func readSign(_ jpeg: Data) async throws -> SignReading { try await upload("signs/read", field: "photo", filename: "sign.jpg", jpeg: jpeg) }
+    func readSign(_ jpeg: Data, at place: CLLocationCoordinate2D?, fresh: Bool) async throws -> SignReading {
+        var items = [("fresh", fresh ? "true" : "false")]
+        if let place { items += [("lat", "\(place.latitude)"), ("lng", "\(place.longitude)")] }
+        return try await upload(query("signs/read", items), field: "photo", filename: "sign.jpg", jpeg: jpeg)
+    }
 
     // MARK: Everything else
 
