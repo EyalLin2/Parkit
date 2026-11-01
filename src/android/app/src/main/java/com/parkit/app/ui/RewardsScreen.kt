@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.RewardOut
@@ -313,7 +314,7 @@ private fun ShopItem(reward: RewardOut, hebrew: Boolean, balance: Int, inUse: Bo
             picture()
             Text(
                 if (hebrew) reward.titleHe else reward.titleEn,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.sp),
                 textAlign = TextAlign.Center,
                 maxLines = 3,
                 minLines = if (twoLines) 2 else 1,
