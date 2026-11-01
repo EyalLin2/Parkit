@@ -91,7 +91,7 @@ fun RewardsScreen(
             }
             avatar = runCatching { api.myProfile().avatar }.getOrNull()
         } catch (e: Exception) {
-            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context, aboutSpot = false)
         }
     }
 

@@ -58,6 +58,7 @@ data class AccountOut(
     @Json(name = "first_name") val firstName: String?,
     @Json(name = "last_name") val lastName: String?,
     val email: String?,
+    @Json(name = "email_verified") val emailVerified: Boolean = false,
 )
 
 @JsonClass(generateAdapter = true)

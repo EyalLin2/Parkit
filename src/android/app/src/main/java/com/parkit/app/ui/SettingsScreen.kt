@@ -88,7 +88,11 @@ fun SettingsScreen(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
     ) {
         btDevices = com.parkit.app.remind.CarBluetooth.pairedDevices(context)
-        if (com.parkit.app.remind.CarBluetooth.canUse(context)) dialog = "carbt"
+        if (com.parkit.app.remind.CarBluetooth.canUse(context)) {
+            dialog = "carbt"
+        } else {
+            android.widget.Toast.makeText(context, R.string.permission_bluetooth_needed, android.widget.Toast.LENGTH_LONG).show()
+        }
     }
     fun openCarBt() {
         val needed = buildList {

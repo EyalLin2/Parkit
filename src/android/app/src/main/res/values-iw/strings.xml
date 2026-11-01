@@ -501,4 +501,7 @@
     <string name="forecast_scope_city">לפי העיר</string>
     <string name="forecast_no_data">עוד אין כאן מספיק דיווחים. כל דיווח עוזר.</string>
     <string name="forecast_rare">בשעה הזו חניות מתפנות כאן לעיתים רחוקות</string>
+    <string name="permission_camera_needed">כדי לצלם, צריך לאשר גישה למצלמה בהגדרות הטלפון</string>
+    <string name="permission_notifications_needed">כדי לקבל תזכורת, צריך לאשר התראות בהגדרות הטלפון</string>
+    <string name="permission_bluetooth_needed">כדי להשתמש בזה, צריך לאשר Bluetooth והתראות בהגדרות הטלפון</string>
 </resources>

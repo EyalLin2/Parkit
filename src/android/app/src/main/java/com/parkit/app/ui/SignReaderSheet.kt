@@ -92,8 +92,8 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
     }
     // Android 13+: ask for notifications only now, when the driver wants one.
     var pendingReminder by remember { mutableStateOf<SignReading?>(null) }
-    val notifyPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        pendingReminder?.let { setReminder(it) }
+    val notifyPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) pendingReminder?.let { setReminder(it) } else error = context.getString(R.string.permission_notifications_needed)
         pendingReminder = null
     }
     fun askReminder(r: SignReading) {
@@ -118,7 +118,7 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
                 reminderSet = null // a new sign: its own reminder
                 reading = api.readSign(part)
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context, aboutSpot = false)
             } finally {
                 busy = false
             }
@@ -134,7 +134,7 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
         }
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) camera.launch(photoUri)
+        if (granted) camera.launch(photoUri) else error = context.getString(R.string.permission_camera_needed)
     }
     fun shoot() {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED

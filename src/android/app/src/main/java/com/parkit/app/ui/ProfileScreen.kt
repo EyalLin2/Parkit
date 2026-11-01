@@ -108,6 +108,15 @@ fun ProfileScreen(
     onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val activity = generateSequence(view.context) { (it as? android.content.ContextWrapper)?.baseContext }
+            .filterIsInstance<android.app.Activity>().firstOrNull()
+        val bars = activity?.let { androidx.core.view.WindowCompat.getInsetsController(it.window, view) }
+        val before = bars?.isAppearanceLightStatusBars
+        bars?.isAppearanceLightStatusBars = false
+        onDispose { before?.let { bars.isAppearanceLightStatusBars = it } }
+    }
     var profile by remember { mutableStateOf<ProfileOut?>(null) }
     var leaderboard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }
     var cityBoard by remember { mutableStateOf<List<LeaderboardEntry>>(emptyList()) }

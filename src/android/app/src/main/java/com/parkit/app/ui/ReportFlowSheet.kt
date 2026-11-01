@@ -168,7 +168,7 @@ fun ReportFlowSheet(
         }
     }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) cameraLauncher.launch(photoUri)
+        if (granted) cameraLauncher.launch(photoUri) else error = context.getString(R.string.permission_camera_needed)
     }
 
     fun startCamera() {

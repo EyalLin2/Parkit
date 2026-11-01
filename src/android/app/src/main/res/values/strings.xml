@@ -494,4 +494,7 @@
     <string name="forecast_scope_city">by city</string>
     <string name="forecast_no_data">Not enough reports here yet. Every report helps.</string>
     <string name="forecast_rare">Spots rarely free up here at this hour</string>
+    <string name="permission_camera_needed">Allow camera access in your phone\'s settings to take the photo</string>
+    <string name="permission_notifications_needed">Allow notifications in your phone\'s settings to get the reminder</string>
+    <string name="permission_bluetooth_needed">Allow Bluetooth and notifications in your phone\'s settings to use this</string>
 </resources>

@@ -64,15 +64,15 @@ import retrofit2.HttpException
 fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsProfile: Boolean) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var byEmail by remember { mutableStateOf(true) }
-    var phone by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var sentTo by remember { mutableStateOf<String?>(null) } // normalised number once a code was sent
-    var code by remember { mutableStateOf("") }
-    var devCode by remember { mutableStateOf<String?>(null) }
-    var resendIn by remember { mutableIntStateOf(0) }
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var byEmail by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
+    var phone by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    var email by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    var sentTo by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) } // normalised number once a code was sent
+    var code by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    var devCode by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    var resendIn by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
+    var loading by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var error by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
 
     fun explainText(e: Exception): String = when {
         e is HttpException && e.code() == 422 -> context.getString(if (byEmail) R.string.details_email_invalid else R.string.login_phone_invalid)

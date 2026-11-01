@@ -402,7 +402,7 @@ fun MapScreen(
     // recreate (or kill) ParkIt meanwhile — coming back must still show the trip.
     var activeClaim by androidx.compose.runtime.saveable.rememberSaveable(stateSaver = ClaimSaver) { mutableStateOf<SpotOut?>(null) }
     var claimEndsAt by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0L) }
-    var showReportFlow by remember { mutableStateOf(false) }
+    var showReportFlow by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     // The driver's own level/points, for the avatar ring and level-up moments.
     var myProfile by remember { mutableStateOf<com.parkit.app.api.ProfileOut?>(null) }
     var levelUp by remember { mutableStateOf<ParkItLevel?>(null) }
@@ -627,7 +627,7 @@ fun MapScreen(
      * it's blue-white. A snackbar, not a dialog — it goes away by itself
      * and never blocks the map. */
     var showPayChooser by remember { mutableStateOf(false) }
-    var showSignReader by remember { mutableStateOf(false) }
+    var showSignReader by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     // First tap on "I just parked" explains what it's for before saving anything.
     var showCarExplainer by remember { mutableStateOf(false) }
 
