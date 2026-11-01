@@ -197,6 +197,9 @@ struct DetailsScreen: View {
     @State private var saving = false
     @State private var error: String?
     @State private var emailLocked = false
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case first, last, email }
 
     private var emailOK: Bool {
         email.trimmingCharacters(in: .whitespaces).range(of: #"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$"#, options: .regularExpression) != nil
@@ -206,6 +209,7 @@ struct DetailsScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             if !firstTime { ScreenTopBar(title: L("details_title"), onBack: onDone) }
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if firstTime {
@@ -214,9 +218,12 @@ struct DetailsScreen: View {
                         Text(L("details_pick_avatar")).font(PKFont.labelLarge).foregroundStyle(Color.pkText).padding(.top, 4)
                         AvatarGrid(selected: avatar) { avatar = $0 }.padding(.bottom, 8)
                     }
-                    LabeledField(label: L("details_first_name"), text: $first, capitalization: .words, content: .givenName, identifier: "details_first")
-                    LabeledField(label: L("details_last_name"), text: $last, capitalization: .words, content: .familyName, identifier: "details_last")
-                    LabeledField(label: L("details_email"), text: $email, keyboard: .emailAddress, capitalization: .never, disabled: emailLocked, isError: !email.isEmpty && !emailOK, content: .emailAddress, identifier: "details_email")
+                    LabeledField(label: L("details_first_name"), text: $first, capitalization: .words, content: .givenName, identifier: "details_first") { focus = .last }
+                        .focused($focus, equals: .first).id(Field.first)
+                    LabeledField(label: L("details_last_name"), text: $last, capitalization: .words, content: .familyName, identifier: "details_last") { focus = emailLocked ? nil : .email }
+                        .focused($focus, equals: .last).id(Field.last)
+                    LabeledField(label: L("details_email"), text: $email, keyboard: .emailAddress, capitalization: .never, disabled: emailLocked, isError: !email.isEmpty && !emailOK, content: .emailAddress, identifier: "details_email") { focus = nil }
+                        .focused($focus, equals: .email).id(Field.email)
                     if !email.isEmpty && !emailOK {
                         Text(L("details_email_invalid")).font(PKFont.bodySmall).foregroundStyle(Color.pkError)
                     }
@@ -226,6 +233,12 @@ struct DetailsScreen: View {
                 .padding(.horizontal, 20).padding(.bottom, 12)
             }
             .scrollDismissesKeyboard(.interactively)
+            .clipped() // nothing scrolls under the status bar
+            .onChange(of: focus) { _, field in
+                // The avatars above push the fields under the keyboard otherwise.
+                if let field { withAnimation { proxy.scrollTo(field, anchor: .center) } }
+            }
+            }
             Button(action: save) {
                 if saving { ProgressView().tint(Color.pkOnPrimary) } else { Text(L(firstTime ? "driver_save_and_continue" : "driver_save")) }
             }
