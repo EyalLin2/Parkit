@@ -36,6 +36,9 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "Welcome to ParkIt!"
     timeout: 15000
+- scrollUntilVisible:
+    element: "First name"
+    direction: DOWN
 - tapOn: "First name"
 - inputText: "Test"
 - tapOn: "Last name"

@@ -137,5 +137,6 @@ jobs:
           python-version: "3.12"
       - run: pip install pip-audit && pip-audit -r src/backend/requirements.txt
       - name: Secrets in git history
+        if: always()
         run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.18.4 detect --source=/repo --no-banner --redact
 
