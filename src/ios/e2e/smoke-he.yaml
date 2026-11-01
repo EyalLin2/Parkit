@@ -30,22 +30,27 @@ appId: com.parkit.israel
     id: "login_code"
 - inputText: "246810"
 
+# First-time details, unless the English run stopped before deleting its account.
 - extendedWaitUntil:
-    visible: "ברוכים הבאים ל-ParkIt!"
+    visible: "ברוכים הבאים ל-ParkIt!|דלג"
     timeout: 15000
-- takeScreenshot: he-05-details
-- scrollUntilVisible:
-    element:
-      id: "details_email"
-    direction: DOWN
-- tapOn:
-    id: "details_first"
-- inputText: "Test"
-- pressKey: Enter
-- inputText: "Driver"
-- pressKey: Enter
-- takeScreenshot: he-06-details-email-locked
-- tapOn: "שמירה והמשך"
+- runFlow:
+    when:
+      visible: "ברוכים הבאים ל-ParkIt!"
+    commands:
+      - takeScreenshot: he-05-details
+      - scrollUntilVisible:
+          element:
+            id: "details_email"
+          direction: DOWN
+      - tapOn:
+          id: "details_first"
+      - inputText: "Test"
+      - pressKey: Enter
+      - inputText: "Driver"
+      - pressKey: Enter
+      - takeScreenshot: he-06-details-email-locked
+      - tapOn: "שמירה והמשך"
 
 - extendedWaitUntil:
     visible: "דלג"
