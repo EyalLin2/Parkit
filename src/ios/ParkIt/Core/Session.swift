@@ -59,6 +59,7 @@ final class Session: ObservableObject {
         static let userId = "s.user_id", displayName = "s.display_name", driver = "s.driver"
         static let needsProfile = "s.needs_profile", onboardingSeen = "s.onboarding_seen"
         static let lastLevel = "s.last_seen_level", parkedCar = "s.parked_car"
+        static let lastFixAt = "s.last_fix_at", lastFixAccuracy = "s.last_fix_accuracy"
         static let leftAt = "s.left_app_at", bg = "s.profile_bg", special = "s.car_special", paint = "s.car_paint"
         static let claim = "s.active_claim", claimEnds = "s.claim_ends"
         static let heading = "s.heading_to", headingSince = "s.heading_since", helped = "s.last_seen_helped"
@@ -119,7 +120,15 @@ final class Session: ObservableObject {
         set {
             d.set(newValue?.lat, forKey: K.lastLat)
             d.set(newValue?.lng, forKey: K.lastLng)
+            d.set(newValue == nil ? nil : Date(), forKey: K.lastFixAt)
         }
+    }
+
+    /// When the map last saw `lastFix`, and how sure it was.
+    var lastFixAt: Date? { d.object(forKey: K.lastFixAt) as? Date }
+    var lastFixAccuracy: Double? {
+        get { d.object(forKey: K.lastFixAccuracy) as? Double }
+        set { d.set(newValue, forKey: K.lastFixAccuracy) }
     }
 
     var parkedCar: ParkedCar? {

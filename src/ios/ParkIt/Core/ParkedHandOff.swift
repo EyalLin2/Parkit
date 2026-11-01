@@ -69,8 +69,26 @@ enum ParkedNotification {
 enum ParkedHandOff {
     enum Outcome { case thanks, stopPaying, tooFar, tryAgain, noCar }
 
+    /// Long enough to cover putting the phone away, too short to have walked to the car since.
+    private static let fixStaysValid: TimeInterval = 120
+
+    /// iOS gives a when-in-use app no location in the background, so without the map's last
+    /// fix the server would never hear that the driver is far from the car. An old fix says
+    /// nothing, and is not sent: it would turn away a driver who has since walked back.
+    private static func currentFix() -> CLLocation? {
+        if let live = CLLocationManager().location { return live }
+        let session = Session.shared
+        guard let last = session.lastFix, let at = session.lastFixAt,
+              Date().timeIntervalSince(at) < fixStaysValid else { return nil }
+        return CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: last.lat, longitude: last.lng),
+            altitude: 0, horizontalAccuracy: session.lastFixAccuracy ?? -1, verticalAccuracy: -1, timestamp: at
+        )
+    }
+
     @discardableResult
-    static func run(fix: CLLocation? = CLLocationManager().location) async -> Outcome {
+    static func run(fix given: CLLocation? = nil) async -> Outcome {
+        let fix = given ?? currentFix()
         let session = Session.shared
         guard let car = session.parkedCar else {
             ParkedNotification.cancel()
@@ -91,12 +109,12 @@ enum ParkedHandOff {
                 ParkingReminder.cancel()
                 let paying = ParkingPay.session != nil
                 ParkingPay.clearSession()
+                NotificationCenter.default.post(name: .parkedCarChanged, object: nil)
                 if paying {
                     ParkedNotification.finished(L("parked_notification_ended_stop_paying"))
                 } else {
                     ParkedNotification.cancel()
                 }
-                NotificationCenter.default.post(name: .parkedCarChanged, object: nil)
                 return paying ? .stopPaying : .noCar
             }
             let far = (error as? APIError)?.status == 422
@@ -107,8 +125,9 @@ enum ParkedHandOff {
         ParkingReminder.cancel()
         let paying = ParkingPay.session != nil
         ParkingPay.clearSession()
-        ParkedNotification.finished(L(paying ? "parked_notification_stop_paying" : "parked_notification_done"))
+        // First: a map in memory follows by clearing the notification, which would take the thanks too.
         NotificationCenter.default.post(name: .parkedCarChanged, object: nil)
+        ParkedNotification.finished(L(paying ? "parked_notification_stop_paying" : "parked_notification_done"))
         return paying ? .stopPaying : .thanks
     }
 }

@@ -585,6 +585,7 @@ final class MapModel: NSObject, ObservableObject {
         deviceLocation = here
         lastAccuracy = location.horizontalAccuracy >= 0 ? location.horizontalAccuracy : nil
         session.lastFix = (here.latitude, here.longitude)
+        session.lastFixAccuracy = lastAccuracy
         if firstKnown { loadDailyTip(here) }
         checkArrival()
         // Moving about 100 m refreshes which spots are within reach.

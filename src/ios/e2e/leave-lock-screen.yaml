@@ -1,0 +1,14 @@
+# Out of the lock screen before the app is opened again. A dark phone with a Home button
+# needs two presses: one wakes it, one opens it. Elsewhere the second does nothing.
+appId: com.parkit.israel
+---
+- pressKey: Home
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true
+- pressKey: Home
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true

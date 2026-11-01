@@ -1,0 +1,14 @@
+# Locks the phone. On a slow runner the press can last long enough to count as a long press,
+# which doesn't lock: the map is still there, so press again.
+appId: com.parkit.israel
+---
+- repeat:
+    while:
+      visible: "דווח|Report"
+    times: 4
+    commands:
+      - pressKey: Lock
+      - extendedWaitUntil:
+          visible: "Filter that never appears"
+          timeout: 3000
+          optional: true

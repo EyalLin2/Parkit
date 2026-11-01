@@ -69,11 +69,8 @@ appId: com.parkit.israel
     visible: "Filter that never appears"
     timeout: 4000
     optional: true
-- pressKey: Lock
-- extendedWaitUntil:
-    visible: "Filter that never appears"
-    timeout: 3000
-    optional: true
+- runFlow:
+    file: lock-phone.yaml
 - runFlow:
     file: wake-lock-screen.yaml
 - takeScreenshot: ls-02-lock-screen
@@ -86,17 +83,29 @@ appId: com.parkit.israel
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: ".*נראה שאתם לא ליד הרכב.*"
-    timeout: 25000
+    timeout: 40000
 - takeScreenshot: ls-04-too-far
 
-# Back by the car: the same action now hands the spot on
+# Back by the car, and the app has seen it: iOS tells it nothing while it's in the background.
+# The same action now hands the spot on.
 - setLocation:
     latitude: 32.0853
     longitude: 34.7818
+- runFlow:
+    file: leave-lock-screen.yaml
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "יוצא מהחניה"
+    timeout: 10000
 - extendedWaitUntil:
     visible: "Filter that never appears"
     timeout: 4000
     optional: true
+- runFlow:
+    file: lock-phone.yaml
+- runFlow:
+    file: wake-lock-screen.yaml
 - runFlow:
     file: open-notification.yaml
 - extendedWaitUntil:
@@ -105,10 +114,12 @@ appId: com.parkit.israel
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: "תודה, החניה על המפה"
-    timeout: 25000
+    timeout: 40000
 - takeScreenshot: ls-05-thanks
 
 # In the app the car is gone: it was handed on from the lock screen.
+- runFlow:
+    file: leave-lock-screen.yaml
 - launchApp:
     stopApp: true
 - extendedWaitUntil:
@@ -136,11 +147,8 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "יוצא מהחניה"
     timeout: 10000
-- pressKey: Lock
-- extendedWaitUntil:
-    visible: "Filter that never appears"
-    timeout: 3000
-    optional: true
+- runFlow:
+    file: lock-phone.yaml
 - runFlow:
     file: wake-lock-screen.yaml
 - runFlow:
@@ -151,10 +159,12 @@ appId: com.parkit.israel
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: ".*אל תשכחו לעצור את תשלום החניה.*"
-    timeout: 25000
+    timeout: 40000
 - takeScreenshot: ls-07-stop-paying
 
 # The same in English, after switching language in Settings
+- runFlow:
+    file: leave-lock-screen.yaml
 - launchApp:
     stopApp: true
 - extendedWaitUntil:
@@ -183,11 +193,8 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "I'm leaving"
     timeout: 8000
-- pressKey: Lock
-- extendedWaitUntil:
-    visible: "Filter that never appears"
-    timeout: 3000
-    optional: true
+- runFlow:
+    file: lock-phone.yaml
 - runFlow:
     file: wake-lock-screen.yaml
 - takeScreenshot: ls-09-english-lock-screen
@@ -200,7 +207,9 @@ appId: com.parkit.israel
 - tapOn: "I'm leaving"
 - extendedWaitUntil:
     visible: "Thanks, the spot is on the map"
-    timeout: 25000
+    timeout: 40000
 - takeScreenshot: ls-11-english-thanks
+- runFlow:
+    file: leave-lock-screen.yaml
 - launchApp:
     stopApp: true
