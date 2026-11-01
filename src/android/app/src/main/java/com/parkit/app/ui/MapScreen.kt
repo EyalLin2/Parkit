@@ -149,6 +149,8 @@ import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 
 private val TEL_AVIV = LatLng(32.0809, 34.7806)
+private const val ARRIVED_M = 80.0
+private const val ARRIVAL_PROMPT_MS = 20 * 60_000L
 private const val DEFAULT_RADIUS_M = 800 // ~10 min walk; drag the pin to search elsewhere
 // MapLibre zoom levels use 512px tiles — one level closer than osmdroid's
 // for the same number. 15 shows ~±400m across, matching the search radius feel.
@@ -401,6 +403,11 @@ fun MapScreen(
     // Saveable: "I'm on my way" opens a navigation app, and Android may
     // recreate (or kill) ParkIt meanwhile — coming back must still show the trip.
     var activeClaim by androidx.compose.runtime.saveable.rememberSaveable(stateSaver = ClaimSaver) { mutableStateOf<SpotOut?>(null) }
+    // The spot this driver set out for. It outlives the 2-minute hold, so
+    // arriving there can still ask "did you park here?".
+    var headingTo by androidx.compose.runtime.saveable.rememberSaveable(stateSaver = ClaimSaver) { mutableStateOf<SpotOut?>(null) }
+    var headingSince by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0L) }
+    var askArrived by remember { mutableStateOf(false) }
     var claimEndsAt by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0L) }
     var showReportFlow by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     // The driver's own level/points, for the avatar ring and level-up moments.
@@ -413,6 +420,11 @@ fun MapScreen(
         val seen = sessionStore.lastSeenLevel?.let { ParkItLevel.of(it) }
         if (seen != null && reached.minPoints > seen.minPoints) levelUp = reached
         sessionStore.lastSeenLevel = reached.key
+        val helpedBefore = sessionStore.lastSeenHelped
+        sessionStore.lastSeenHelped = p.successfulReports
+        if (helpedBefore != null && p.successfulReports > helpedBefore) {
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.report_helped_someone)) }
+        }
     }
     LaunchedEffect(Unit) { refreshMyProfile() }
     var typeFilter by remember { mutableStateOf<String?>(null) } // null = All
@@ -532,6 +544,8 @@ fun MapScreen(
     var leftSpot by remember { mutableStateOf<Pair<String, com.parkit.app.auth.ParkedCar>?>(null) }
 
     fun rememberCar(at: LatLng, address: String?, spotType: String = "street") {
+        headingTo = null
+        askArrived = false
         leftSpot?.let { (id, was) ->
             leftSpot = null
             val near = at.distanceTo(LatLng(was.lat, was.lng)) < 60
@@ -849,6 +863,7 @@ fun MapScreen(
                         reporterLat = fix.latitude,
                         reporterLng = fix.longitude,
                         reporterAccuracyM = fix.takeIf { it.hasAccuracy() }?.accuracy,
+                        leaving = true,
                     ),
                 )
                 refreshSpotsNow()
@@ -1244,7 +1259,6 @@ fun MapScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     MapChip(stringResource(R.string.map_filter_all), Icons.Filled.LocalParking, typeFilter == null) { typeFilter = null }
-                    MapChip(stringResource(R.string.map_filter_regular), Icons.Filled.DirectionsCar, typeFilter == "street") { typeFilter = "street" }
                     // Only drivers with a disabled permit need this filter.
                     if (driverPrefs.preferences.hasDisabledPermit || typeFilter == "disabled") {
                         MapChip(stringResource(R.string.map_filter_disabled), Icons.AutoMirrored.Filled.Accessible, typeFilter == "disabled") { typeFilter = "disabled" }
@@ -1410,6 +1424,40 @@ fun MapScreen(
                 }
             }
         }
+    }
+
+    LaunchedEffect(deviceLocation, headingTo) {
+        val spot = headingTo ?: return@LaunchedEffect
+        if (System.currentTimeMillis() - headingSince > ARRIVAL_PROMPT_MS) {
+            headingTo = null
+        } else if ((deviceLocation?.distanceTo(LatLng(spot.lat, spot.lng)) ?: Double.MAX_VALUE) <= ARRIVED_M) {
+            askArrived = true
+        }
+    }
+    val arrivedAt = headingTo
+    if (askArrived && arrivedAt != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { askArrived = false; headingTo = null },
+            title = { Text(stringResource(R.string.arrived_title)) },
+            text = { Text(stringResource(R.string.arrived_body)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    scope.launch {
+                        // The hold may be long over; the car is saved either way.
+                        runCatching { api.submitFeedback(arrivedAt.id, com.parkit.app.api.FeedbackCreate("confirmed_taken")) }
+                        rememberCar(LatLng(arrivedAt.lat, arrivedAt.lng), arrivedAt.localAddress, arrivedAt.spotType)
+                        activeClaim = null
+                        refreshSpotsNow()
+                        offerPango()
+                    }
+                }) { Text(stringResource(R.string.spot_i_took_it)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { askArrived = false; headingTo = null }) {
+                    Text(stringResource(R.string.arrived_no))
+                }
+            },
+        )
     }
 
     if (showParkedPay) {
@@ -1583,6 +1631,8 @@ fun MapScreen(
             onClaimed = { claimed ->
                 selectedSpot = null
                 activeClaim = claimed
+                headingTo = claimed
+                headingSince = System.currentTimeMillis()
                 claimEndsAt = System.currentTimeMillis() + CLAIM_HOLD_MS
                 refreshSpotsNow()
             },
@@ -2043,6 +2093,7 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
             )
             Text(
                 listOfNotNull(
+                    if (spot.leftByDriver) stringResource(R.string.spot_source_left) else null,
                     stringResource(if (disabled) R.string.map_spot_kind_disabled else R.string.map_spot_kind_regular),
                     if (spot.payment == "paid") stringResource(R.string.spot_blue_white_short) else null,
                     MarkerBitmaps.relativeTimeLong(context, spot.reportedAt),

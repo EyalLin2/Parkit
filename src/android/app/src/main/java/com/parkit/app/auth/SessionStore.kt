@@ -42,6 +42,11 @@ class SessionStore(context: Context) {
         set(value) = prefs.edit().putBoolean(KEY_NEEDS_PROFILE, value).apply()
 
     /** The level the driver last saw, so reaching a new one can be celebrated once. */
+    /** Drivers helped when last checked, to say thanks when the number grows. */
+    var lastSeenHelped: Int?
+        get() = prefs.getInt("last_seen_helped", -1).takeIf { it >= 0 }
+        set(value) = prefs.edit().putInt("last_seen_helped", value ?: -1).apply()
+
     var lastSeenLevel: String?
         get() = prefs.getString(KEY_LAST_LEVEL, null)
         set(value) = prefs.edit().putString(KEY_LAST_LEVEL, value).apply()

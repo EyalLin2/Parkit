@@ -183,7 +183,8 @@ fun SpotActionsSheet(
             val statusText = when {
                 isClaimed -> stringResource(R.string.spot_someone_on_the_way)
                 isMine -> stringResource(R.string.map_spot_yours)
-                else -> stringResource(R.string.spot_status_free)
+                spot.leftByDriver -> stringResource(R.string.spot_source_left)
+                else -> stringResource(R.string.spot_source_seen)
             }
             val statusColor = if (isClaimed || isMine) accent else freshnessColor(spot.reportedAt)
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {

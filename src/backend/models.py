@@ -113,6 +113,8 @@ class Spot(Base):
     address: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # Optional heads-up from the reporter ("broken glass", "low branch").
     note: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Reported by the driver leaving it, the most reliable kind of report.
+    left_by_driver: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     status: Mapped[SpotStatus] = mapped_column(Enum(SpotStatus, name="spot_status"), default=SpotStatus.active)
     # How long the report stays on the map; set from the reporter's level

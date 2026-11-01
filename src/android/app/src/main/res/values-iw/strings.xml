@@ -457,7 +457,7 @@
     <string name="car_bt_leave_title">יוצא מהחניה?</string>
     <string name="car_bt_leave_text">לחיצה אחת ומסרת אותה לנהג הבא · ‎+15</string>
     <string name="dock_parked">חניתי</string>
-    <string name="dock_my_car">חניתי ✓</string>
+    <string name="dock_my_car">הרכב שלי</string>
     <string name="dock_report">דווח</string>
     <string name="dock_leave">יוצא מהחניה</string>
     <string name="dock_reminder">⏰ %1$d דק׳ לשינוי</string>
@@ -507,4 +507,12 @@
     <string name="map_get_closer_title">התקרבו כדי לראות חניות פנויות</string>
     <string name="map_get_closer_hint">חניות פנויות מוצגות רק עד 800 מטר מכם.</string>
     <string name="report_leaving_now">יוצאים עכשיו מהחניה? לחיצה אחת, בלי תמונה</string>
+    <string name="spot_source_left">נהג יצא מכאן</string>
+    <string name="spot_source_seen">נראתה ברחוב</string>
+    <string name="arrived_title">חנית כאן?</string>
+    <string name="arrived_body">נשמור את הרכב ונעדכן את שאר הנהגים.</string>
+    <string name="arrived_no">לא בחניה הזו</string>
+    <string name="report_helped_someone">חניה שדיווחת עזרה לנהג. תודה!</string>
+    <string name="report_more">פרטים נוספים (לא חובה)</string>
+    <string name="report_less">פחות פרטים</string>
 </resources>

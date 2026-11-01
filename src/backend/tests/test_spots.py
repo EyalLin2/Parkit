@@ -323,3 +323,13 @@ async def test_only_drivers_close_by_see_and_take_a_spot(client, make_user):
     too_far = await client.post(claim, params={"me_lat": 32.20, "me_lng": 34.79}, headers=driver)
     assert too_far.status_code == 403
     assert (await client.post(claim, params={"me_lat": 32.092, "me_lng": 34.79}, headers=driver)).status_code == 200
+
+
+async def test_a_spot_says_whether_a_driver_just_left_it(client, make_user):
+    _, headers = await make_user("leaver")
+    left = (await _report(client, headers, lat=32.09, lng=34.79, leaving=True)).json()
+    assert left["left_by_driver"] is True
+    _, other = await make_user("walker")
+    seen = (await _report(client, other, lat=32.10, lng=34.80)).json()
+    assert seen["left_by_driver"] is False
+

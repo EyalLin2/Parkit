@@ -158,6 +158,7 @@ async def report_spot(
     hot = await hot_minutes(db, payload.lat, payload.lng, now)
     if existing is not None:
         existing.reported_at = now
+        existing.left_by_driver = existing.left_by_driver or payload.leaving or payload.handoff
         existing.hot_minutes = hot
         if existing.address is None and address:
             existing.address = address
@@ -172,6 +173,7 @@ async def report_spot(
         spot = existing
     else:
         spot = Spot(
+            left_by_driver=payload.leaving or payload.handoff,
             reporter_id=user_id,
             lat=payload.lat,
             lng=payload.lng,

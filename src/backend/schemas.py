@@ -26,10 +26,13 @@ class SpotCreate(BaseModel):
     reporter_accuracy_m: float | None = Field(default=None, ge=0)
     # Sent by "I'm leaving" (the driver's own saved car): +5 on top of a report.
     handoff: bool = False
+    # A driver is pulling out of this spot right now, with or without a saved car.
+    leaving: bool = False
 
 
 class SpotOut(BaseModel):
     id: uuid.UUID
+    left_by_driver: bool = False
     reporter_id: uuid.UUID
     lat: float
     lng: float

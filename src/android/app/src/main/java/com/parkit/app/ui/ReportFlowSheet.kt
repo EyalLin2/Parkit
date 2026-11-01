@@ -282,71 +282,81 @@ fun ReportFlowSheet(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            FieldLabel(stringResource(R.string.report_type_question))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TypeOption(
-                    label = stringResource(R.string.map_spot_kind_regular),
-                    icon = Icons.Filled.DirectionsCar,
-                    selected = selectedType == "street",
-                    onClick = { selectedType = "street"; typeTouched = true },
-                    modifier = Modifier.weight(1f),
-                )
-                TypeOption(
-                    label = stringResource(R.string.map_spot_kind_disabled),
-                    icon = Icons.AutoMirrored.Filled.Accessible,
-                    selected = selectedType == "disabled",
-                    onClick = { selectedType = "disabled"; typeTouched = true },
-                    modifier = Modifier.weight(1f),
-                )
+            // A photo is all a report needs; the rest is for whoever wants to add it.
+            var showDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+            androidx.compose.material3.TextButton(
+                onClick = { showDetails = !showDetails },
+                modifier = Modifier.padding(top = 6.dp),
+            ) {
+                Text(stringResource(if (showDetails) R.string.report_less else R.string.report_more))
             }
-            if (selectedType == "street") {
-                androidx.compose.material3.FilterChip(
-                    selected = blueWhite,
-                    onClick = { blueWhite = !blueWhite; blueWhiteTouched = true },
-                    label = { Text(stringResource(R.string.report_blue_white)) },
-                    leadingIcon = {
-                        Icon(
-                            if (blueWhite) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    modifier = Modifier.padding(top = 10.dp),
-                )
-            }
-
-            FieldLabel(stringResource(R.string.report_size_question))
-            val sizes = listOf(
-                "compact" to stringResource(R.string.report_size_compact),
-                "regular" to stringResource(R.string.report_size_regular),
-                "large" to stringResource(R.string.report_size_large),
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                sizes.forEachIndexed { index, (value, label) ->
-                    SegmentedButton(
-                        selected = selectedVehicleSize == value,
-                        onClick = { selectedVehicleSize = value },
-                        shape = SegmentedButtonDefaults.itemShape(index, sizes.size),
-                        icon = {},
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = MaterialTheme.colorScheme.primary,
-                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+            if (showDetails) {
+                FieldLabel(stringResource(R.string.report_type_question))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    TypeOption(
+                        label = stringResource(R.string.map_spot_kind_regular),
+                        icon = Icons.Filled.DirectionsCar,
+                        selected = selectedType == "street",
+                        onClick = { selectedType = "street"; typeTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TypeOption(
+                        label = stringResource(R.string.map_spot_kind_disabled),
+                        icon = Icons.AutoMirrored.Filled.Accessible,
+                        selected = selectedType == "disabled",
+                        onClick = { selectedType = "disabled"; typeTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
+                if (selectedType == "street") {
+                    androidx.compose.material3.FilterChip(
+                        selected = blueWhite,
+                        onClick = { blueWhite = !blueWhite; blueWhiteTouched = true },
+                        label = { Text(stringResource(R.string.report_blue_white)) },
+                        leadingIcon = {
+                            Icon(
+                                if (blueWhite) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                }
+
+                FieldLabel(stringResource(R.string.report_size_question))
+                val sizes = listOf(
+                    "compact" to stringResource(R.string.report_size_compact),
+                    "regular" to stringResource(R.string.report_size_regular),
+                    "large" to stringResource(R.string.report_size_large),
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    sizes.forEachIndexed { index, (value, label) ->
+                        SegmentedButton(
+                            selected = selectedVehicleSize == value,
+                            onClick = { selectedVehicleSize = value },
+                            shape = SegmentedButtonDefaults.itemShape(index, sizes.size),
+                            icon = {},
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = MaterialTheme.colorScheme.primary,
+                                activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+                    }
+                }
+
+                FieldLabel(stringResource(R.string.report_note_label))
+                androidx.compose.material3.OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it.replace('\n', ' ').take(NOTE_MAX) },
+                    placeholder = { Text(stringResource(R.string.report_note_hint)) },
+                    supportingText = { Text("${note.length}/$NOTE_MAX") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
             }
-
-            FieldLabel(stringResource(R.string.report_note_label))
-            androidx.compose.material3.OutlinedTextField(
-                value = note,
-                onValueChange = { note = it.replace('\n', ' ').take(NOTE_MAX) },
-                placeholder = { Text(stringResource(R.string.report_note_hint)) },
-                supportingText = { Text("${note.length}/$NOTE_MAX") },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp)) }
 
             val ready = stagingId != null
