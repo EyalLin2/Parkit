@@ -7,10 +7,6 @@ appId: com.parkit.israel
     permissions:
       all: allow
 
-# Anything left over from Maps in the English run.
-- tapOn:
-    text: "Don't Allow"
-    optional: true
 - assertVisible: "איך זה עובד"
 - takeScreenshot: he-01-welcome
 - tapOn: "איך זה עובד"
