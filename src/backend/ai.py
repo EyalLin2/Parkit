@@ -3,10 +3,13 @@ the report photo analysis. Off (AiOff) while ANTHROPIC_API_KEY is empty."""
 
 import base64
 import json
+import logging
 
 import httpx
 
 from config import settings
+
+log = logging.getLogger("parkit.ai")
 
 
 class AiOff(Exception):
@@ -47,6 +50,9 @@ async def ask_json(image: bytes, media_type: str, prompt: str, max_tokens: int =
             headers={"x-api-key": settings.anthropic_api_key, "anthropic-version": "2023-06-01"},
             json=body,
         )
+    if resp.is_error:
+        # The status alone doesn't say whether it's the key, the balance or the request.
+        log.warning("Claude answered %s: %s", resp.status_code, resp.text[:300])
     resp.raise_for_status()
     text = "".join(part.get("text", "") for part in resp.json().get("content", []))
     start, end = text.find("{"), text.rfind("}")

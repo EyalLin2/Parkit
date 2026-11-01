@@ -85,7 +85,7 @@ data class SpotCreate(
 data class SpotOut(
     val id: String,
     @Json(name = "left_by_driver") val leftByDriver: Boolean = false,
-    @Json(name = "reporter_id") val reporterId: String,
+    @Json(name = "is_mine") val isMine: Boolean = false,
     val lat: Double,
     val lng: Double,
     @Json(name = "spot_type") val spotType: String,
@@ -96,7 +96,6 @@ data class SpotOut(
     val note: String? = null,
     val status: String,
     @Json(name = "reported_at") val reportedAt: String,
-    @Json(name = "claimed_by") val claimedBy: String?,
     @Json(name = "reporter_level") val reporterLevel: String = "newbie",
     /** Set in hot areas: the median minutes nearby spots lasted. */
     @Json(name = "hot_minutes") val hotMinutes: Int? = null,
@@ -278,6 +277,8 @@ data class SignReading(
     val paid: Boolean? = null,
     @Json(name = "summary_he") val summaryHe: String,
     @Json(name = "summary_en") val summaryEn: String,
+    /** Read earlier from a sign that looks the same here, at no AI cost. */
+    @Json(name = "from_cache") val fromCache: Boolean = false,
 )
 
 /** What the report photo seems to show — pre-fills the form (advice only). */

@@ -44,8 +44,8 @@ interface ApiService {
         @Query("lat") lat: Double,
         @Query("lng") lng: Double,
         @Query("radius_m") radiusM: Int,
-        @Query("me_lat") meLat: Double?,
-        @Query("me_lng") meLng: Double?,
+        @Query("me_lat") meLat: Double,
+        @Query("me_lng") meLng: Double,
     ): List<SpotOut>
 
     @POST("spots")
@@ -75,7 +75,12 @@ interface ApiService {
 
     @Multipart
     @POST("signs/read")
-    suspend fun readSign(@Part photo: MultipartBody.Part): SignReading
+    suspend fun readSign(
+        @Part photo: MultipartBody.Part,
+        @Query("lat") lat: Double?,
+        @Query("lng") lng: Double?,
+        @Query("fresh") fresh: Boolean,
+    ): SignReading
 
     @Multipart
     @POST("photos/stage")

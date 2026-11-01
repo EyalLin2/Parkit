@@ -31,7 +31,10 @@ object ApiClient {
             chain.proceed(request)
         }
 
-        val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
+        val logging = HttpLoggingInterceptor().apply { 
+            // Request lines hold coordinates: they stay out of the phone's log outside local development.
+            level = if (BASE_URL.startsWith("http://")) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+        }
 
         val client = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)

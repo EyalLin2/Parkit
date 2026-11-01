@@ -33,7 +33,9 @@ class SpotCreate(BaseModel):
 class SpotOut(BaseModel):
     id: uuid.UUID
     left_by_driver: bool = False
-    reporter_id: uuid.UUID
+    # Whether this driver reported it. Never who did: a fixed ID on every spot
+    # would let anyone piece together where a person parks and when.
+    is_mine: bool = False
     lat: float
     lng: float
     spot_type: SpotType
@@ -44,7 +46,6 @@ class SpotOut(BaseModel):
     note: str | None = None
     status: SpotStatus
     reported_at: datetime
-    claimed_by: uuid.UUID | None
     reporter_level: str = "newbie"
     hot_minutes: int | None = None
 
