@@ -104,8 +104,6 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
           xcrun simctl location "$udid" set 32.0853,34.7818
-          # "On my way" opens Maps; its own location prompt would sit over the app.
-          xcrun simctl privacy "$udid" grant location com.apple.Maps
       - name: Build and install the app
         working-directory: src/ios
         run: |
