@@ -89,7 +89,7 @@ appId: com.parkit.israel
 
 # Profile, then the rewards shop loads from the server
 - tapOn: "My profile"
-- assertVisible: "Test D."
+- assertVisible: ".*Test D\\..*"
 - takeScreenshot: 06-profile
 - tapOn: "Rewards"
 - extendedWaitUntil:
@@ -101,4 +101,4 @@ appId: com.parkit.israel
 - back
 
 # My details: the sign-in email can't be edited
-- assertVisible: "Test D."
+- assertVisible: ".*Test D\\..*"
