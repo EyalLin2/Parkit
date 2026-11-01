@@ -94,7 +94,6 @@ private val Hot = Color(0xFFE8480C)
 fun SpotActionsSheet(
     api: ApiService,
     spot: SpotOut,
-    myUserId: String?,
     myFix: Pair<Double, Double>?,
     fit: DriverFit,
     distanceLabel: String?,
@@ -109,7 +108,7 @@ fun SpotActionsSheet(
     var error by remember { mutableStateOf<String?>(null) }
     var address by remember { mutableStateOf(spot.localAddress ?: SpotAddressCache.get(spot.id)) }
     val scope = rememberCoroutineScope()
-    val isMine = spot.reporterId == myUserId
+    val isMine = spot.isMine
     val isClaimed = spot.status == "claimed"
     val isDisabledSpot = spot.spotType == "disabled"
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

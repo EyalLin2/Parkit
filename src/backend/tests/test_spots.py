@@ -345,3 +345,34 @@ async def test_a_driver_can_let_go_of_a_spot_they_took(client, make_user):
     assert (await client.delete(claim, headers=driver)).status_code == 204
     assert spot["id"] in await _nearby_ids(client, lat=32.09, lng=34.79)
     assert (await client.post(claim, headers=other)).status_code == 200
+
+
+async def test_searching_for_spots_needs_a_signed_in_driver_close_by(client, make_user):
+    from httpx import AsyncClient
+
+    _, reporter = await make_user("reporter")
+    await _report(client, reporter, lat=32.09, lng=34.79)
+    near = {"lat": 32.09, "lng": 34.79, "me_lat": 32.09, "me_lng": 34.79}
+    raw_get = AsyncClient.get
+
+    assert (await raw_get(client, "/spots", params=near)).status_code == 401
+    no_position = {"lat": 32.09, "lng": 34.79}
+    assert (await raw_get(client, "/spots", params=no_position, headers=reporter)).status_code == 422
+
+
+async def test_a_spot_never_says_who_reported_or_took_it(client, make_user):
+    _, reporter = await make_user("reporter")
+    _, driver = await make_user("driver")
+    spot = (await _report(client, reporter, lat=32.09, lng=34.79)).json()
+    assert spot["is_mine"] is True
+    params = {"lat": 32.09, "lng": 34.79, "me_lat": 32.09, "me_lng": 34.79}
+
+    as_reporter = (await client.get("/spots", params=params, headers=reporter)).json()[0]
+    assert as_reporter["is_mine"] is True
+    as_driver = (await client.get("/spots", params=params, headers=driver)).json()[0]
+    assert as_driver["is_mine"] is False
+
+    claimed = (await client.post(f"/spots/{spot['id']}/claim", headers=driver)).json()
+    assert claimed["is_mine"] is False
+    for seen in (spot, as_reporter, as_driver, claimed):
+        assert "reporter_id" not in seen and "claimed_by" not in seen

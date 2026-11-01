@@ -44,8 +44,8 @@ interface ApiService {
         @Query("lat") lat: Double,
         @Query("lng") lng: Double,
         @Query("radius_m") radiusM: Int,
-        @Query("me_lat") meLat: Double?,
-        @Query("me_lng") meLng: Double?,
+        @Query("me_lat") meLat: Double,
+        @Query("me_lng") meLng: Double,
     ): List<SpotOut>
 
     @POST("spots")
