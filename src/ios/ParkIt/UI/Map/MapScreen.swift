@@ -52,7 +52,7 @@ struct MapScreen: View {
                     .padding(.horizontal, 20).padding(.bottom, 12)
                     dock.padding(.horizontal, 12).padding(.bottom, 12)
                     NearbySheet(model: model, height: height, bottomInset: bottom, onSpot: { spot in
-                        model.fly(to: model.coord(spot), zoom: 16)
+                        model.fly(to: model.coord(spot), zoom: 16.5)
                         model.sheet = .spot(spot)
                         sheetExpanded = false
                     }, dragGesture: DragGesture()

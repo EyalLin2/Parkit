@@ -129,6 +129,9 @@ appId: com.parkit.israel
     visible: "Filter that never appears"
     timeout: 4000
     optional: true
+- tapOn:
+    text: "Allow While Using App"
+    optional: true
 - takeScreenshot: 16-navigation-opened
 - launchApp:
     stopApp: false

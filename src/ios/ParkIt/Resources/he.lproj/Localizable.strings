@@ -183,7 +183,7 @@
 "lot_capacity" = "%1$ld מקומות";
 "lot_source_note" = "חניונים בתשלום, מ-OpenStreetMap. המחירים והשעות כתובים בכניסה לחניון.";
 "spot_no_photo_cd" = "אין תמונה לחניה הזו";
-"spot_age_short" = "לפני\\u00A0%1$@";
+"spot_age_short" = "לפני %1$@";
 "profile_tab_league" = "ליגה";
 "profile_tab_reports" = "הדיווחים שלי";
 "league_not_ranked" = "עוד לא נכנסת לליגה השבוע — דווח על חניה כדי להופיע בטבלה.";
