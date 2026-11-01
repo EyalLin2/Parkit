@@ -27,9 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.FaceRetouchingOff
+import androidx.compose.material.icons.filled.MoneyOff
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
@@ -115,7 +116,7 @@ fun ReportFlowSheet(
     var selectedVehicleSize by remember { mutableStateOf(defaultVehicleSize ?: "regular") }
     // Optional, off by default: one tap if the curb is blue-white (paid).
     // Deliberately not a required question — the form stays short.
-    var blueWhite by remember { mutableStateOf(false) }
+    var blueWhite by remember { mutableStateOf<Boolean?>(null) } // no choice yet
     // Optional heads-up for the next driver: a hazard, a low branch…
     var note by remember { mutableStateOf("") }
     // AI hints from the photo: they fill only what the driver hasn't touched.
@@ -188,7 +189,7 @@ fun ReportFlowSheet(
                         lat = lat,
                         lng = lng,
                         spotType = selectedType,
-                        payment = if (blueWhite && selectedType == "street") "paid" else "free",
+                        payment = if (blueWhite == true && selectedType == "street") "paid" else "free",
                         vehicleSize = selectedVehicleSize,
                         photoStagingId = stagingId,
                         address = streetAddress,
@@ -282,7 +283,28 @@ fun ReportFlowSheet(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            // A photo is all a report needs; the rest is for whoever wants to add it.
+            // Whether the next driver pays is the one thing every report must say.
+            if (selectedType == "street") {
+                FieldLabel(stringResource(R.string.report_curb_question))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    TypeOption(
+                        label = stringResource(R.string.report_curb_blue_white),
+                        icon = Icons.Filled.Payments,
+                        selected = blueWhite == true,
+                        onClick = { blueWhite = true; blueWhiteTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TypeOption(
+                        label = stringResource(R.string.report_curb_gray),
+                        icon = Icons.Filled.MoneyOff,
+                        selected = blueWhite == false,
+                        onClick = { blueWhite = false; blueWhiteTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            // The rest is for whoever wants to add it.
             var showDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
             androidx.compose.material3.TextButton(
                 onClick = { showDetails = !showDetails },
@@ -308,22 +330,6 @@ fun ReportFlowSheet(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                if (selectedType == "street") {
-                    androidx.compose.material3.FilterChip(
-                        selected = blueWhite,
-                        onClick = { blueWhite = !blueWhite; blueWhiteTouched = true },
-                        label = { Text(stringResource(R.string.report_blue_white)) },
-                        leadingIcon = {
-                            Icon(
-                                if (blueWhite) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        },
-                        modifier = Modifier.padding(top = 10.dp),
-                    )
-                }
-
                 FieldLabel(stringResource(R.string.report_size_question))
                 val sizes = listOf(
                     "compact" to stringResource(R.string.report_size_compact),
@@ -359,7 +365,9 @@ fun ReportFlowSheet(
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp)) }
 
-            val ready = stagingId != null
+            val hasPhoto = stagingId != null
+            val curbKnown = selectedType != "street" || blueWhite != null
+            val ready = hasPhoto && curbKnown
             Button(
                 onClick = { submit() },
                 enabled = ready && !submitting && !uploading,
@@ -370,7 +378,13 @@ fun ReportFlowSheet(
                     CircularProgressIndicator(modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.5.dp)
                 } else {
                     Text(
-                        stringResource(if (ready) R.string.report_confirm else R.string.report_needs_photo),
+                        stringResource(
+                            when {
+                                !hasPhoto -> R.string.report_needs_photo
+                                !curbKnown -> R.string.report_needs_curb
+                                else -> R.string.report_confirm
+                            },
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }

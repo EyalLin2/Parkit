@@ -517,4 +517,8 @@
     <string name="parked_notification_failed">That didn\'t go through. Try again in a moment.</string>
     <string name="claim_release">Never mind, let it go</string>
     <string name="navigation_unavailable">No navigation app found on this phone</string>
+    <string name="report_curb_question">What colour is the curb?</string>
+    <string name="report_curb_blue_white">Blue-white (paid)</string>
+    <string name="report_curb_gray">Gray (free)</string>
+    <string name="report_needs_curb">Choose the curb colour to continue</string>
 </resources>
