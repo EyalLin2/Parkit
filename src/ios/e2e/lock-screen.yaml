@@ -1,6 +1,8 @@
 # The lock-screen "I'm leaving": a notification action that hands the spot on without
 # opening the app. Runs in its own non-blocking CI job, so it signs up by itself, in Hebrew.
 # Outcomes as on Android: too far, thanks, stop-paying reminder.
+# On the CI simulator iOS holds a background app back until its time is nearly up, about
+# 50 s after the tap, so each outcome gets 75 s. How fast it is on a real phone isn't tested here.
 appId: com.parkit.israel
 ---
 - launchApp:
@@ -83,7 +85,7 @@ appId: com.parkit.israel
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: ".*נראה שאתם לא ליד הרכב.*"
-    timeout: 40000
+    timeout: 75000
 - takeScreenshot: ls-04-too-far
 
 # Back by the car, and the app has seen it: iOS tells it nothing while it's in the background.
@@ -114,7 +116,7 @@ appId: com.parkit.israel
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: "תודה, החניה על המפה"
-    timeout: 40000
+    timeout: 75000
 - takeScreenshot: ls-05-thanks
 
 # In the app the car is gone: it was handed on from the lock screen.
@@ -159,7 +161,7 @@ appId: com.parkit.israel
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: ".*אל תשכחו לעצור את תשלום החניה.*"
-    timeout: 40000
+    timeout: 75000
 - takeScreenshot: ls-07-stop-paying
 
 # The same in English, after switching language in Settings
@@ -207,7 +209,7 @@ appId: com.parkit.israel
 - tapOn: "I'm leaving"
 - extendedWaitUntil:
     visible: "Thanks, the spot is on the map"
-    timeout: 40000
+    timeout: 75000
 - takeScreenshot: ls-11-english-thanks
 - runFlow:
     file: leave-lock-screen.yaml
