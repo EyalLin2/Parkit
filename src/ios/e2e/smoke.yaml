@@ -51,9 +51,9 @@ appId: com.parkit.israel
 - tapOn:
     id: "details_first"
 - inputText: "Test"
-- tapOn:
-    id: "details_last"
+- pressKey: Enter
 - inputText: "Driver"
+- pressKey: Enter
 - takeScreenshot: 06-details-email-locked
 - tapOn: "Save and continue"
 
