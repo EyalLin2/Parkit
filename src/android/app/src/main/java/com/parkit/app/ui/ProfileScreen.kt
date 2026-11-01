@@ -249,8 +249,14 @@ fun ProfileScreen(
         AvatarPickerDialog(
             selected = profile?.avatar,
             onPick = { id ->
+                val before = profile?.avatar
                 profile = profile?.copy(avatar = id)
-                scope.launch { runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(id)) } }
+                scope.launch {
+                    runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(id)) }.onFailure { e ->
+                        profile = profile?.copy(avatar = before)
+                        android.widget.Toast.makeText(context, e.friendlyMessage(context, aboutSpot = false), android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
             },
             onDismiss = { pickAvatar = false },
         )

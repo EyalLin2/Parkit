@@ -315,7 +315,7 @@ private fun ShopItem(reward: RewardOut, hebrew: Boolean, balance: Int, inUse: Bo
                 if (hebrew) reward.titleHe else reward.titleEn,
                 style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 3,
                 minLines = if (twoLines) 2 else 1,
                 modifier = Modifier.padding(top = 8.dp),
             )
