@@ -235,7 +235,7 @@ struct SpotSheet: View {
         Task {
             defer { busy = false }
             do {
-                var claimed = try await API.shared.claimSpot(spot.id)
+                var claimed = try await API.shared.claimSpot(spot.id, me: model.deviceLocation)
                 claimed.address = spot.localAddress ?? address
                 claimed.reporterLevel = spot.reporterLevel
                 model.claimed(claimed)

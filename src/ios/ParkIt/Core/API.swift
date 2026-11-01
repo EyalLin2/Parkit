@@ -199,7 +199,10 @@ final class API {
         try await get("spots", [("lat", "\(lat)"), ("lng", "\(lng)"), ("radius_m", "\(radiusM)"), ("me_lat", "\(me.latitude)"), ("me_lng", "\(me.longitude)")])
     }
     func reportSpot(_ s: SpotCreate) async throws -> SpotOut { try await post("spots", s) }
-    func claimSpot(_ id: String) async throws -> SpotOut { try decoder.decode(SpotOut.self, from: try await send("POST", "spots/\(id)/claim")) }
+    func claimSpot(_ id: String, me: CLLocationCoordinate2D?) async throws -> SpotOut {
+        let items = me.map { [("me_lat", "\($0.latitude)"), ("me_lng", "\($0.longitude)")] } ?? []
+        return try decoder.decode(SpotOut.self, from: try await send("POST", query("spots/\(id)/claim", items)))
+    }
     func submitFeedback(_ id: String, _ type: String) async throws { try await postNoReply("spots/\(id)/feedback", FeedbackCreate(type: type)) }
     func reportContent(_ id: String, _ reason: String) async throws { try await postNoReply("spots/\(id)/report-content", ContentReport(reason: reason)) }
     func cancelSpot(_ id: String) async throws { _ = try await send("DELETE", "spots/\(id)") }

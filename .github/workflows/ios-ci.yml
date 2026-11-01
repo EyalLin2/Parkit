@@ -72,10 +72,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Backend from PR 105 (temporary)
-        run: |
-          git fetch origin fix/spots-privacy
-          git checkout FETCH_HEAD -- src/backend
       - name: Start Postgres, PostGIS and Redis
         run: |
           brew install postgresql@17 postgis redis

@@ -477,3 +477,5 @@
 "report_curb_blue_white" = "Blue-white (paid)";
 "report_curb_gray" = "Gray (free)";
 "report_needs_curb" = "Choose the curb colour to continue";
+"sign_from_cache" = "Read earlier from a sign that looks the same here.";
+"sign_read_again" = "Not this sign? Read it again";

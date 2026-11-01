@@ -484,3 +484,5 @@
 "report_curb_blue_white" = "כחול-לבן (בתשלום)";
 "report_curb_gray" = "אפור (חינם)";
 "report_needs_curb" = "בחרו צבע מדרכה כדי להמשיך";
+"sign_from_cache" = "נקרא קודם משלט שנראה זהה במקום הזה.";
+"sign_read_again" = "זה לא השלט? לקרוא שוב";
