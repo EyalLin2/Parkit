@@ -86,4 +86,4 @@ async def test_levels_do_not_change_how_long_a_spot_stays(client, make_user):
             .scalars()
             .all()
         )
-    assert ttls == [30, 30]
+    assert ttls == [10, 10]
