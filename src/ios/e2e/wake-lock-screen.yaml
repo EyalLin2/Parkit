@@ -1,10 +1,10 @@
-# Phones without an always-on display go dark when locked; Home wakes them. The parked-car
-# notification is on the lock screen once something can be seen there.
+# Phones with a Home button go dark when locked, though the notification is still in the
+# accessibility tree: Home wakes them. Others stay lit, and Home would leave the lock screen.
 appId: com.parkit.israel
 ---
 - runFlow:
     when:
-      notVisible: "הרכב שלך חונה|Your car is parked"
+      true: ${HOME_BUTTON == 'yes'}
     commands:
       - pressKey: Home
       - extendedWaitUntil:

@@ -1,10 +1,58 @@
 # The lock-screen "I'm leaving": a notification action that hands the spot on without
-# opening the app. Follows smoke-he.yaml, so the driver is signed in and the app is in Hebrew.
+# opening the app. Runs in its own non-blocking CI job, so it signs up by itself, in Hebrew.
 # Outcomes as on Android: too far, thanks, stop-paying reminder.
 appId: com.parkit.israel
 ---
 - launchApp:
-    stopApp: true
+    clearState: true
+    permissions:
+      all: allow
+- tapOn: "איך זה עובד"
+- tapOn: "דלג"
+- extendedWaitUntil:
+    visible: "שליחת קוד"
+    timeout: 8000
+- tapOn:
+    id: "login_email"
+- inputText: "e2e@parkit.dev"
+- tapOn: "שליחת קוד"
+- extendedWaitUntil:
+    visible:
+      id: "login_code"
+    timeout: 15000
+- tapOn:
+    id: "login_code"
+- inputText: "246810"
+- extendedWaitUntil:
+    visible: "ברוכים הבאים ל-ParkIt!"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "details_email"
+    direction: DOWN
+- tapOn:
+    id: "details_first"
+- inputText: "Test"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true
+- inputText: "Driver"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true
+- tapOn: "שמירה והמשך"
+- extendedWaitUntil:
+    visible: "דלג"
+    timeout: 15000
+- tapOn: "דלג"
+- extendedWaitUntil:
+    visible: "דלג"
+    timeout: 8000
+- tapOn: "דלג"
 - extendedWaitUntil:
     visible: "דווח"
     timeout: 20000
@@ -38,7 +86,8 @@ appId: com.parkit.israel
 - runFlow:
     file: wake-lock-screen.yaml
 - takeScreenshot: ls-02-lock-screen
-- longPressOn: "הרכב שלך חונה"
+- runFlow:
+    file: open-notification.yaml
 - extendedWaitUntil:
     visible: "יוצא מהחניה"
     timeout: 6000
@@ -57,7 +106,8 @@ appId: com.parkit.israel
     visible: "Filter that never appears"
     timeout: 4000
     optional: true
-- longPressOn: "הרכב שלך חונה"
+- runFlow:
+    file: open-notification.yaml
 - extendedWaitUntil:
     visible: "יוצא מהחניה"
     timeout: 6000
@@ -102,7 +152,8 @@ appId: com.parkit.israel
     optional: true
 - runFlow:
     file: wake-lock-screen.yaml
-- longPressOn: "הרכב שלך חונה"
+- runFlow:
+    file: open-notification.yaml
 - extendedWaitUntil:
     visible: "יוצא מהחניה"
     timeout: 6000
@@ -149,7 +200,8 @@ appId: com.parkit.israel
 - runFlow:
     file: wake-lock-screen.yaml
 - takeScreenshot: ls-09-english-lock-screen
-- longPressOn: "Your car is parked"
+- runFlow:
+    file: open-notification.yaml
 - extendedWaitUntil:
     visible: "I'm leaving"
     timeout: 6000

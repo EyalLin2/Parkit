@@ -53,8 +53,16 @@ appId: com.parkit.israel
     id: "details_first"
 - inputText: "Test"
 - pressKey: Enter
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true
 - inputText: "Driver"
 - pressKey: Enter
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 1500
+    optional: true
 - takeScreenshot: 06-details-email-locked
 - tapOn: "Save and continue"
 
@@ -289,11 +297,12 @@ appId: com.parkit.israel
 
 # Another driver parks there: the reporter hears about it on the next start
 - runScript: helped.js
+- pressKey: Home
 - launchApp:
-    stopApp: true
+    stopApp: false
 - extendedWaitUntil:
     visible: "A spot you reported helped a driver.*"
-    timeout: 20000
+    timeout: 10000
 - takeScreenshot: 32-helped-thanks
 
 # "Leaving now" with no saved car, from somewhere new (same-spot reports are limited)

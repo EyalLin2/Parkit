@@ -13,10 +13,22 @@
 /* Begin PBXFileReference section */
 		A10000000000000000000003 /* ParkIt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParkIt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000004 /* Config */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Config; sourceTree = "<group>"; };
+		A10000000000000000000040 /* ParkItTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ParkItTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		A10000000000000000000041 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000013 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000009;
+			remoteInfo = ParkIt;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A10000000000000000000005 /* ParkIt */ = {isa = PBXFileSystemSynchronizedRootGroup; path = ParkIt; sourceTree = "<group>"; };
+		A10000000000000000000042 /* ParkItTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = ParkItTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -28,6 +40,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000043 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -35,6 +54,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000005 /* ParkIt */,
+				A10000000000000000000042 /* ParkItTests */,
 				A10000000000000000000004 /* Config */,
 				A10000000000000000000008 /* Products */,
 			);
@@ -44,6 +64,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000003 /* ParkIt.app */,
+				A10000000000000000000040 /* ParkItTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -73,6 +94,29 @@
 			productName = ParkIt;
 			productReference = A10000000000000000000003 /* ParkIt.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A10000000000000000000044 /* ParkItTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000045 /* Build configuration list for PBXNativeTarget "ParkItTests" */;
+			buildPhases = (
+				A10000000000000000000046 /* Sources */,
+				A10000000000000000000043 /* Frameworks */,
+				A10000000000000000000047 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A10000000000000000000048 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000042 /* ParkItTests */,
+			);
+			name = ParkItTests;
+			packageProductDependencies = (
+			);
+			productName = ParkItTests;
+			productReference = A10000000000000000000040 /* ParkItTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -108,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				A10000000000000000000009 /* ParkIt */,
+				A10000000000000000000044 /* ParkItTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A10000000000000000000012 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000047 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -130,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000046 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A10000000000000000000048 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000009 /* ParkIt */;
+			targetProxy = A10000000000000000000041 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A10000000000000000000016 /* Debug */ = {
@@ -234,6 +301,44 @@
 			};
 			name = Release;
 		};
+		A10000000000000000000049 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.3.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkit.israel.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ParkIt.app/ParkIt";
+			};
+			name = Debug;
+		};
+		A10000000000000000000050 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.3.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkit.israel.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ParkIt.app/ParkIt";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -251,6 +356,15 @@
 			buildConfigurations = (
 				A10000000000000000000016 /* Debug */,
 				A10000000000000000000017 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000045 /* Build configuration list for PBXNativeTarget "ParkItTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000049 /* Debug */,
+				A10000000000000000000050 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

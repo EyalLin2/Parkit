@@ -47,8 +47,16 @@ appId: com.parkit.israel
           id: "details_first"
       - inputText: "Test"
       - pressKey: Enter
+      - extendedWaitUntil:
+          visible: "Filter that never appears"
+          timeout: 1500
+          optional: true
       - inputText: "Driver"
       - pressKey: Enter
+      - extendedWaitUntil:
+          visible: "Filter that never appears"
+          timeout: 1500
+          optional: true
       - takeScreenshot: he-06-details-email-locked
       - tapOn: "שמירה והמשך"
 

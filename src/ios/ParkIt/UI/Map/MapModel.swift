@@ -247,6 +247,7 @@ final class MapModel: NSObject, ObservableObject {
     func becameActive() {
         guard started else { return }
         syncCarFromSession()
+        Task { await refreshMyProfile() }
         if hasPermission {
             manager.startUpdatingLocation()
             // Back from Settings: try again rather than staying on the fallback.
@@ -271,14 +272,14 @@ final class MapModel: NSObject, ObservableObject {
         session.lastSeenLevel = reached.rawValue
         let helpedBefore = session.lastSeenHelped
         session.lastSeenHelped = p.successfulReports
-        if let helpedBefore, p.successfulReports > helpedBefore { show(L("report_helped_someone")) }
+        if let helpedBefore, p.successfulReports > helpedBefore { show(L("report_helped_someone"), seconds: 8) }
     }
 
-    func show(_ message: String, action: String? = nil, _ run: (() -> Void)? = nil) {
+    func show(_ message: String, action: String? = nil, seconds: Double? = nil, _ run: (() -> Void)? = nil) {
         snackbar = Snackbar(message: message, actionLabel: action, action: run)
         snackTask?.cancel()
         snackTask = Task {
-            try? await Task.sleep(for: .seconds(action == nil ? 4 : 8))
+            try? await Task.sleep(for: .seconds(seconds ?? (action == nil ? 4 : 8)))
             if !Task.isCancelled { snackbar = nil }
         }
     }

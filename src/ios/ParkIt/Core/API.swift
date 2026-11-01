@@ -4,7 +4,7 @@ import UIKit
 
 enum ApiConfig {
     #if DEBUG
-    static let baseURL = "http://localhost:8000/"
+    static var baseURL = "http://localhost:8000/" // tests point it elsewhere
     #else
     static let baseURL = "https://129-159-134-170.sslip.io/"
     #endif

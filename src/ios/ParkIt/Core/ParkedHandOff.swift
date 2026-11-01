@@ -67,13 +67,15 @@ enum ParkedNotification {
 /// LeaveSpotReceiver: thanks, a stop-paying reminder, too far, or try again.
 @MainActor
 enum ParkedHandOff {
-    static func run() async {
+    enum Outcome { case thanks, stopPaying, tooFar, tryAgain, noCar }
+
+    @discardableResult
+    static func run(fix: CLLocation? = CLLocationManager().location) async -> Outcome {
         let session = Session.shared
         guard let car = session.parkedCar else {
             ParkedNotification.cancel()
-            return
+            return .noCar
         }
-        let fix = CLLocationManager().location
         do {
             _ = try await API.shared.reportSpot(SpotCreate(
                 lat: car.lat, lng: car.lng, spotType: car.spotType, payment: "free",
@@ -85,7 +87,7 @@ enum ParkedHandOff {
         } catch {
             let far = (error as? APIError)?.status == 422
             ParkedNotification.show(car, message: L(far ? "parked_notification_far" : "parked_notification_failed"))
-            return
+            return far ? .tooFar : .tryAgain
         }
         session.parkedCar = nil
         ParkingReminder.cancel()
@@ -93,6 +95,7 @@ enum ParkedHandOff {
         ParkingPay.clearSession()
         ParkedNotification.finished(L(paying ? "parked_notification_stop_paying" : "parked_notification_done"))
         NotificationCenter.default.post(name: .parkedCarChanged, object: nil)
+        return paying ? .stopPaying : .thanks
     }
 }
 
