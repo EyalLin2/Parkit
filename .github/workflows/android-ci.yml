@@ -96,4 +96,5 @@ jobs:
         with:
           name: e2e-screenshots
           path: e2e-output
+          include-hidden-files: true
           retention-days: 7

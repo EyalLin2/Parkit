@@ -75,7 +75,12 @@ interface ApiService {
 
     @Multipart
     @POST("signs/read")
-    suspend fun readSign(@Part photo: MultipartBody.Part): SignReading
+    suspend fun readSign(
+        @Part photo: MultipartBody.Part,
+        @Query("lat") lat: Double?,
+        @Query("lng") lng: Double?,
+        @Query("fresh") fresh: Boolean,
+    ): SignReading
 
     @Multipart
     @POST("photos/stage")
