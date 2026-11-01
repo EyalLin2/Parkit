@@ -1,0 +1,284 @@
+# End-to-end smoke test: a new driver from first launch through every main screen, on a
+# simulator against the real backend, in English. Runs in CI (ios-ci.yml). Modelled on
+# src/android/e2e/smoke.yaml; the Hebrew run is smoke-he.yaml.
+appId: com.parkit.israel
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: unset
+
+# Intro: Hebrew by default, English on request
+- assertVisible: "English"
+- takeScreenshot: 00-first-launch-hebrew
+- tapOn: "English"
+- assertVisible: "How it works"
+- takeScreenshot: 01-welcome
+- tapOn: "How it works"
+- takeScreenshot: 02-intro-slide
+- repeat:
+    while:
+      visible: "Next"
+    times: 8
+    commands:
+      - tapOn: "Next"
+- tapOn: "Let's go"
+
+# Sign in with the fixed test code (REVIEW_LOGIN in the workflow)
+- assertVisible: "Send code"
+- takeScreenshot: 03-login
+- tapOn:
+    id: "login_email"
+- inputText: "e2e@parkit.dev"
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code"
+    timeout: 15000
+- takeScreenshot: 04-code
+- tapOn:
+    id: "login_code"
+- inputText: "246810"
+
+# First-time details. The address just proved is shown and locked.
+- extendedWaitUntil:
+    visible: "Welcome to ParkIt!"
+    timeout: 15000
+- takeScreenshot: 05-details-top
+- scrollUntilVisible:
+    element:
+      id: "details_email"
+    direction: DOWN
+- tapOn:
+    id: "details_first"
+- inputText: "Test"
+- tapOn:
+    id: "details_last"
+- inputText: "Driver"
+- takeScreenshot: 06-details-email-locked
+- tapOn: "Save and continue"
+
+# Car onboarding and tips
+- extendedWaitUntil:
+    visible: "Skip"
+    timeout: 15000
+- takeScreenshot: 07-car-onboarding
+- tapOn: "Skip"
+- takeScreenshot: 08-tips
+- repeat:
+    while:
+      notVisible: "Got it, let's go"
+    times: 8
+    commands:
+      - tapOn: "Next"
+- tapOn: "Got it, let's go"
+
+# Location: the explanation first, then iOS's own prompt
+- extendedWaitUntil:
+    visible: "Where are you now?"
+    timeout: 15000
+- takeScreenshot: 09-location-explained
+- tapOn: "Continue"
+- tapOn:
+    text: "Allow While Using App"
+    optional: true
+
+# Map: pin, address, chips, seeded spots
+- extendedWaitUntil:
+    visible: "Report"
+    timeout: 20000
+- extendedWaitUntil:
+    visible: ".*Dizengoff.*"
+    timeout: 20000
+- assertVisible: "Can I park?"
+- assertNotVisible: ".*PK-[0-9]+.*"
+- takeScreenshot: 10-map
+- tapOn: "Car parks"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 3000
+    optional: true
+- takeScreenshot: 11-map-car-parks
+- tapOn: "Car parks"
+
+# The list, then a spot's card and the report-content choice
+- swipe:
+    start: "50%,86%"
+    end: "50%,40%"
+- takeScreenshot: 12-nearby-list
+- tapOn:
+    id: "spot_row_0"
+- assertVisible: "On my way.*"
+- takeScreenshot: 13-spot-sheet
+- tapOn: "Report offensive content or user"
+- assertVisible: "What's wrong?"
+- takeScreenshot: 14-report-content
+- tapOn: "Something else"
+- extendedWaitUntil:
+    visible: "Thanks, your report was sent.*"
+    timeout: 10000
+- takeScreenshot: 15-report-content-sent
+
+# Claim: navigation opens outside the app (Maps here, Waze on a phone that has it)
+- swipe:
+    start: "50%,86%"
+    end: "50%,40%"
+- tapOn:
+    id: "spot_row_1"
+- tapOn: "On my way.*"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 4000
+    optional: true
+- takeScreenshot: 16-navigation-opened
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "You're on your way"
+    timeout: 15000
+- takeScreenshot: 17-trip-card
+- tapOn: "I parked here"
+
+# Parked: offered the payment apps, then the car line and "I'm leaving"
+- extendedWaitUntil:
+    visible: "It's free, no need"
+    timeout: 10000
+- takeScreenshot: 18-parked-pay
+- tapOn: "It's free, no need"
+- extendedWaitUntil:
+    visible: "I'm leaving"
+    timeout: 10000
+- takeScreenshot: 19-parked-car
+- tapOn: "I'm leaving"
+- extendedWaitUntil:
+    visible: "Thanks! \\+15 points.*"
+    timeout: 10000
+- takeScreenshot: 20-left-spot-handed-on
+
+# Parked again by hand, then end it without handing on
+- tapOn: "Parked"
+- extendedWaitUntil:
+    visible: "Save my car here"
+    timeout: 8000
+- takeScreenshot: 21-parked-explained
+- tapOn: "Save my car here"
+- extendedWaitUntil:
+    visible: "It's free, no need"
+    timeout: 8000
+- tapOn: "It's free, no need"
+- tapOn: "Parked ✓"
+- extendedWaitUntil:
+    visible: "End parking"
+    timeout: 8000
+- takeScreenshot: 22-car-sheet
+- tapOn: "End parking"
+- tapOn: "Just end"
+
+# The 150 m rule: the pin far from the phone can't be reported
+- swipe:
+    start: "50%,62%"
+    end: "10%,25%"
+- swipe:
+    start: "50%,62%"
+    end: "10%,25%"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 3000
+    optional: true
+- tapOn: "Report"
+- extendedWaitUntil:
+    visible: "You can only report a spot that's near you"
+    timeout: 8000
+- takeScreenshot: 23-too-far
+- tapOn: "Go to me"
+
+# Report flow: required photo (a drawn picture on a simulator, it has no camera), the
+# server's blur, then POST /spots. The server allows one report per 30 s.
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 31000
+    optional: true
+- tapOn: "Report"
+- extendedWaitUntil:
+    visible: "Report a free spot"
+    timeout: 8000
+- takeScreenshot: 24-report-sheet
+- tapOn: "Take a photo of the spot"
+- extendedWaitUntil:
+    visible: "Confirm Report"
+    timeout: 30000
+- takeScreenshot: 25-report-photo-blurred
+- tapOn: "Confirm Report"
+- extendedWaitUntil:
+    visible: "Spot reported"
+    timeout: 15000
+- takeScreenshot: 26-reported
+
+# Sign reader opens. No Claude API key in CI, so the server's own refusal shows.
+- tapOn: "Can I park?"
+- assertVisible: "Can I park here?"
+- takeScreenshot: 27-sign-reader
+- tapOn: "Snap a sign"
+- extendedWaitUntil:
+    visible: ".*PK-503.*"
+    timeout: 30000
+- takeScreenshot: 28-sign-reader-server-off
+- tapOn:
+    point: "50%,8%"
+
+# Profile, rewards, league, reports
+- extendedWaitUntil:
+    visible: "My profile"
+    timeout: 8000
+- tapOn: "My profile"
+- extendedWaitUntil:
+    visible: "Test D\\."
+    timeout: 15000
+- takeScreenshot: 29-profile
+- tapOn: "Rewards"
+- extendedWaitUntil:
+    visible: "points to spend"
+    timeout: 15000
+- assertNotVisible: ".*PK-[0-9]+.*"
+- takeScreenshot: 30-rewards-characters
+- tapOn: "Car"
+- takeScreenshot: 31-rewards-car
+- tapOn: "Backgrounds"
+- takeScreenshot: 32-rewards-backgrounds
+- tapOn: "Back"
+- tapOn: "League"
+- extendedWaitUntil:
+    visible: "All of Israel|.*Israel.*"
+    timeout: 10000
+    optional: true
+- takeScreenshot: 33-league
+- tapOn: "Back"
+- tapOn: "My reports"
+- takeScreenshot: 34-my-reports
+- tapOn: "Back"
+
+# Settings: details (email locked), logout's question, account deletion
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "My details"
+    timeout: 8000
+- takeScreenshot: 35-settings
+- tapOn: "My details"
+- takeScreenshot: 36-my-details-email-locked
+- tapOn: "Back"
+- scrollUntilVisible:
+    element: "Delete account"
+    direction: DOWN
+- takeScreenshot: 37-settings-bottom
+- tapOn: "Log out"
+- takeScreenshot: 38-logout-question
+- tapOn: "Cancel"
+- tapOn: "Delete account"
+- assertVisible: "Delete your account\\?"
+- takeScreenshot: 39-delete-question
+- tapOn: "Delete for good"
+
+# Deleted: back at sign-in
+- extendedWaitUntil:
+    visible: "Send code"
+    timeout: 15000
+- takeScreenshot: 40-after-delete

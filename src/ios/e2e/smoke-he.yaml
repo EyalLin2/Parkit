@@ -1,0 +1,114 @@
+# The same journey in Hebrew, the default, to look at full right-to-left layout on every
+# main screen. Follows smoke.yaml, which deleted the account: this signs up anew.
+appId: com.parkit.israel
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- assertVisible: "איך זה עובד"
+- takeScreenshot: he-01-welcome
+- tapOn: "איך זה עובד"
+- takeScreenshot: he-02-intro-slide
+- tapOn: "דלג"
+
+- extendedWaitUntil:
+    visible: "שליחת קוד"
+    timeout: 8000
+- takeScreenshot: he-03-login
+- tapOn:
+    id: "login_email"
+- inputText: "e2e@parkit.dev"
+- tapOn: "שליחת קוד"
+- extendedWaitUntil:
+    visible:
+      id: "login_code"
+    timeout: 15000
+- takeScreenshot: he-04-code
+- tapOn:
+    id: "login_code"
+- inputText: "246810"
+
+- extendedWaitUntil:
+    visible: "ברוכים הבאים ל-ParkIt!"
+    timeout: 15000
+- takeScreenshot: he-05-details
+- scrollUntilVisible:
+    element:
+      id: "details_email"
+    direction: DOWN
+- tapOn:
+    id: "details_first"
+- inputText: "Test"
+- tapOn:
+    id: "details_last"
+- inputText: "Driver"
+- takeScreenshot: he-06-details-email-locked
+- tapOn: "שמירה והמשך"
+
+- extendedWaitUntil:
+    visible: "דלג"
+    timeout: 15000
+- takeScreenshot: he-07-car-onboarding
+- tapOn: "דלג"
+- takeScreenshot: he-08-tips
+- tapOn: "דלג"
+
+- extendedWaitUntil:
+    visible: "דווח"
+    timeout: 20000
+- extendedWaitUntil:
+    visible: ".*דיזנגוף.*"
+    timeout: 20000
+- assertVisible: "מותר לחנות?"
+- takeScreenshot: he-09-map
+
+- swipe:
+    start: "50%,86%"
+    end: "50%,40%"
+- takeScreenshot: he-10-nearby-list
+- tapOn:
+    id: "spot_row_0"
+- assertVisible: "אני בדרך.*"
+- takeScreenshot: he-11-spot-sheet
+- tapOn:
+    point: "50%,5%"
+
+- extendedWaitUntil:
+    visible: "דווח"
+    timeout: 8000
+- tapOn: "דווח"
+- extendedWaitUntil:
+    visible: "דיווח על חניה פנויה"
+    timeout: 8000
+- takeScreenshot: he-12-report-sheet
+- swipe:
+    start: "50%,6%"
+    end: "50%,90%"
+
+- extendedWaitUntil:
+    visible: "מותר לחנות?"
+    timeout: 8000
+- tapOn: "מותר לחנות?"
+- assertVisible: "מותר לחנות כאן?"
+- takeScreenshot: he-13-sign-reader
+- tapOn:
+    point: "50%,8%"
+
+- extendedWaitUntil:
+    visible: "הפרופיל שלי"
+    timeout: 8000
+- tapOn: "הפרופיל שלי"
+- extendedWaitUntil:
+    visible: ".*Test D.*"
+    timeout: 15000
+- takeScreenshot: he-14-profile
+- tapOn: "הטבות"
+- takeScreenshot: he-15-rewards
+- tapOn: "חזרה"
+- tapOn: "ליגה"
+- takeScreenshot: he-16-league
+- tapOn: "חזרה"
+- tapOn: "הגדרות"
+- takeScreenshot: he-17-settings
