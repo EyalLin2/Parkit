@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "ParkIt uses the camera to photograph a free spot you report, or a parking sign you want explained.";
+"NSLocationWhenInUseUsageDescription" = "ParkIt shows free spots near you, and checks a report is made next to the spot.";

@@ -1,0 +1,136 @@
+name: iOS CI
+
+# Only when the iPhone app changes. The backend isn't a trigger: the same checks run
+# against it from Android CI, and this workflow takes much longer on macOS runners.
+on:
+  push:
+    paths: ["src/ios/**", ".github/workflows/ios-ci.yml"]
+  pull_request:
+    paths: ["src/ios/**", ".github/workflows/ios-ci.yml"]
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: src/ios
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/check_strings.py
+      - name: Pick a simulator
+        run: |
+          xcodebuild -version
+          udid=$(python3 scripts/pick_simulator.py)
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+      - name: Build for the simulator (Debug)
+        run: |
+          xcodebuild -project ParkIt.xcodeproj -scheme ParkIt -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build
+      # What the owner installs: a real device build, only without a signature.
+      - name: Build for a real iPhone (Release, unsigned)
+        run: |
+          xcodebuild -project ParkIt.xcodeproj -scheme ParkIt -configuration Release \
+            -destination "generic/platform=iOS" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build
+
+  # The app on a real simulator against the real backend.
+  #
+  # Docker isn't available on GitHub's macOS runners (Apple Silicon there has no nested
+  # virtualisation), so the job can't reuse docker-compose. It runs the same three
+  # services natively instead: Postgres + PostGIS and Redis from Homebrew, and the
+  # FastAPI app from its requirements. A simulator shares the Mac's network, so the
+  # Debug build's http://localhost:8000/ reaches it directly. The alternative, a Linux
+  # job with Docker behind a public tunnel, would add a flaky link and expose a dev
+  # server with dev-login switched on.
+  e2e:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      APP_ENV: local
+      DATABASE_URL: postgresql+asyncpg://parkit:parkit_dev_password@localhost:5432/parkit
+      REDIS_URL: redis://localhost:6379/0
+      SMS_PROVIDER: dev
+      EMAIL_PROVIDER: dev
+      REVIEW_LOGIN: e2e@parkit.dev:246810
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+      MAESTRO_CLI_NO_ANALYTICS: "1"
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: "240000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Start Postgres, PostGIS and Redis
+        run: |
+          brew install postgresql@17 postgis redis
+          pg="$(brew --prefix postgresql@17)/bin"
+          echo "$pg" >> "$GITHUB_PATH"
+          data="$RUNNER_TEMP/pgdata"
+          "$pg/initdb" -D "$data" -U runner --auth=trust -E UTF8 --locale=C >/dev/null
+          "$pg/pg_ctl" -D "$data" -l "$RUNNER_TEMP/pg.log" -w start
+          "$pg/psql" -U runner -d postgres -c "CREATE ROLE parkit SUPERUSER LOGIN PASSWORD 'parkit_dev_password'" -c "CREATE DATABASE parkit OWNER parkit"
+          "$pg/psql" -U runner -d parkit -c "CREATE EXTENSION postgis" -c "SELECT postgis_full_version()"
+          "$(brew --prefix redis)/bin/redis-server" --daemonize yes
+      - name: Start the backend
+        working-directory: src/backend
+        run: |
+          # osmium only serves the offline OSM importer, never the running API.
+          grep -v '^osmium' requirements.txt > "$RUNNER_TEMP/requirements.txt"
+          python -m pip install -q -r "$RUNNER_TEMP/requirements.txt"
+          alembic upgrade head
+          nohup python -m uvicorn main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/backend.log" 2>&1 &
+          for _ in $(seq 1 30); do curl -fsS http://localhost:8000/healthz && exit 0; sleep 2; done
+          cat "$RUNNER_TEMP/backend.log"
+          exit 1
+      - name: Seed test addresses
+        run: psql -v ON_ERROR_STOP=1 -U runner -d parkit -f src/ios/e2e/seed.sql
+      - name: Boot a simulator at the test location
+        working-directory: src/ios
+        run: |
+          udid=$(python3 scripts/pick_simulator.py)
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl location "$udid" set 32.0853,34.7818
+      - name: Build and install the app
+        working-directory: src/ios
+        run: |
+          xcodebuild -project ParkIt.xcodeproj -scheme ParkIt -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build -quiet
+          xcrun simctl install "$UDID" build/Build/Products/Debug-iphonesimulator/ParkIt.app
+      - name: Install Maestro
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | MAESTRO_VERSION=2.12.0 bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Run the flows
+        run: |
+          root="$PWD"
+          mkdir -p e2e-output/en e2e-output/he
+          status=0
+          bash src/ios/e2e/seed_spots.sh en
+          (cd e2e-output/en && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/smoke.yaml") || status=1
+          bash src/ios/e2e/seed_spots.sh he
+          (cd e2e-output/he && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/smoke-he.yaml") || status=1
+          exit $status
+      - name: Backend log
+        if: always()
+        run: tail -n 150 "$RUNNER_TEMP/backend.log" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-e2e-screenshots
+          path: e2e-output
+          retention-days: 14
