@@ -58,6 +58,9 @@ interface ApiService {
         @Query("me_lng") meLng: Double?,
     ): SpotOut
 
+    @DELETE("spots/{id}/claim")
+    suspend fun releaseClaim(@Path("id") spotId: String): retrofit2.Response<Unit>
+
     @POST("spots/{id}/feedback")
     suspend fun submitFeedback(@Path("id") spotId: String, @Body body: FeedbackCreate)
 

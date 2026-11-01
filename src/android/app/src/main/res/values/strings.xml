@@ -129,7 +129,7 @@
     <string name="report_privacy_checked">Checked for privacy</string>
     <string name="report_retake">Retake</string>
     <string name="spot_close_cd">Close</string>
-    <string name="spot_someone_on_the_way">Someone is on the way</string>
+    <string name="spot_someone_on_the_way">Held for you</string>
     <string name="spot_photo_cd">Photo of the spot</string>
     <string name="spot_still_free_question">Is the spot still free?</string>
     <string name="spot_distance_away">%1$s away</string>
@@ -140,7 +140,7 @@
     <string name="spot_photo_taken">Photo from the reporter · %1$s</string>
     <string name="spot_photo_expand_cd">Open photo full screen</string>
     <string name="map_locating_you">Finding your location…</string>
-    <string name="map_location_unavailable">Couldn\'t get your location yet — tap ◎ to try again, or drag the pin</string>
+    <string name="map_location_unavailable">Couldn\'t find your location yet. Tap ◎ to try again.</string>
     <string name="map_outside_service_area">ParkIt currently works in Israel only</string>
     <string name="level_newbie">Newbie</string>
     <string name="level_bronze">Bronze</string>
@@ -162,7 +162,7 @@
     <string name="spot_reported_by_level">Reported by a %1$s driver</string>
     <string name="claim_trip_title">You\'re on your way</string>
     <string name="claim_drive_safely">Held for you for 2 minutes. Drive safely, and only touch the phone when parked.</string>
-    <string name="claim_taken_thanks">Thanks — we warned other drivers</string>
+    <string name="claim_taken_thanks">Thanks for the update</string>
     <string name="claim_expired">The spot went back on the map. Take your time — there are more around.</string>
     <!-- Driver profile: car, permits, preferred area -->
     <string name="driver_title">My car &amp; preferences</string>
@@ -515,4 +515,6 @@
     <string name="parked_notification_stop_paying">The next driver can take it. Remember to stop paying for parking.</string>
     <string name="parked_notification_far">You don\'t seem to be near your car, so nothing was reported.</string>
     <string name="parked_notification_failed">That didn\'t go through. Try again in a moment.</string>
+    <string name="claim_release">Never mind, let it go</string>
+    <string name="navigation_unavailable">No navigation app found on this phone</string>
 </resources>

@@ -332,3 +332,16 @@ async def test_a_spot_says_whether_a_driver_just_left_it(client, make_user):
     _, other = await make_user("walker")
     seen = (await _report(client, other, lat=32.10, lng=34.80)).json()
     assert seen["left_by_driver"] is False
+
+
+async def test_a_driver_can_let_go_of_a_spot_they_took(client, make_user):
+    _, reporter = await make_user("reporter")
+    _, driver = await make_user("driver")
+    _, other = await make_user("other")
+    spot = (await _report(client, reporter, lat=32.09, lng=34.79)).json()
+    claim = f"/spots/{spot['id']}/claim"
+    assert (await client.post(claim, headers=driver)).status_code == 200
+    assert (await client.delete(claim, headers=other)).status_code == 404
+    assert (await client.delete(claim, headers=driver)).status_code == 204
+    assert spot["id"] in await _nearby_ids(client, lat=32.09, lng=34.79)
+    assert (await client.post(claim, headers=other)).status_code == 200

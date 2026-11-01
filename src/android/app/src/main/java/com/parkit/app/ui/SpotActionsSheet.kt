@@ -355,7 +355,12 @@ fun SpotActionsSheet(
                         enabled = !busy,
                         onClick = {
                             run {
-                                api.submitFeedback(spot.id, FeedbackCreate("confirmed_taken"))
+                                try {
+                                    api.submitFeedback(spot.id, FeedbackCreate("confirmed_taken"))
+                                } catch (e: retrofit2.HttpException) {
+                                    // Already voted or closed: the driver still parked here.
+                                    if (e.code() != 409) throw e
+                                }
                                 onParked()
                             }
                         },

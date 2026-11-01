@@ -133,7 +133,7 @@
     <string name="report_privacy_checked">נבדק לפרטיות</string>
     <string name="report_retake">צלם שוב</string>
     <string name="spot_close_cd">סגירה</string>
-    <string name="spot_someone_on_the_way">מישהו כבר בדרך</string>
+    <string name="spot_someone_on_the_way">שמורה לך</string>
     <string name="spot_photo_cd">תמונת החניה</string>
     <string name="spot_still_free_question">החניה עדיין פנויה?</string>
     <string name="spot_distance_away">במרחק %1$s</string>
@@ -144,7 +144,7 @@
     <string name="spot_photo_taken">צילום המדווח · %1$s</string>
     <string name="spot_photo_expand_cd">פתיחת התמונה במסך מלא</string>
     <string name="map_locating_you">מאתר את מיקומך…</string>
-    <string name="map_location_unavailable">עדיין לא הצלחנו לאתר את המיקום — לחצו ◎ כדי לנסות שוב, או גררו את הסיכה</string>
+    <string name="map_location_unavailable">עדיין לא הצלחנו לאתר את המיקום. לחצו ◎ כדי לנסות שוב.</string>
     <string name="map_outside_service_area">ParkIt פועלת כרגע רק בישראל</string>
     <string name="level_newbie">חדש</string>
     <string name="level_bronze">ארד</string>
@@ -166,7 +166,7 @@
     <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
     <string name="claim_trip_title">בדרך לחניה</string>
     <string name="claim_drive_safely">שמורה לך ל-2 דקות. סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
-    <string name="claim_taken_thanks">תודה — עדכנו את שאר הנהגים</string>
+    <string name="claim_taken_thanks">תודה על העדכון</string>
     <string name="claim_expired">החניה חזרה למפה. בלי לחץ — יש עוד חניות בסביבה.</string>
     <!-- פרופיל נהג: רכב, תגים, אזור מועדף -->
     <string name="driver_title">הרכב שלי והעדפות</string>
@@ -522,4 +522,6 @@
     <string name="parked_notification_stop_paying">הנהג הבא יכול לקחת אותה. אל תשכחו לעצור את תשלום החניה.</string>
     <string name="parked_notification_far">נראה שאתם לא ליד הרכב, אז לא דיווחנו.</string>
     <string name="parked_notification_failed">זה לא עבר. נסו שוב בעוד רגע.</string>
+    <string name="claim_release">לא צריך, לשחרר את החניה</string>
+    <string name="navigation_unavailable">לא נמצאה בטלפון אפליקציית ניווט</string>
 </resources>

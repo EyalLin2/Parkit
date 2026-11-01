@@ -102,3 +102,22 @@ appId: com.parkit.israel
 
 # My details: the sign-in email can't be edited
 - assertVisible: ".*Test D\\..*"
+
+# Daily loop: park, then hand the spot on
+- back
+- tapOn: "Parked"
+- tapOn: "Save my car here"
+- tapOn:
+    text: "It's free, no need"
+    optional: true
+- extendedWaitUntil:
+    visible: "My car"
+    timeout: 10000
+- takeScreenshot: 08-parked
+- tapOn: "I'm leaving"
+- extendedWaitUntil:
+    visible: "Parked"
+    timeout: 10000
+- assertNotVisible: ".*PK-[0-9]+.*"
+- takeScreenshot: 09-left
+

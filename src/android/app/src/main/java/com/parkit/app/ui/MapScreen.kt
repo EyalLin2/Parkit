@@ -952,7 +952,8 @@ fun MapScreen(
                     m.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(p.latitude(), p.longitude()), zoom), 500)
                 } else {
                     val id = hit.getStringProperty("id")
-                    selectedSpot = spots.firstOrNull { it.id == id }
+                    // Your own hold isn't in the nearby list, which only has free spots.
+                    selectedSpot = spots.firstOrNull { it.id == id } ?: activeClaim?.takeIf { it.id == id }
                 }
                 true
             }
@@ -1291,10 +1292,23 @@ fun MapScreen(
                         onNavigate = {
                             DriveTo.open(context, claim.lat, claim.lng)
                         },
+                        onRelease = {
+                            activeClaim = null
+                            headingTo = null
+                            scope.launch {
+                                runCatching { api.releaseClaim(claim.id) }
+                                refreshSpotsNow()
+                            }
+                        },
                         onFeedback = { type ->
                             scope.launch {
                                 try {
-                                    api.submitFeedback(claim.id, com.parkit.app.api.FeedbackCreate(type))
+                                    try {
+                                        api.submitFeedback(claim.id, com.parkit.app.api.FeedbackCreate(type))
+                                    } catch (e: retrofit2.HttpException) {
+                                        // Already voted or closed: the driver still parked here.
+                                        if (e.code() != 409 || type != "confirmed_taken") throw e
+                                    }
                                     if (type == "confirmed_taken") rememberCar(LatLng(claim.lat, claim.lng), claim.localAddress, claim.spotType)
                                     activeClaim = null
                                     refreshSpotsNow()
@@ -2260,6 +2274,7 @@ private fun ClaimTripCard(
     onNavigate: () -> Unit,
     onFeedback: (String) -> Unit,
     onExpired: () -> Unit,
+    onRelease: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var remaining by remember(endsAt) { mutableStateOf(((endsAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)) }
@@ -2305,6 +2320,12 @@ private fun ClaimTripCard(
                 TripAction(stringResource(R.string.spot_navigate), Icons.Filled.Navigation, MaterialTheme.colorScheme.primary, Modifier.weight(1f), onNavigate)
                 TripAction(stringResource(R.string.spot_i_took_it), Icons.Filled.CheckCircle, green, Modifier.weight(1f)) { onFeedback("confirmed_taken") }
                 TripAction(stringResource(R.string.spot_flag_taken), Icons.Filled.DoNotDisturbOn, orange, Modifier.weight(1f)) { onFeedback("flagged_false") }
+            }
+            androidx.compose.material3.TextButton(
+                onClick = onRelease,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Text(stringResource(R.string.claim_release))
             }
         }
     }

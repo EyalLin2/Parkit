@@ -1,6 +1,7 @@
 package com.parkit.app.remind
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -36,6 +37,7 @@ object ParkedNotification {
     fun canPost(context: Context) = Build.VERSION.SDK_INT < 33 ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
+    @SuppressLint("MissingPermission") // canPost checks it
     fun show(context: Context, car: ParkedCar, message: String? = null) {
         if (!canPost(context)) return
         val leave = PendingIntent.getBroadcast(
@@ -56,6 +58,7 @@ object ParkedNotification {
 
     fun cancel(context: Context) = NotificationManagerCompat.from(context).cancel(ID)
 
+    @SuppressLint("MissingPermission") // canPost checks it
     fun finished(context: Context, message: String) {
         if (!canPost(context)) return
         val notification = builder(context)

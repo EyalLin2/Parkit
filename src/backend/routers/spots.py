@@ -295,6 +295,24 @@ async def claim_spot(
     return spot
 
 
+@router.delete("/{spot_id}/claim", status_code=204)
+async def release_claim(
+    spot_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+) -> None:
+    """Changed my mind: the spot goes straight back on the map for the next driver."""
+    spot = await db.get(Spot, spot_id)
+    if spot is None or spot.status != SpotStatus.claimed or spot.claimed_by != user_id:
+        raise HTTPException(404, "No hold on this spot")
+    spot.status = SpotStatus.active
+    spot.claimed_by = None
+    spot.claimed_at = None
+    await db.commit()
+    await redis.delete(f"claim:{spot_id}")
+
+
 @router.post("/{spot_id}/report-content", status_code=204)
 async def report_content(
     spot_id: uuid.UUID,
