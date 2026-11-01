@@ -50,6 +50,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS postgis_topology")
-    op.execute("CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder")
+    op.execute("CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder CASCADE")
     op.execute("UPDATE rewards SET active = true WHERE key = 'avatar_legend_scientist'")
     op.execute("DELETE FROM rewards WHERE key LIKE 'bg_%'")

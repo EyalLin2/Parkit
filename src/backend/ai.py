@@ -13,14 +13,17 @@ class AiOff(Exception):
     """No API key configured — callers answer 503 / skip the feature."""
 
 
-async def ask_json(image: bytes, media_type: str, prompt: str, max_tokens: int = 400) -> dict:
+async def ask_json(image: bytes, media_type: str, prompt: str, max_tokens: int = 2048) -> dict:
     """Send one image + instructions, return the JSON object the model wrote.
     Raises AiOff, httpx.HTTPError, or ValueError (no / bad JSON)."""
     if not settings.anthropic_api_key:
         raise AiOff()
     body = {
         "model": settings.sign_reader_model,
+        # The cap covers the model's thinking as well as the answer, so a tight
+        # one cuts the JSON off. Low effort keeps these short readings cheap.
         "max_tokens": max_tokens,
+        "output_config": {"effort": "low"},
         "messages": [
             {
                 "role": "user",

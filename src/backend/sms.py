@@ -13,6 +13,7 @@ import logging
 from typing import Protocol
 
 import httpx
+from fastapi import HTTPException
 
 from config import settings
 
@@ -79,6 +80,14 @@ class SmsGateSender:
 
 
 def get_sms_sender() -> SmsSender:
+    try:
+        return _build_sender()
+    except RuntimeError as e:
+        log.error("SMS isn't configured: %s", e)
+        raise HTTPException(503, "Sign-in by SMS isn't available right now") from None
+
+
+def _build_sender() -> SmsSender:
     if settings.sms_provider == "dev":
         return DevSmsSender()
     if settings.sms_provider == "smsgate":

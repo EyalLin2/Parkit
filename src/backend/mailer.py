@@ -12,6 +12,8 @@ import smtplib
 from email.message import EmailMessage
 from typing import Protocol
 
+from fastapi import HTTPException
+
 from config import settings
 
 log = logging.getLogger("parkit.mail")
@@ -56,6 +58,14 @@ class SmtpMailer:
 
 
 def get_mailer() -> Mailer:
+    try:
+        return _build_mailer()
+    except RuntimeError as e:
+        log.error("email isn't configured: %s", e)
+        raise HTTPException(503, "Sign-in by email isn't available right now") from None
+
+
+def _build_mailer() -> Mailer:
     if settings.email_provider == "dev":
         return DevMailer()
     if settings.email_provider == "smtp":

@@ -156,6 +156,7 @@ class AccountOut(BaseModel):
     first_name: str | None
     last_name: str | None
     email: str | None
+    email_verified: bool = False
 
 
 ProfileOut.model_rebuild()

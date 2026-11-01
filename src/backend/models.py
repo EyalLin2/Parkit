@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from geoalchemy2 import Geography
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -66,6 +66,9 @@ class User(Base):
     first_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
     email: Mapped[str | None] = mapped_column(String(254), unique=True, nullable=True)
+    # True once the owner proved the address (email code, Google). Only a proved
+    # address signs into an existing account; a typed one is just contact info.
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # One of the bundled illustrated avatars ("avatar_01".."avatar_16"); None
     # = the initial-letter avatar. Shown to others in the league.
     avatar: Mapped[str | None] = mapped_column(String(20), nullable=True)

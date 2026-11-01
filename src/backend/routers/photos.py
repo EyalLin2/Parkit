@@ -38,7 +38,7 @@ async def stage_photo(
     _user_id: uuid.UUID = Depends(get_current_user_id),
     redis: Redis = Depends(get_redis),
 ) -> StagedPhotoOut:
-    raw = await file.read()
+    raw = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, "Photo too large")
 
@@ -98,7 +98,7 @@ async def analyze_photo(
     if count > ANALYZE_PER_HOUR:
         raise HTTPException(429, "Too many photos for now")
     try:
-        return PhotoHints(**await ai.ask_json(base64.b64decode(staged), "image/jpeg", ANALYZE_PROMPT, max_tokens=150))
+        return PhotoHints(**await ai.ask_json(base64.b64decode(staged), "image/jpeg", ANALYZE_PROMPT))
     except ai.AiOff:
         raise HTTPException(503, "Photo analysis isn't switched on") from None
     except Exception as e:  # noqa: BLE001 — any model/network hiccup just means no hints

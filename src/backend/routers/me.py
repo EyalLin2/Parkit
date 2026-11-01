@@ -77,9 +77,12 @@ async def update_details(
     if user is None:
         raise HTTPException(404, "Unknown user")
     email = payload.email.strip().lower()
-    taken = (await db.execute(select(User.id).where(User.email == email, User.id != user_id))).first()
-    if taken is not None:
-        raise HTTPException(409, "This email is already used by another account")
+    if email != user.email:
+        if user.email_verified:
+            raise HTTPException(409, "The email you sign in with can't be changed")
+        taken = (await db.execute(select(User.id).where(User.email == email, User.id != user_id))).first()
+        if taken is not None:
+            raise HTTPException(409, "This email is already used by another account")
     user.first_name = payload.first_name.strip()
     user.last_name = payload.last_name.strip()
     user.email = email
@@ -90,7 +93,13 @@ async def update_details(
 
 
 def account_of(user: User) -> AccountOut:
-    return AccountOut(phone=user.phone, first_name=user.first_name, last_name=user.last_name, email=user.email)
+    return AccountOut(
+        phone=user.phone,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+        email_verified=user.email_verified,
+    )
 
 
 @router.get("/vehicles/lookup", response_model=VehicleLookupOut)

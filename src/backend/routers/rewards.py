@@ -136,7 +136,7 @@ async def redeem(
 
 
 def _check(token: str) -> None:
-    if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
+    if not settings.admin_token or not hmac.compare_digest(token.encode(), settings.admin_token.encode()):
         raise HTTPException(404, "Not found")
 
 
