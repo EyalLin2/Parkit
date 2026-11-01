@@ -71,7 +71,7 @@ class User(Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # One of the bundled illustrated avatars ("avatar_01".."avatar_16"); None
     # = the initial-letter avatar. Shown to others in the league.
-    avatar: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    avatar: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     points: Mapped[int] = mapped_column(default=0)
     weekly_points: Mapped[int] = mapped_column(default=0)

@@ -125,6 +125,7 @@ import com.parkit.app.api.ApiService
 import com.parkit.app.api.GeocodingClient
 import com.parkit.app.api.SpotOut
 import com.parkit.app.api.friendlyMessage
+import com.parkit.app.api.isOutsideServiceArea
 import com.parkit.app.api.isUnauthorized
 import com.parkit.app.api.localAddress
 import com.parkit.app.auth.SessionStore
@@ -177,6 +178,10 @@ private const val PRECISE_JUMP_M = 60.0
 private const val LAST_KNOWN_MAX_AGE_MS = 30 * 60_000L
 
 private fun inServiceArea(p: LatLng) = p.distanceTo(SERVICE_AREA_CENTER) <= SERVICE_AREA_RADIUS_M
+
+// The launch city: the same box as the server (service_area.py). Applies only
+// while the server's GET /spots/service-area says tel_aviv_only.
+private fun inTelAviv(lat: Double, lng: Double) = lat in 32.03..32.15 && lng in 34.73..34.85
 
 /** Precise *or* approximate — Android 12+ lets the user grant only
  * approximate, and that's still plenty to centre the map on them. */
@@ -314,6 +319,10 @@ private val DOCK_HEIGHT = 64.dp
 private const val NEAR_CAR_M = 150.0 // standing by the car → "leaving?" is the main action
 private const val REMINDER_SOON_MIN = 15L
 private const val LIVE_FIX_EVERY_MS = 5_000L
+private const val SPOTS_POLL_MS = 30_000L
+private const val SPOTS_RETRY_MS = 10_000L
+// After "I'm leaving" succeeds the same button becomes "Report": a late second tap must not open the form.
+private const val MAIN_TAP_GUARD_MS = 1_500L
 private const val NEAR_ME_M = 20.0 // GPS noise: closer than this is "next to you"
 private const val SOURCE_CAR = "parked-car"
 private const val LAYER_CAR = "parked-car-pin"
@@ -326,8 +335,8 @@ private const val COLOR_LEGEND = "#7B3FE4"
 
 private val SHEET_PEEK = 114.dp
 // Empty map: tall enough to show the "car parks / invite friends" buttons.
-private val SHEET_PEEK_EMPTY = 178.dp
-private const val CLAIM_HOLD_MS = 120_000L // matches the backend's CLAIM_TTL_SECONDS
+private val SHEET_PEEK_EMPTY = 198.dp
+private const val CLAIM_HOLD_MS = 300_000L // matches the backend's CLAIM_TTL_SECONDS
 
 private val claimAdapter = com.squareup.moshi.Moshi.Builder()
     .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory()).build().adapter(SpotOut::class.java)
@@ -357,10 +366,10 @@ private fun levelFrame(level: String): String? = when (level) {
  * rather than a smooth blend: five shades the eye can actually tell apart
  * (and five cached bitmaps per tag, not one per minute). */
 private fun freshnessGreen(minutes: Long): String = when {
-    minutes < 5 -> "#0B5E2B"
-    minutes < 15 -> COLOR_FREE
-    minutes < 30 -> "#2E9E4F"
-    minutes < 45 -> "#55B56E"
+    minutes < 2 -> "#0B5E2B"
+    minutes < 4 -> COLOR_FREE
+    minutes < 6 -> "#2E9E4F"
+    minutes < 8 -> "#55B56E"
     else -> "#7EC791"
 }
 
@@ -399,14 +408,17 @@ fun MapScreen(
     // The spot this user said "I'm heading there" to. The server hides
     // claimed spots from everyone (so nobody else is sent there), so the
     // claimer keeps it locally — on the map and in a trip card — until they
-    // report what happened or the 2-minute hold runs out.
+    // report what happened or the 5-minute hold runs out.
     // Saveable: "I'm on my way" opens a navigation app, and Android may
     // recreate (or kill) ParkIt meanwhile — coming back must still show the trip.
     var activeClaim by androidx.compose.runtime.saveable.rememberSaveable(stateSaver = ClaimSaver) { mutableStateOf<SpotOut?>(null) }
-    // The spot this driver set out for. It outlives the 2-minute hold, so
+    // The spot this driver set out for. It outlives the 5-minute hold, so
     // arriving there can still ask "did you park here?".
     var headingTo by androidx.compose.runtime.saveable.rememberSaveable(stateSaver = ClaimSaver) { mutableStateOf<SpotOut?>(null) }
     var headingSince by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0L) }
+    // Set once the driver has been further than the arrival distance: claiming
+    // a spot from 50 m away isn't "arriving".
+    var headingArmed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var askArrived by remember { mutableStateOf(false) }
     var claimEndsAt by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0L) }
     var showReportFlow by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
@@ -476,8 +488,11 @@ fun MapScreen(
     // Street + number for each listed spot, resolved nearest-first so the
     // rows you actually see fill in first.
     val spotAddresses = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+    // Lookups that finished with no address: the row says so instead of "finding…".
+    val spotAddressFailed = remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
     LaunchedEffect(sortedSpots.map { it.id }) {
-        for (spot in sortedSpots) {
+        // Ones that already failed go last, so they can't starve the rest.
+        for (spot in sortedSpots.sortedBy { spotAddressFailed[it.id] == true }) {
             // Reports carry their own address now; only older ones (made
             // before the backend stored it) still need a lookup.
             if (spot.localAddress != null || spotAddresses.containsKey(spot.id)) continue
@@ -486,7 +501,8 @@ fun MapScreen(
                 spotAddresses[spot.id] = cached
                 continue
             }
-            com.parkit.app.api.SpotAddressCache.resolve(spot.id, spot.lat, spot.lng)?.let { spotAddresses[spot.id] = it }
+            val resolved = com.parkit.app.api.SpotAddressCache.resolve(spot.id, spot.lat, spot.lng)
+            if (resolved != null) spotAddresses[spot.id] = resolved else spotAddressFailed[spot.id] = true
             delay(1100)
         }
     }
@@ -497,7 +513,7 @@ fun MapScreen(
             resolvedAddress = hit.shortLabel()
             resolvedStreet = hit.streetLabel()
             addressLoading = false
-            addressFailed = false
+            addressFailed = resolvedAddress == null
             return@LaunchedEffect
         }
         addressLoading = true
@@ -513,22 +529,54 @@ fun MapScreen(
     // delay the thing people actually opened the app for.
     // Moving about 100 m refreshes which spots are within reach.
     val myCell = deviceLocation?.let { "%.3f,%.3f".format(java.util.Locale.ROOT, it.latitude, it.longitude) }
-    LaunchedEffect(geocodeTarget, reloadTick, myCell) {
-        delay(300)
-        while (true) {
-            try {
-                spots = sessionStore.lastFix?.let { (meLat, meLng) ->
-                    api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M, meLat, meLng)
-                }.orEmpty()
-                spotsLoaded = true
-                spotsFailed = false
-                break
-            } catch (e: Exception) {
-                if (e.isUnauthorized()) { onLoggedOut(); break }
-                spotsFailed = true
-                delay(10_000) // keep trying quietly; the sheet shows the problem and a retry button
+    // Spots come and go without this driver doing anything, so the list is
+    // polled while the screen is visible, and never in the background.
+    val spotsLifecycle = LocalLifecycleOwner.current.lifecycle
+    var screenVisible by remember { mutableStateOf(spotsLifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) }
+    DisposableEffect(spotsLifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> screenVisible = true
+                Lifecycle.Event.ON_STOP -> screenVisible = false
+                Lifecycle.Event.ON_RESUME -> reloadTick++
+                else -> Unit
             }
         }
+        spotsLifecycle.addObserver(observer)
+        onDispose { spotsLifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(geocodeTarget, reloadTick, myCell, screenVisible) {
+        if (!screenVisible) return@LaunchedEffect
+        delay(300)
+        while (true) {
+            val me = sessionStore.lastFix
+            var wait = SPOTS_POLL_MS
+            if (me == null) {
+                // Nobody asked the server, so this is "we don't know where you are", not "no spots".
+                spots = emptyList()
+                spotsLoaded = false
+                spotsFailed = false
+            } else {
+                try {
+                    spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M, me.first, me.second)
+                    spotsLoaded = true
+                    spotsFailed = false
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (e.isUnauthorized()) { onLoggedOut(); return@LaunchedEffect }
+                    spotsFailed = true
+                    wait = SPOTS_RETRY_MS // keep trying quietly; the sheet shows the problem and a retry button
+                }
+            }
+            delay(wait)
+        }
+    }
+
+    // Launch city. A failed fetch means no restriction: the server still enforces it.
+    var telAvivOnly by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        telAvivOnly = runCatching { api.serviceArea().telAvivOnly }.getOrDefault(false)
     }
 
     fun flyTo(target: LatLng, zoom: Double = STREET_LEVEL_ZOOM) {
@@ -546,6 +594,7 @@ fun MapScreen(
     fun rememberCar(at: LatLng, address: String?, spotType: String = "street") {
         headingTo = null
         askArrived = false
+        activeClaim = null // parked: the trip is over, and its card would hide the car line
         leftSpot?.let { (id, was) ->
             leftSpot = null
             val near = at.distanceTo(LatLng(was.lat, was.lng)) < 60
@@ -559,14 +608,21 @@ fun MapScreen(
         val car = com.parkit.app.auth.ParkedCar(at.latitude, at.longitude, System.currentTimeMillis(), address, spotType)
         parkedCar = car
         sessionStore.parkedCar = car
-        if (address == null) {
-            scope.launch {
-                val label = com.parkit.app.api.Geocoder.reverse(at.latitude, at.longitude)?.shortLabel() ?: return@launch
-                if (parkedCar?.at == car.at) {
-                    parkedCar = car.copy(address = label)
-                    sessionStore.parkedCar = parkedCar
-                }
-            }
+    }
+
+    // The saved car's address, also for one saved before the app was closed.
+    var carAddressFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(parkedCar?.at) {
+        carAddressFailed = false
+        val car = parkedCar ?: return@LaunchedEffect
+        if (car.address != null) return@LaunchedEffect
+        val label = com.parkit.app.api.Geocoder.reverse(car.lat, car.lng)?.shortLabel()
+        val latest = parkedCar
+        if (label == null) {
+            carAddressFailed = true
+        } else if (latest != null && latest.at == car.at) {
+            parkedCar = latest.copy(address = label)
+            sessionStore.parkedCar = parkedCar
         }
     }
 
@@ -598,6 +654,11 @@ fun MapScreen(
      * limit) — say so up front instead of after the photo. */
     fun openReportFlow() {
         val fix = currentFix()
+        val me = fix?.let { it.latitude to it.longitude } ?: sessionStore.lastFix
+        if (telAvivOnly && me != null && !inTelAviv(me.first, me.second)) {
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.map_tel_aviv_only)) }
+            return
+        }
         val message = when {
             fix == null -> R.string.report_needs_location
             LatLng(fix.latitude, fix.longitude).distanceTo(geocodeTarget) >
@@ -654,8 +715,12 @@ fun MapScreen(
     // (The blue-white tick on a report is optional, so it's offered every time.)
     var showParkedPay by remember { mutableStateOf(false) }
 
-    fun offerPango() {
-        if (!ParkingPay.isOff(context)) showParkedPay = true
+    /** [spot] is where the driver parked, if it was a reported spot. A full
+     * report's "free" means a gray curb, so nothing to pay; a one-tap "I'm
+     * leaving" never asked about the curb, so that stays unknown. */
+    fun offerPango(spot: SpotOut? = null) {
+        val knownGray = spot != null && spot.payment == "free" && !spot.leftByDriver
+        if (!ParkingPay.isOff(context) && !knownGray) showParkedPay = true
     }
 
     /** No usable fix: open on the driver's preferred city, else Tel Aviv. */
@@ -675,6 +740,7 @@ fun MapScreen(
         if (!locationServicesOn(context)) {
             // Permission is fine but the phone's location switch is off —
             // no provider will ever answer, so say so and offer the switch.
+            locating = false
             showTelAvivFallback(null)
             scope.launch {
                 val result = snackbarHostState.showSnackbar(
@@ -732,8 +798,11 @@ fun MapScreen(
 
     // Ask for precise and approximate together: on Android 12+ asking for
     // precise alone is ignored, and "approximate" must count as a yes.
+    // A grant doesn't stop the activity, so live updates must be told to start.
+    var locationGrantTick by remember { mutableStateOf(0) }
     val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         if (result.values.any { it } || hasAnyLocation(context)) {
+            locationGrantTick++
             locate()
         } else {
             locating = false
@@ -819,13 +888,24 @@ fun MapScreen(
     /** "I'm leaving": the driver's own spot becomes a report in one tap — no
      * photo, they're standing right at it (the distance check still runs). */
     var handingOn by remember { mutableStateOf(false) }
+    var mainTapsFrom by remember { mutableStateOf(0L) }
     fun leaveSpot(car: com.parkit.app.auth.ParkedCar) {
         if (handingOn) return // the answer can take a few seconds; a second tap adds nothing
+        // Already handed on from the notification while the app stayed open.
+        if (sessionStore.parkedCar == null) {
+            parkedCar = null
+            return
+        }
+        // Outside the launch city there's nobody to hand it to: just end the parking.
+        if (telAvivOnly && !inTelAviv(car.lat, car.lng)) {
+            forgetCar()
+            return
+        }
         handingOn = true
         scope.launch {
             val fix = currentFix()
             try {
-                val spot = api.reportSpot(
+                val spot = try { api.reportSpot(
                     com.parkit.app.api.SpotCreate(
                         lat = car.lat,
                         lng = car.lng,
@@ -839,16 +919,23 @@ fun MapScreen(
                         reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
                         handoff = true,
                     ),
-                )
+                ) } finally {
+                    handingOn = false // not after the snackbar: the dock shows this as busy
+                }
                 forgetCar()
                 leftSpot = spot.id to car.copy(at = System.currentTimeMillis())
+                mainTapsFrom = android.os.SystemClock.elapsedRealtime() + MAIN_TAP_GUARD_MS
                 refreshSpotsNow()
                 refreshMyProfile()
                 snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
-            } finally {
-                handingOn = false
+                when {
+                    e.isUnauthorized() -> onLoggedOut()
+                    e.isOutsideServiceArea() -> forgetCar()
+                    else -> snackbarHostState.showSnackbar(e.friendlyMessage(context))
+                }
             }
         }
     }
@@ -861,6 +948,7 @@ fun MapScreen(
                 snackbarHostState.showSnackbar(context.getString(R.string.location_denied))
                 return@launch
             }
+            if (telAvivOnly && !inTelAviv(fix.latitude, fix.longitude)) return@launch
             try {
                 api.reportSpot(
                     com.parkit.app.api.SpotCreate(
@@ -879,8 +967,14 @@ fun MapScreen(
                 refreshSpotsNow()
                 refreshMyProfile()
                 snackbarHostState.showSnackbar(context.getString(R.string.map_reported_snackbar))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
+                when {
+                    e.isUnauthorized() -> onLoggedOut()
+                    e.isOutsideServiceArea() -> Unit // nothing to hand on here, and nothing to complain about
+                    else -> snackbarHostState.showSnackbar(e.friendlyMessage(context))
+                }
             }
         }
     }
@@ -983,6 +1077,7 @@ fun MapScreen(
     // during a trip to a spot, never on a brand-new install's first visit.
     var openAd by remember { mutableStateOf<com.parkit.app.api.AdOut?>(null) }
     LaunchedEffect(deviceLocation != null) {
+        if (!com.parkit.app.Features.OPEN_AD) return@LaunchedEffect
         val here = deviceLocation ?: return@LaunchedEffect
         val now = System.currentTimeMillis()
         val firstVisit = sessionStore.lastOpenAdAt == 0L
@@ -1005,6 +1100,11 @@ fun MapScreen(
         while (true) {
             kotlinx.coroutines.delay(5_000)
             clock = System.currentTimeMillis()
+            // "I'm leaving" from the notification shade doesn't pause the app.
+            if (parkedCar != sessionStore.parkedCar) {
+                parkedCar = sessionStore.parkedCar
+                reloadTick++
+            }
         }
     }
     val reminderLeftMin = com.parkit.app.remind.ParkingReminder.activeChangeAt(context)
@@ -1042,7 +1142,7 @@ fun MapScreen(
     // the distance to the car and "leaving?" need where you are *now*, not
     // where you were when the app opened. Balanced power: Wi-Fi/cell + GPS.
     val liveLifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(liveLifecycle, style) {
+    DisposableEffect(liveLifecycle, style, locationGrantTick) {
         val client = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
         val request = com.google.android.gms.location.LocationRequest.Builder(
             com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY,
@@ -1189,6 +1289,9 @@ fun MapScreen(
         scope.launch { sheetState.partialExpand() }
     }
 
+    val locationUnknown = deviceLocation == null && sessionStore.lastFix == null && !locating
+    val outsideTelAviv = telAvivOnly && sessionStore.lastFix?.let { (lat, lng) -> !inTelAviv(lat, lng) } == true
+
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = (if (spotsLoaded && !spotsFailed && sortedSpots.isEmpty()) SHEET_PEEK_EMPTY else SHEET_PEEK) + with(density) { WindowInsets.navigationBars.getBottom(density).toDp() },
@@ -1205,9 +1308,12 @@ fun MapScreen(
                     LatLng(meLat, meLng).distanceTo(geocodeTarget) > DEFAULT_RADIUS_M
                 } ?: false,
                 loaded = spotsLoaded,
+                locationUnknown = locationUnknown,
+                outsideTelAviv = outsideTelAviv,
                 failed = spotsFailed,
                 onRetry = { spotsFailed = false; reloadTick++ },
                 addresses = spotAddresses,
+                addressesFailed = spotAddressFailed,
                 reference = reference,
                 prefs = driverPrefs.preferences,
                 lotsShown = showLots,
@@ -1290,8 +1396,10 @@ fun MapScreen(
                     )
                 }
                 activeClaim?.let { claim ->
+                    val claimAddress = claim.address ?: spotAddresses[claim.id]
                     ClaimTripCard(
-                        spot = claim,
+                        spot = claim.copy(address = claimAddress),
+                        addressPending = claimAddress == null && spotAddressFailed[claim.id] != true,
                         endsAt = claimEndsAt,
                         onNavigate = {
                             DriveTo.open(context, claim.lat, claim.lng)
@@ -1313,12 +1421,17 @@ fun MapScreen(
                                         // Already voted or closed: the driver still parked here.
                                         if (e.code() != 409 || type != "confirmed_taken") throw e
                                     }
+                                    // Answered either way: arriving must not ask again.
+                                    headingTo = null
+                                    askArrived = false
                                     if (type == "confirmed_taken") rememberCar(LatLng(claim.lat, claim.lng), claim.localAddress, claim.spotType)
                                     activeClaim = null
                                     refreshSpotsNow()
-                                    if (type == "confirmed_taken") offerPango() else snackbarHostState.showSnackbar(context.getString(R.string.claim_taken_thanks))
+                                    if (type == "confirmed_taken") offerPango(claim) else snackbarHostState.showSnackbar(context.getString(R.string.claim_taken_thanks))
+                                } catch (e: kotlinx.coroutines.CancellationException) {
+                                    throw e
                                 } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar(e.friendlyMessage(context))
+                                    if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
                                 }
                             }
                         },
@@ -1375,9 +1488,10 @@ fun MapScreen(
                 parked = parkedCar != null,
                 car = myCarLook(),
                 main = mainAction,
+                busy = handingOn,
                 onCar = { if (parkedCar == null) parkHere() else showCarSheet = true },
                 onMain = {
-                    when (mainAction) {
+                    if (android.os.SystemClock.elapsedRealtime() >= mainTapsFrom) when (mainAction) {
                         MainAction.Leave -> parkedCar?.let { leaveSpot(it) }
                         is MainAction.Reminder -> showCarSheet = true
                         MainAction.Report -> openReportFlow()
@@ -1465,10 +1579,12 @@ fun MapScreen(
     }
     LaunchedEffect(deviceLocation, headingTo) {
         val spot = headingTo ?: return@LaunchedEffect
-        if (System.currentTimeMillis() - headingSince > ARRIVAL_PROMPT_MS) {
-            headingTo = null
-        } else if ((deviceLocation?.distanceTo(LatLng(spot.lat, spot.lng)) ?: Double.MAX_VALUE) <= ARRIVED_M) {
-            askArrived = true
+        val away = deviceLocation?.distanceTo(LatLng(spot.lat, spot.lng))
+        when {
+            System.currentTimeMillis() - headingSince > ARRIVAL_PROMPT_MS -> headingTo = null
+            away == null -> Unit
+            away > ARRIVED_M -> headingArmed = true
+            headingArmed -> askArrived = true
         }
     }
     val arrivedAt = headingTo
@@ -1485,7 +1601,7 @@ fun MapScreen(
                         rememberCar(LatLng(arrivedAt.lat, arrivedAt.lng), arrivedAt.localAddress, arrivedAt.spotType)
                         activeClaim = null
                         refreshSpotsNow()
-                        offerPango()
+                        offerPango(arrivedAt)
                     }
                 }) { Text(stringResource(R.string.spot_i_took_it)) }
             },
@@ -1529,6 +1645,7 @@ fun MapScreen(
             androidx.compose.material3.ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = { showCarSheet = false }) {
                 ParkedCarCard(
                     car = car,
+                    addressFailed = carAddressFailed,
                     nearCar = nearMyCar,
                     onNavigate = { walkTo(context, car.lat, car.lng) },
                     onLeaving = { showCarSheet = false; leaveSpot(car) },
@@ -1618,6 +1735,7 @@ fun MapScreen(
             lat = geocodeTarget.latitude,
             lng = geocodeTarget.longitude,
             addressLabel = if (addressLoading) null else resolvedAddress,
+            addressLoading = addressLoading,
             streetAddress = resolvedStreet,
             defaultVehicleSize = driverPrefs.preferences.vehicleSize,
             currentFix = { currentFix() },
@@ -1651,10 +1769,10 @@ fun MapScreen(
             spot = spot,
             myFix = sessionStore.lastFix,
             fit = fitOf(spot, driverPrefs.preferences),
-            distanceLabel = context.getString(
-                R.string.spot_distance_away,
-                formatDistance(context, LatLng(spot.lat, spot.lng).distanceTo(reference)),
-            ),
+            distanceLabel = LatLng(spot.lat, spot.lng).distanceTo(reference).let { away ->
+                if (away < NEAR_ME_M) context.getString(R.string.distance_right_here)
+                else context.getString(R.string.spot_distance_away, formatDistance(context, away))
+            },
             onDismiss = { selectedSpot = null },
             onChanged = {
                 selectedSpot = null
@@ -1662,13 +1780,27 @@ fun MapScreen(
             },
             onParked = {
                 rememberCar(LatLng(spot.lat, spot.lng), spot.localAddress, spot.spotType)
-                offerPango()
+                offerPango(spot)
+            },
+            onFlagged = {
+                if (activeClaim?.id == spot.id) activeClaim = null
+                if (headingTo?.id == spot.id) {
+                    headingTo = null
+                    askArrived = false
+                }
+            },
+            onGone = { message ->
+                selectedSpot = null
+                spots = spots.filterNot { it.id == spot.id }
+                refreshSpotsNow()
+                scope.launch { snackbarHostState.showSnackbar(message) }
             },
             onClaimed = { claimed ->
                 selectedSpot = null
                 activeClaim = claimed
                 headingTo = claimed
                 headingSince = System.currentTimeMillis()
+                headingArmed = false
                 claimEndsAt = System.currentTimeMillis() + CLAIM_HOLD_MS
                 refreshSpotsNow()
             },
@@ -1930,7 +2062,10 @@ private fun NearbySheet(
     spots: List<SpotOut>,
     tooFar: Boolean,
     loaded: Boolean,
+    locationUnknown: Boolean,
+    outsideTelAviv: Boolean,
     addresses: Map<String, String>,
+    addressesFailed: Map<String, Boolean>,
     reference: LatLng,
     prefs: com.parkit.app.api.Preferences,
     failed: Boolean,
@@ -1973,7 +2108,9 @@ private fun NearbySheet(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    if (spots.isEmpty() && tooFar) stringResource(R.string.map_get_closer_title)
+                    if (spots.isEmpty() && outsideTelAviv) stringResource(R.string.map_tel_aviv_only)
+                    else if (spots.isEmpty() && tooFar) stringResource(R.string.map_get_closer_title)
+                    else if (locationUnknown) stringResource(R.string.map_no_location_title)
                     else if (!loaded) stringResource(R.string.map_nearby_searching)
                     else if (spots.isEmpty()) stringResource(R.string.map_nearby_none)
                     else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
@@ -2030,9 +2167,15 @@ private fun NearbySheet(
                 val nearest = (spots.filterNot { fitOf(it, prefs).unusable }.ifEmpty { spots })
                     .minByOrNull { LatLng(it.lat, it.lng).distanceTo(reference) }
                 Text(
-                    if (spots.isEmpty() && tooFar) stringResource(R.string.map_get_closer_hint)
+                    if (spots.isEmpty() && outsideTelAviv) stringResource(R.string.map_tel_aviv_only_hint)
+                    else if (spots.isEmpty() && tooFar) stringResource(R.string.map_get_closer_hint)
+                    else if (locationUnknown) stringResource(R.string.map_no_location_hint)
                     else if (!loaded) stringResource(R.string.map_nearby_searching_hint)
                     else if (nearest == null) stringResource(R.string.map_nearby_empty_hint)
+                    else if (LatLng(nearest.lat, nearest.lng).distanceTo(reference) < NEAR_ME_M) stringResource(
+                        R.string.map_nearest_here,
+                        MarkerBitmaps.relativeTimeLong(context, nearest.reportedAt),
+                    )
                     else stringResource(
                         R.string.map_nearest,
                         formatDistance(context, LatLng(nearest.lat, nearest.lng).distanceTo(reference)),
@@ -2040,7 +2183,7 @@ private fun NearbySheet(
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -2071,7 +2214,7 @@ private fun NearbySheet(
                 // The card sits after the first two spots: seen, never in the way.
                 spots.forEachIndexed { index, spot ->
                     item(key = spot.id) {
-                        SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
+                        SpotRow(spot, spot.localAddress ?: addresses[spot.id], addressesFailed[spot.id] == true, reference, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
                     }
                     if (ad != null && index == minOf(1, spots.lastIndex)) item(key = "ad") { SponsoredCard(ad, onAdClick, onAdShown) }
                 }
@@ -2083,7 +2226,7 @@ private fun NearbySheet(
 }
 
 @Composable
-private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, fit: DriverFit, onClick: () -> Unit) {
+private fun SpotRow(spot: SpotOut, address: String?, addressFailed: Boolean, reference: LatLng, fit: DriverFit, onClick: () -> Unit) {
     val context = LocalContext.current
     val color = Color(android.graphics.Color.parseColor(pinColor(spot)))
     val disabled = spot.spotType == "disabled"
@@ -2122,7 +2265,7 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, fit: Dri
             // The address is the headline — it's what you'd actually drive
             // to. Type, freshness and status read as one quiet detail line.
             Text(
-                address ?: stringResource(R.string.map_locating),
+                address ?: stringResource(if (addressFailed) R.string.map_address_unavailable else R.string.map_locating),
                 style = MaterialTheme.typography.titleSmall,
                 color = if (address == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -2152,7 +2295,9 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, fit: Dri
         }
         Spacer(Modifier.width(8.dp))
         Text(
-            formatDistance(context, LatLng(spot.lat, spot.lng).distanceTo(reference)),
+            LatLng(spot.lat, spot.lng).distanceTo(reference).let { away ->
+                if (away < NEAR_ME_M) stringResource(R.string.distance_right_here) else formatDistance(context, away)
+            },
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -2274,6 +2419,7 @@ private fun ReportHereBubble(visible: Boolean, onClick: () -> Unit, modifier: Mo
 @Composable
 private fun ClaimTripCard(
     spot: SpotOut,
+    addressPending: Boolean,
     endsAt: Long,
     onNavigate: () -> Unit,
     onFeedback: (String) -> Unit,
@@ -2305,7 +2451,7 @@ private fun ClaimTripCard(
                 Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(stringResource(R.string.claim_trip_title), style = MaterialTheme.typography.labelMedium, color = orange)
                     Text(
-                        spot.address ?: stringResource(R.string.map_locating),
+                        spot.address ?: stringResource(if (addressPending) R.string.map_locating else R.string.map_address_unavailable),
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -2340,6 +2486,7 @@ private fun ClaimTripCard(
 @Composable
 private fun ParkedCarCard(
     car: com.parkit.app.auth.ParkedCar,
+    addressFailed: Boolean,
     nearCar: Boolean,
     onNavigate: () -> Unit,
     onLeaving: () -> Unit,
@@ -2370,7 +2517,7 @@ private fun ParkedCarCard(
                 Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(stringResource(R.string.car_card_title, since), style = MaterialTheme.typography.labelMedium, color = primary)
                     Text(
-                        car.address ?: stringResource(R.string.map_locating),
+                        car.address ?: stringResource(if (addressFailed) R.string.map_address_unavailable else R.string.map_locating),
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -2635,6 +2782,7 @@ private fun ActionDock(
     parked: Boolean,
     car: CarLook,
     main: MainAction,
+    busy: Boolean,
     onCar: () -> Unit,
     onMain: () -> Unit,
     onSign: () -> Unit,
@@ -2659,13 +2807,18 @@ private fun ActionDock(
             }
             androidx.compose.material3.Button(
                 onClick = onMain,
+                enabled = !busy,
                 shape = RoundedCornerShape(50),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = color),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = color, disabledContainerColor = color),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp),
                 modifier = Modifier.weight(1.6f).height(48.dp),
             ) {
-                if (main == MainAction.Report) Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-                Text(label, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+                if (busy) {
+                    androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    if (main == MainAction.Report) Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Text(label, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+                }
             }
             DockSide(label = stringResource(R.string.dock_sign), modifier = Modifier.weight(1f), onClick = onSign) {
                 Box {
@@ -2703,12 +2856,12 @@ private fun CarLine(car: com.parkit.app.auth.ParkedCar, look: CarLook, distanceM
             CarArt(look.size ?: "regular", look.paint, MaterialTheme.colorScheme.outline, Modifier.width(34.dp), special = look.special, animate = false)
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                 Text(
-                    stringResource(R.string.car_line_title) + " " + listOfNotNull(
+                    listOfNotNull(
                         car.address?.substringBefore(",")?.trim(), // the street is enough here
                         distanceM?.let { if (it < NEAR_ME_M) context.getString(R.string.car_next_to_you) else context.getString(R.string.car_from_you, formatDistanceShort(context, it)) },
-                    ).joinToString(" · "),
+                    ).joinToString(" · ").ifEmpty { stringResource(R.string.dock_my_car) },
                     style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 // Says the line opens something — it looked like a label before.

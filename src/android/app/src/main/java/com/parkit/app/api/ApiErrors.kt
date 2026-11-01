@@ -67,10 +67,17 @@ object RecentErrors {
 }
 
 /** Plain-language message plus the error code, e.g. "Check your connection
- * and try again. (PK-100)". Never Retrofit/OkHttp internals. */
-fun Throwable.friendlyMessage(context: Context, aboutSpot: Boolean = true): String {
+ * and try again. (PK-100)". Never Retrofit/OkHttp internals. The 403, 404 and
+ * 409 texts talk about spots and reports, so [aboutSpot] = false replaces them;
+ * [conflictRes] says what a 409 means on this screen. */
+fun Throwable.friendlyMessage(context: Context, aboutSpot: Boolean = true, conflictRes: Int? = null): String {
     val error = ParkItError.of(this)
     RecentErrors.record(error)
-    val message = if (error == ParkItError.NotFound && !aboutSpot) R.string.error_generic else error.messageRes
+    val message = when {
+        error == ParkItError.Conflict && conflictRes != null -> conflictRes
+        aboutSpot -> error.messageRes
+        error == ParkItError.NotFound || error == ParkItError.Blocked || error == ParkItError.Conflict -> R.string.error_generic
+        else -> error.messageRes
+    }
     return context.getString(R.string.error_with_code, context.getString(message), error.code)
 }

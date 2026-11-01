@@ -39,6 +39,9 @@ interface ApiService {
     @PATCH("users/me/details")
     suspend fun updateDetails(@Body body: DetailsUpdate): AccountOut
 
+    @GET("spots/service-area")
+    suspend fun serviceArea(): ServiceAreaOut
+
     @GET("spots")
     suspend fun nearbySpots(
         @Query("lat") lat: Double,

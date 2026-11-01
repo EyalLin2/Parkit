@@ -29,6 +29,7 @@ import com.parkit.app.ui.RewardsScreen
 import com.parkit.app.ui.theme.ParkItTheme
 import com.parkit.app.ui.theme.ThemeManager
 import com.parkit.app.ui.SettingsScreen
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 
@@ -86,7 +87,7 @@ fun ParkItApp(sessionStore: SessionStore) {
     val startDestination = androidx.compose.runtime.remember {
         when {
             sessionStore.token.value != null && sessionStore.needsProfile -> "details"
-            sessionStore.token.value != null && !sessionStore.onboardingSeen -> "onboarding"
+            sessionStore.token.value != null && Features.FIRST_RUN_CAR_STEP && !sessionStore.onboardingSeen -> "onboarding"
             sessionStore.token.value != null -> "map"
             !sessionStore.introSeen -> "intro"
             else -> "login"
@@ -99,6 +100,8 @@ fun ParkItApp(sessionStore: SessionStore) {
     val goToLogin: () -> Unit = {
         sessionStore.clear()
         com.parkit.app.remind.ParkedNotification.cancel(navController.context)
+        com.parkit.app.remind.ParkingReminder.cancel(navController.context)
+        com.parkit.app.ui.ParkingPay.clearSession(navController.context)
         navController.navigate("login") { popUpTo(0) { inclusive = true } }
     }
 
@@ -107,6 +110,40 @@ fun ParkItApp(sessionStore: SessionStore) {
     // and a directional push/pop slide for map↔profile that uses
     // Start/End (not Left/Right) specifically so it mirrors correctly in
     // Hebrew/RTL instead of always sliding the same physical direction.
+    // Where sign-up goes next; each step can be switched off in Features.
+    val afterCarStep: () -> String = { if (Features.FIRST_RUN_TIPS && !sessionStore.tipsSeen) "tips" else "map" }
+    val afterDetails: () -> String = {
+        when {
+            !Features.FIRST_RUN_CAR_STEP -> afterCarStep()
+            sessionStore.onboardingSeen -> "map"
+            else -> "onboarding"
+        }
+    }
+
+    // The car step also brought a returning driver's car and city onto this
+    // phone. Without it the map still needs them, so fetch them after sign-in.
+    // onboardingSeen is cleared on logout, so the next sign-in fetches again.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (Features.FIRST_RUN_CAR_STEP) return@LaunchedEffect
+        androidx.compose.runtime.snapshotFlow { sessionStore.token.value != null }.collectLatest { signedIn ->
+            if (!signedIn || sessionStore.onboardingSeen) return@collectLatest
+            try {
+                val server = api.myProfile().preferences
+                sessionStore.syncDriver(server)
+                server.homeCity?.let { name ->
+                    api.cities().firstOrNull { it.name == name }?.let {
+                        sessionStore.saveDriver(com.parkit.app.auth.DriverPrefs(server, it.lat, it.lng))
+                    }
+                }
+                sessionStore.onboardingSeen = true
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Offline or a new account's first second: the next launch tries again.
+            }
+        }
+    }
+
     val motionSpec = tween<Float>(280)
     val offsetSpec = tween<androidx.compose.ui.unit.IntOffset>(280)
 
@@ -120,12 +157,15 @@ fun ParkItApp(sessionStore: SessionStore) {
     // goes straight to the SMS sign-in — even offline.
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     suspend fun renew() {
-        if (sessionStore.token.value == null) return
+        val sent = sessionStore.token.value ?: return
         try {
             val fresh = api.refreshToken()
-            sessionStore.save(fresh.accessToken, fresh.userId, sessionStore.displayName.value.orEmpty())
+            // Logged out (or into another account) while this was on its way: drop the answer.
+            if (sessionStore.token.value == sent) {
+                sessionStore.save(fresh.accessToken, fresh.userId, sessionStore.displayName.value.orEmpty())
+            }
         } catch (e: Exception) {
-            if (e is retrofit2.HttpException && e.code() == 401) goToLogin()
+            if (e is retrofit2.HttpException && e.code() == 401 && sessionStore.token.value == sent) goToLogin()
         }
     }
     val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
@@ -167,11 +207,7 @@ fun ParkItApp(sessionStore: SessionStore) {
                 sessionStore = sessionStore,
                 onLoggedIn = { needsProfile ->
                     sessionStore.needsProfile = needsProfile
-                    val next = when {
-                        needsProfile -> "details"
-                        sessionStore.onboardingSeen -> "map"
-                        else -> "onboarding"
-                    }
+                    val next = if (needsProfile) "details" else afterDetails()
                     navController.navigate(next) { popUpTo("login") { inclusive = true } }
                 },
             )
@@ -183,7 +219,7 @@ fun ParkItApp(sessionStore: SessionStore) {
                 firstTime = true,
                 onDone = {
                     sessionStore.needsProfile = false
-                    navController.navigate(if (sessionStore.onboardingSeen) "map" else "onboarding") { popUpTo("details") { inclusive = true } }
+                    navController.navigate(afterDetails()) { popUpTo("details") { inclusive = true } }
                 },
                 onSessionExpired = goToLogin,
             )
@@ -203,7 +239,7 @@ fun ParkItApp(sessionStore: SessionStore) {
                 api = api,
                 sessionStore = sessionStore,
                 onboarding = true,
-                onDone = { navController.navigate(if (sessionStore.tipsSeen) "map" else "tips") { popUpTo("onboarding") { inclusive = true } } },
+                onDone = { navController.navigate(afterCarStep()) { popUpTo("onboarding") { inclusive = true } } },
                 onSessionExpired = goToLogin,
             )
         }
@@ -284,7 +320,16 @@ fun ParkItApp(sessionStore: SessionStore) {
                 onBack = { navController.popBackStack() },
                 onLogout = goToLogin,
                 onDeleteAccount = {
-                    api.deleteAccount()
+                    try {
+                        api.deleteAccount()
+                    } catch (e: retrofit2.HttpException) {
+                        when (e.code()) {
+                            // Session over: nothing was deleted, so say why they must sign in.
+                            401 -> android.widget.Toast.makeText(appContext, R.string.error_session, android.widget.Toast.LENGTH_LONG).show()
+                            404 -> Unit // already gone
+                            else -> throw e
+                        }
+                    }
                     goToLogin()
                 },
                 onOpenDetails = { navController.navigate("details-edit") },

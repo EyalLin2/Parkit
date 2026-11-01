@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -71,17 +74,40 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
     var code by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     var devCode by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     var resendIn by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
-    var loading by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    // Not saved: a request doesn't survive the process, so a restored "true" would spin forever.
+    var loading by remember { mutableStateOf(false) }
     var error by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    val scrollState = androidx.compose.foundation.rememberScrollState()
 
-    fun explainText(e: Exception): String = when {
-        e is HttpException && e.code() == 422 -> context.getString(if (byEmail) R.string.details_email_invalid else R.string.login_phone_invalid)
-        e is HttpException && e.code() == 503 -> context.getString(R.string.login_send_failed)
-        e is HttpException && e.code() == 429 -> context.getString(R.string.login_too_many)
-        e is HttpException && e.code() == 400 && e.response()?.errorBody()?.string()?.contains("expired") == true ->
-            context.getString(R.string.login_code_expired)
-        e is HttpException && e.code() == 400 -> context.getString(R.string.login_code_wrong)
-        else -> context.getString(com.parkit.app.api.ParkItError.of(e).messageRes)
+    // The code step leads back to the address, not out of the app.
+    androidx.activity.compose.BackHandler(enabled = sentTo != null) {
+        sentTo = null
+        error = null
+    }
+
+    // The message sits low in the card: keep it in view above the keyboard.
+    LaunchedEffect(error) {
+        if (error != null) {
+            androidx.compose.runtime.withFrameNanos { }
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
+    fun explainText(e: Exception): String {
+        val http = e as? HttpException
+        val status = http?.code()
+        // The body can be read only once.
+        val body = if (status == 400 || status == 429) http?.response()?.errorBody()?.string().orEmpty() else ""
+        return when {
+            status == 422 -> context.getString(if (byEmail) R.string.details_email_invalid else R.string.login_phone_invalid)
+            status == 503 -> context.getString(R.string.login_send_failed)
+            status == 429 && "wrong codes" in body -> context.getString(R.string.login_too_many_wrong)
+            status == 429 && "Too many" in body -> context.getString(R.string.login_too_many_later)
+            status == 429 -> context.getString(R.string.login_too_many)
+            status == 400 && "expired" in body -> context.getString(R.string.login_code_expired)
+            status == 400 -> context.getString(R.string.login_code_wrong)
+            else -> context.getString(com.parkit.app.api.ParkItError.of(e).messageRes)
+        }
     }
 
     fun explain(e: Exception): String {
@@ -139,9 +165,14 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
         }
     }
 
+    // Centred while it fits; scrolls when the keyboard leaves too little room.
+    Box(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding().navigationBarsPadding().imePadding(),
+        contentAlignment = Alignment.Center,
+    ) {
     Column(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding().padding(horizontal = 28.dp),
-        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -325,6 +356,7 @@ fun LoginScreen(api: ApiService, sessionStore: SessionStore, onLoggedIn: (needsP
             TextButton(onClick = { LegalLinks.open(context, LegalLinks.TERMS) }) { Text(stringResource(R.string.legal_terms), style = MaterialTheme.typography.labelMedium) }
             TextButton(onClick = { LegalLinks.open(context, LegalLinks.PRIVACY) }) { Text(stringResource(R.string.legal_privacy), style = MaterialTheme.typography.labelMedium) }
         }
+    }
     }
 }
 

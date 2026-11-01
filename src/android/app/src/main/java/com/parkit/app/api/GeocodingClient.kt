@@ -22,11 +22,11 @@ data class ReverseGeocodeOut(
     val street: String? = null,
 ) {
     /** "Street Number, City" — for the pin and the report header. */
-    fun shortLabel(): String? = label
+    fun shortLabel(): String? = label?.takeIf { it.isNotBlank() } ?: street?.takeIf { it.isNotBlank() }
 
     /** Just "Street Number" — for list rows, where the city is the same
      * for every spot and would only push the useful part off-screen. */
-    fun streetLabel(): String? = street
+    fun streetLabel(): String? = street?.takeIf { it.isNotBlank() } ?: label?.takeIf { it.isNotBlank() }
 }
 
 interface GeocodingService {
@@ -63,6 +63,12 @@ object Geocoder {
 
     fun cached(lat: Double, lng: Double): ReverseGeocodeOut? = cache.get(key(lat, lng))
 
+    /** The language changed: addresses already looked up are in the old one. */
+    fun clear() {
+        cache.evictAll()
+        SpotAddressCache.clear()
+    }
+
     /** Null only after every retry failed — callers show a message, never coordinates. */
     suspend fun reverse(lat: Double, lng: Double, attempts: Int = 3): ReverseGeocodeOut? {
         cached(lat, lng)?.let { return it }
@@ -75,9 +81,10 @@ object Geocoder {
                 null
             }
             if (result != null) {
-                // An answer with no label is still an answer ("nothing
-                // mapped here") — cache it rather than retrying forever.
-                cache.put(key(lat, lng), result)
+                // An answer with no label is still an answer ("nothing mapped
+                // here"), so no retries now, but it isn't kept: the data may
+                // have changed by the next time someone asks.
+                if (result.shortLabel() != null) cache.put(key(lat, lng), result)
                 return result
             }
             if (attempt < attempts - 1) kotlinx.coroutines.delay(600L * (attempt + 1))
@@ -93,6 +100,8 @@ object SpotAddressCache {
     private val cache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     fun get(spotId: String): String? = cache[spotId]
+
+    fun clear() = cache.clear()
 
     suspend fun resolve(spotId: String, lat: Double, lng: Double): String? {
         cache[spotId]?.let { return it }

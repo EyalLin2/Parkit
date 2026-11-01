@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -69,6 +72,7 @@ import com.parkit.app.R
 import com.parkit.app.api.ApiService
 import com.parkit.app.api.SpotCreate
 import com.parkit.app.api.friendlyMessage
+import com.parkit.app.api.isOutsideServiceArea
 import com.parkit.app.api.isUnauthorized
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -94,6 +98,7 @@ fun ReportFlowSheet(
     lat: Double,
     lng: Double,
     addressLabel: String?,
+    addressLoading: Boolean,
     streetAddress: String?,
     defaultVehicleSize: String?,
     /** The phone's latest fix, read at the moment of sending. */
@@ -112,16 +117,17 @@ fun ReportFlowSheet(
     // Faces + licence plates the server blurred in this photo.
     var facesBlurred by remember { mutableStateOf<Int?>(null) }
     var uploading by remember { mutableStateOf(false) }
-    var selectedType by remember { mutableStateOf("street") }
-    var selectedVehicleSize by remember { mutableStateOf(defaultVehicleSize ?: "regular") }
+    // Saveable: the camera app can get ParkIt killed while the form is open.
+    var selectedType by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("street") }
+    var selectedVehicleSize by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(defaultVehicleSize ?: "regular") }
     // Optional, off by default: one tap if the curb is blue-white (paid).
     // Deliberately not a required question — the form stays short.
-    var blueWhite by remember { mutableStateOf<Boolean?>(null) } // no choice yet
+    var blueWhite by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Boolean?>(null) } // no choice yet
     // Optional heads-up for the next driver: a hazard, a low branch…
-    var note by remember { mutableStateOf("") }
+    var note by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     // AI hints from the photo: they fill only what the driver hasn't touched.
-    var typeTouched by remember { mutableStateOf(false) }
-    var blueWhiteTouched by remember { mutableStateOf(false) }
+    var typeTouched by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var blueWhiteTouched by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var autoFilled by remember { mutableStateOf(false) }
     var notASpot by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
@@ -169,13 +175,25 @@ fun ReportFlowSheet(
             if (bitmap != null) uploadPhoto(bitmap) else error = context.getString(R.string.report_photo_upload_failed, "")
         }
     }
+    // After "don't ask again" Android shows no prompt: only Settings can undo it.
+    var cameraDenied by remember { mutableStateOf(false) }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) cameraLauncher.launch(photoUri) else error = context.getString(R.string.permission_camera_needed)
+        if (granted) {
+            cameraLauncher.launch(photoUri)
+        } else {
+            error = context.getString(R.string.permission_camera_needed)
+            cameraDenied = true
+        }
     }
 
     fun startCamera() {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-        if (granted) cameraLauncher.launch(photoUri) else cameraPermission.launch(Manifest.permission.CAMERA)
+        if (granted) {
+            cameraDenied = false
+            cameraLauncher.launch(photoUri)
+        } else {
+            cameraPermission.launch(Manifest.permission.CAMERA)
+        }
     }
 
     fun submit() {
@@ -201,7 +219,11 @@ fun ReportFlowSheet(
                 )
                 onReported()
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                when {
+                    e.isUnauthorized() -> onSessionExpired()
+                    e.isOutsideServiceArea() -> error = context.getString(R.string.map_tel_aviv_only)
+                    else -> error = e.friendlyMessage(context)
+                }
             } finally {
                 submitting = false
             }
@@ -214,7 +236,7 @@ fun ReportFlowSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
+        Column(modifier = Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.report_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
                 // What you get for it, right where you decide — Waze shows the
@@ -230,7 +252,7 @@ fun ReportFlowSheet(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
                 Icon(Icons.Filled.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                 Text(
-                    addressLabel ?: stringResource(R.string.map_locating),
+                    addressLabel ?: stringResource(if (addressLoading) R.string.map_locating else R.string.map_address_unavailable),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -364,6 +386,11 @@ fun ReportFlowSheet(
 
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp)) }
+            if (cameraDenied) {
+                androidx.compose.material3.TextButton(onClick = { openAppSettings(context) }) {
+                    Text(stringResource(R.string.permission_open_settings))
+                }
+            }
 
             val hasPhoto = stagingId != null
             val curbKnown = selectedType != "street" || blueWhite != null
@@ -393,6 +420,16 @@ fun ReportFlowSheet(
     }
 }
 
+/** This app's page in the phone's Settings, where a refused permission can be allowed. */
+internal fun openAppSettings(context: android.content.Context) {
+    context.startActivity(
+        android.content.Intent(
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            android.net.Uri.fromParts("package", context.packageName, null),
+        ),
+    )
+}
+
 @Composable
 private fun FieldLabel(text: String) {
     Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
@@ -419,7 +456,13 @@ private fun PhotoArea(preview: Bitmap?, facesBlurred: Int?, uploading: Boolean, 
                         Icon(Icons.Filled.PhotoCamera, contentDescription = stringResource(R.string.report_take_photo_cd), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     Text(stringResource(R.string.report_take_photo), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 10.dp))
-                    Text(stringResource(R.string.report_photo_required), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.report_photo_required),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                 }
             }
         }

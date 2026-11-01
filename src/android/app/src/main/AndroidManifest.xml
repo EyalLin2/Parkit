@@ -18,13 +18,13 @@
 
     <!-- The parking reminder ("paid from 19:00") — asked for only when the driver sets one. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- "Parked? / Leaving?" from the car's own Bluetooth — asked only when the
-         driver turns it on in Settings. No scanning, no location. -->
-    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Features.CAR_BLUETOOTH is off, so its permissions (BLUETOOTH with
+         maxSdkVersion 30, BLUETOOTH_CONNECT) and the exported CarBluetoothReceiver
+         for ACL_CONNECTED / ACL_DISCONNECTED are left out. Add them back with the feature. -->
 
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -56,11 +56,5 @@
         </provider>
         <receiver android:name=".remind.ReminderReceiver" android:exported="false" />
         <receiver android:name=".remind.LeaveSpotReceiver" android:exported="false" />
-        <receiver android:name=".remind.CarBluetoothReceiver" android:exported="true">
-            <intent-filter>
-                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
-                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
-            </intent-filter>
-        </receiver>
     </application>
 </manifest>

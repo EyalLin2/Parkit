@@ -81,7 +81,10 @@ fun RewardsScreen(
         ?: car.carPaint?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
         ?: CarPaints[0]
 
-    LaunchedEffect(Unit) {
+    var reload by remember { mutableStateOf(0) }
+
+    LaunchedEffect(reload) {
+        error = null
         try {
             shop = api.rewards()
             // Only wear what this account owns.
@@ -98,14 +101,26 @@ fun RewardsScreen(
 
     var backdrop by remember { mutableStateOf(sessionStore.profileBackground) }
     // Opens on the characters: partner benefits are still "coming soon".
-    var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(initialTab) }
+    var tab by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(if (initialTab == 0 && !com.parkit.app.Features.PARTNERS) 1 else initialTab)
+    }
+
+    /** "In use" only once the server has really saved it. */
+    suspend fun putOnLegend(key: String) {
+        try {
+            api.setAvatar(com.parkit.app.api.AvatarUpdate(key))
+            avatar = key
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (e.isUnauthorized()) onSessionExpired() else android.widget.Toast.makeText(context, e.friendlyMessage(context, aboutSpot = false), android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
 
     fun wear(reward: RewardOut) {
         val key = reward.key ?: return
         when {
-            key.startsWith("avatar_legend_") -> scope.launch {
-                runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(key)) }.onSuccess { avatar = key }
-            }
+            key.startsWith("avatar_legend_") -> scope.launch { putOnLegend(key) }
             key.startsWith("bg_") -> {
                 backdrop = if (backdrop == key) null else key
                 sessionStore.profileBackground = backdrop
@@ -125,8 +140,7 @@ fun RewardsScreen(
                 if (reward.kind == "cosmetic") {
                     // Put it on right away — that's the fun part.
                     if (reward.key?.startsWith("avatar_legend_") == true) {
-                        runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(reward.key)) }
-                        avatar = reward.key
+                        reward.key?.let { putOnLegend(it) }
                     } else if (reward.key?.startsWith("bg_") == true) {
                         backdrop = reward.key
                         sessionStore.profileBackground = reward.key
@@ -138,7 +152,7 @@ fun RewardsScreen(
                     newCode = updated.redemptions.firstOrNull { it.rewardId == reward.id }?.code
                 }
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else android.widget.Toast.makeText(context, e.friendlyMessage(context, aboutSpot = false), android.widget.Toast.LENGTH_LONG).show()
+                if (e.isUnauthorized()) onSessionExpired() else android.widget.Toast.makeText(context, e.friendlyMessage(context, aboutSpot = false, conflictRes = R.string.rewards_conflict), android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -156,7 +170,14 @@ fun RewardsScreen(
         val s = shop
         if (s == null) {
             Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error) else CircularProgressIndicator()
+                if (error != null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(error!!, color = MaterialTheme.colorScheme.error)
+                        TextButton(onClick = { reload++ }) { Text(stringResource(R.string.map_offline_retry)) }
+                    }
+                } else {
+                    CircularProgressIndicator()
+                }
             }
             return@Column
         }
@@ -282,6 +303,8 @@ private fun ShopTabs(selected: Int, onSelect: (Int) -> Unit) {
             .clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.surfaceVariant).padding(3.dp),
     ) {
         titles.forEachIndexed { i, res ->
+            // The index is the tab's id, so hiding one doesn't renumber the rest.
+            if (i == 0 && !com.parkit.app.Features.PARTNERS) return@forEachIndexed
             val on = i == selected
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(50))

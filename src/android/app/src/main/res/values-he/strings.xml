@@ -99,8 +99,17 @@
         <item quantity="other">%1$d חניות פנויות בסביבה</item>
     </plurals>
     <string name="map_nearby_none">אין עדיין חניות פנויות בסביבה</string>
-    <string name="map_nearby_empty_hint">ראית חניה? דווח וצבור נקודות.</string>
+    <string name="map_nearby_empty_hint">אפשר בינתיים להשתמש ב״מותר לחנות?״ ולשמור כאן את הרכב.</string>
+    <string name="map_no_location_title">אנחנו לא יודעים איפה אתם</string>
+    <string name="map_no_location_hint">הפעילו מיקום כדי לראות חניות פנויות לידכם.</string>
+    <string name="map_tel_aviv_only">ParkIt פתוחה בינתיים רק בתל אביב</string>
+    <string name="map_tel_aviv_only_hint">״מותר לחנות?״ ושמירת הרכב עובדים גם כאן.</string>
     <string name="map_nearest">הקרובה ביותר: %1$s · %2$s</string>
+    <string name="map_nearest_here">הקרובה ביותר: ממש כאן · %1$s</string>
+    <string name="distance_right_here">ממש כאן</string>
+    <string name="permission_open_settings">פתיחת הגדרות</string>
+    <string name="parked_notification_signin">החיבור הסתיים. פתחו את ParkIt והתחברו מחדש.</string>
+    <string name="parked_notification_ended_stop_paying">החניה הסתיימה. אל תשכחו לעצור את תשלום החניה.</string>
     <string name="map_spot_yours">הדיווח שלך</string>
     <string name="distance_m">%1$d מ׳</string>
     <string name="distance_km">%1$.1f ק״מ</string>
@@ -151,7 +160,7 @@
     <string name="level_silver">כסף</string>
     <string name="level_gold">זהב</string>
     <string name="level_legend">אגדה</string>
-    <string name="perk_newbie">דיווח, ניווט וליגה שבועית</string>
+    <string name="perk_newbie">דיווח וניווט</string>
     <string name="perk_bronze">מסגרת ארד לפינים שלך + תג ארד ליד השם</string>
     <string name="perk_silver">מסגרת כסף לפינים שלך</string>
     <string name="perk_gold">מסגרת זהב לפינים שלך</string>
@@ -165,7 +174,7 @@
     <string name="league_subtitle">נקודות השבוע · מתאפס בכל שבוע</string>
     <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
     <string name="claim_trip_title">בדרך לחניה</string>
-    <string name="claim_drive_safely">שמורה לך ל-2 דקות. סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
+    <string name="claim_drive_safely">שמורה לך ל-5 דקות. סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
     <string name="claim_taken_thanks">תודה על העדכון</string>
     <string name="claim_expired">החניה חזרה למפה. בלי לחץ — יש עוד חניות בסביבה.</string>
     <!-- פרופיל נהג: רכב, תגים, אזור מועדף -->
@@ -178,7 +187,12 @@
     <string name="driver_plate_change">רכב אחר? הקלידו את המספר שלו</string>
     <string name="driver_plate_lookup">חיפוש</string>
     <string name="driver_plate_privacy">אנחנו מזהים את הדגם ממאגר הרכב הממשלתי. מספר הרישוי עצמו לא נשמר.</string>
-    <string name="driver_plate_invalid">למספר רישוי ישראלי יש 7 או 8 ספרות</string>
+    <string name="driver_plate_invalid">למספר רישוי ישראלי יש 5 עד 8 ספרות</string>
+    <string name="driver_cities_failed">לא הצלחנו לטעון את רשימת הערים. סגרו ופתחו שוב כדי לנסות שוב.</string>
+    <string name="login_too_many_wrong">יותר מדי ניסיונות שגויים — שלחו קוד חדש</string>
+    <string name="login_too_many_later">יותר מדי בקשות — נסו שוב מאוחר יותר</string>
+    <string name="details_email_taken">האימייל הזה כבר משויך לחשבון אחר</string>
+    <string name="rewards_conflict">אין מספיק נקודות, או שזה כבר שלך.</string>
     <string name="driver_plate_not_found">לא נמצא רכב עם המספר הזה במאגר. בחרו גודל למטה.</string>
     <string name="driver_plate_lookup_failed">מאגר הרכב לא זמין כרגע. בחרו גודל למטה.</string>
     <string name="driver_car_from_registry">לפי מאגר הרכב הממשלתי</string>
@@ -328,7 +342,7 @@
     <string name="intro_climb_body">צבעים לרכב, דמויות ועוד.</string>
     <string name="intro_next">הבא</string>
     <string name="intro_start">יאללה</string>
-    <string name="intro_welcome_body">חניות פנויות בכל הארץ.</string>
+    <string name="intro_welcome_body">לפני שאתה מסתובב 20 דקות, תראה מי יצא עכשיו מחניה לידך.</string>
     <string name="intro_choose_language">בחרו שפה</string>
     <string name="intro_how_it_works">איך זה עובד</string>
     <string name="intro_go_title">רואים ונוסעים</string>
