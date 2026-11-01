@@ -101,14 +101,14 @@ enum ParkingReminder {
         content.body = text
         content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: ring.timeIntervalSinceNow, repeats: false)
-        center.removeAllPendingNotificationRequests()
+        center.removePendingNotificationRequests(withIdentifiers: ["parking-reminder"])
         try? await center.add(UNNotificationRequest(identifier: "parking-reminder", content: content, trigger: trigger))
         d.set(changeAt, forKey: "reminder_change_at")
         return ring
     }
 
     static func cancel() {
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["parking-reminder"])
         d.removeObject(forKey: "reminder_change_at")
     }
 

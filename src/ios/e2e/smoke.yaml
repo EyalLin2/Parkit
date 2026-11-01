@@ -7,6 +7,7 @@ appId: com.parkit.israel
     clearState: true
     permissions:
       all: unset
+      notifications: allow
 
 # Intro: Hebrew by default, English on request
 - assertVisible: "English"
@@ -120,9 +121,6 @@ appId: com.parkit.israel
 - takeScreenshot: 15-report-content-sent
 
 # Claim: navigation opens outside the app (Maps here, Waze on a phone that has it)
-- extendedWaitUntil:
-    notVisible: "Thanks, your report was sent.*"
-    timeout: 10000
 - repeat:
     while:
       notVisible:

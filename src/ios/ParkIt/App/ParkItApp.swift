@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct ParkItApp: App {
+    @UIApplicationDelegateAdaptor(ParkItAppDelegate.self) private var appDelegate
     @StateObject private var session = Session.shared
     @Environment(\.scenePhase) private var phase
 

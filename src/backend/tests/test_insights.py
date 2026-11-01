@@ -11,13 +11,19 @@ from routers import insights
 HERE = {"lat": 32.0809, "lng": 34.7806}
 
 
-async def _history(user_id, per_day, days, hour_offset_h=0, where=HERE):
-    """per_day reports on each of `days` past days, at this time of day."""
+async def _history(user_id, per_day, days, hour_offset_h=0, where=HERE, israel_hour=None):
+    """per_day reports on each of `days` past days, at this time of day, or in the
+    first minutes of `israel_hour` if given."""
     now = datetime.now(timezone.utc)
     async with engine.begin() as conn:
         for d in range(1, days + 1):
             for i in range(per_day):
-                at = now - timedelta(days=d, hours=hour_offset_h) + timedelta(minutes=i)
+                if israel_hour is None:
+                    at = now - timedelta(days=d, hours=hour_offset_h) + timedelta(minutes=i)
+                else:
+                    # Wall-clock arithmetic in Israel time: the same hour even across a clock change.
+                    day = now.astimezone(insights.ISRAEL) - timedelta(days=d)
+                    at = day.replace(hour=israel_hour, minute=i, second=0, microsecond=0).astimezone(timezone.utc)
                 await conn.execute(
                     text(
                         "INSERT INTO spots (id, reporter_id, lat, lng, location, spot_type, payment, status, "
@@ -49,11 +55,15 @@ async def test_area_forecast(client, make_user):
     assert body["every_minutes"] == round(5 * 3 * 60 / 30)  # = 30
 
 
-async def test_best_hour(client, make_user):
+async def test_best_hour(client, make_user, monkeypatch):
     user_id, _ = await make_user("reporter")
-    await _history(user_id, per_day=7, days=5)
+    # Every report inside one Israel hour, and that hour stays "now" for the whole test,
+    # so a run near the end of an hour can't split them or pass into the next one.
+    hour = insights._hour_now()
+    monkeypatch.setattr(insights, "_hour_now", lambda: hour)
+    await _history(user_id, per_day=7, days=5, israel_hour=hour)
     body = (await client.get("/insights/best-hour", params=HERE)).json()
-    assert body["hour"] == insights._hour_now() and body["reports"] >= 30
+    assert body["hour"] == hour and body["reports"] >= 30
 
 
 async def test_area_forecast_widens_to_the_neighbourhood(client, make_user):

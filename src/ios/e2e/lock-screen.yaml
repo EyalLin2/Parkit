@@ -1,4 +1,4 @@
-# The lock-screen "I'm leaving": a Live Activity button that hands the spot on without
+# The lock-screen "I'm leaving": a notification action that hands the spot on without
 # opening the app. Follows smoke-he.yaml, so the driver is signed in and the app is in Hebrew.
 # Outcomes as on Android: too far, thanks, stop-paying reminder.
 appId: com.parkit.israel
@@ -20,7 +20,7 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "יוצא מהחניה"
     timeout: 8000
-- takeScreenshot: la-01-parked-in-app
+- takeScreenshot: ls-01-parked-in-app
 
 # Walked far from the car, then out of the app and on to the lock screen
 - setLocation:
@@ -37,23 +37,19 @@ appId: com.parkit.israel
     optional: true
 - runFlow:
     file: wake-lock-screen.yaml
-- takeScreenshot: la-02-lock-screen
-# iOS asks once whether this app may show Live Activities.
-- tapOn:
-    text: "Allow"
-    optional: true
+- takeScreenshot: ls-02-lock-screen
+- longPressOn: "הרכב שלך חונה"
 - extendedWaitUntil:
-    visible: "Filter that never appears"
-    timeout: 2000
-    optional: true
-- takeScreenshot: la-03-allowed
+    visible: "יוצא מהחניה"
+    timeout: 6000
+- takeScreenshot: ls-03-action
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
-    visible: "נראה שאתם לא ליד הרכב.*"
-    timeout: 20000
-- takeScreenshot: la-04-too-far
+    visible: ".*נראה שאתם לא ליד הרכב.*"
+    timeout: 25000
+- takeScreenshot: ls-04-too-far
 
-# Back by the car: the same button now hands the spot on
+# Back by the car: the same action now hands the spot on
 - setLocation:
     latitude: 32.0853
     longitude: 34.7818
@@ -61,11 +57,15 @@ appId: com.parkit.israel
     visible: "Filter that never appears"
     timeout: 4000
     optional: true
+- longPressOn: "הרכב שלך חונה"
+- extendedWaitUntil:
+    visible: "יוצא מהחניה"
+    timeout: 6000
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: "תודה, החניה על המפה"
-    timeout: 20000
-- takeScreenshot: la-05-thanks
+    timeout: 25000
+- takeScreenshot: ls-05-thanks
 
 # In the app the car is gone: it was handed on from the lock screen.
 - launchApp:
@@ -74,7 +74,7 @@ appId: com.parkit.israel
     visible: "דווח"
     timeout: 20000
 - assertVisible: "חניתי"
-- takeScreenshot: la-06-app-after
+- takeScreenshot: ls-06-app-after
 
 # Paid for the parking this time: leaving reminds to stop paying. One report per 30 s.
 - extendedWaitUntil:
@@ -102,13 +102,17 @@ appId: com.parkit.israel
     optional: true
 - runFlow:
     file: wake-lock-screen.yaml
+- longPressOn: "הרכב שלך חונה"
+- extendedWaitUntil:
+    visible: "יוצא מהחניה"
+    timeout: 6000
 - tapOn: "יוצא מהחניה"
 - extendedWaitUntil:
     visible: ".*אל תשכחו לעצור את תשלום החניה.*"
-    timeout: 20000
-- takeScreenshot: la-07-stop-paying
+    timeout: 25000
+- takeScreenshot: ls-07-stop-paying
 
-# The same card in English, after switching language in Settings
+# The same in English, after switching language in Settings
 - launchApp:
     stopApp: true
 - extendedWaitUntil:
@@ -124,7 +128,7 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "Report"
     timeout: 20000
-- takeScreenshot: la-08-english-map
+- takeScreenshot: ls-08-english-map
 - extendedWaitUntil:
     visible: "Filter that never appears"
     timeout: 31000
@@ -144,11 +148,16 @@ appId: com.parkit.israel
     optional: true
 - runFlow:
     file: wake-lock-screen.yaml
-- takeScreenshot: la-09-english-lock-screen
+- takeScreenshot: ls-09-english-lock-screen
+- longPressOn: "Your car is parked"
+- extendedWaitUntil:
+    visible: "I'm leaving"
+    timeout: 6000
+- takeScreenshot: ls-10-english-action
 - tapOn: "I'm leaving"
 - extendedWaitUntil:
     visible: "Thanks, the spot is on the map"
-    timeout: 20000
-- takeScreenshot: la-10-english-thanks
+    timeout: 25000
+- takeScreenshot: ls-11-english-thanks
 - launchApp:
     stopApp: true

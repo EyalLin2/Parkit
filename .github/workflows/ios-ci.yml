@@ -128,16 +128,13 @@ jobs:
       - name: Run the flows
         run: |
           root="$PWD"
-          mkdir -p e2e-output/en e2e-output/he e2e-output/live
+          mkdir -p e2e-output/en e2e-output/he e2e-output/lock
           status=0
           bash src/ios/e2e/seed_spots.sh en
           (cd e2e-output/en && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/smoke.yaml") || status=1
           bash src/ios/e2e/seed_spots.sh he
           (cd e2e-output/he && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/smoke-he.yaml") || status=1
-          (cd e2e-output/live && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/live-activity.yaml") || status=1
-          # What the lock-screen button did, whichever process ran it.
-          xcrun simctl spawn "$UDID" log show --last 12m --style compact --info \
-            --predicate 'subsystem == "com.parkit.israel" OR eventMessage CONTAINS[c] "LeaveSpotIntent"' | tail -n 60 || true
+          (cd e2e-output/lock && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/lock-screen.yaml") || status=1
           exit $status
       - name: Backend log
         if: always()
@@ -146,7 +143,7 @@ jobs:
       - name: Collect the screenshots
         if: always()
         run: |
-          for lang in en he live; do
+          for lang in en he lock; do
             mkdir -p "screenshots/$lang"
             find "e2e-output/$lang" -type f -name '*.png' -exec cp {} "screenshots/$lang/" \;
           done

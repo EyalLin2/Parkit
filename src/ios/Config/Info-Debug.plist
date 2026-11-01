@@ -15,8 +15,6 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>heebo_regular.ttf</string>

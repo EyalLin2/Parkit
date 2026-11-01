@@ -104,7 +104,7 @@ final class MapModel: NSObject, ObservableObject {
     @Published var parkedCar: ParkedCar? {
         didSet {
             session.parkedCar = parkedCar
-            ParkedActivity.sync(parkedCar)
+            ParkedNotification.sync(parkedCar)
             pushCar()
         }
     }
@@ -219,7 +219,7 @@ final class MapModel: NSObject, ObservableObject {
         started = true
         Task { await refreshMyProfile() }
         targetChanged(debounced: false)
-        ParkedActivity.sync(parkedCar)
+        ParkedNotification.sync(parkedCar)
         NotificationCenter.default.addObserver(forName: .parkedCarChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.syncCarFromSession() }
         }
@@ -254,7 +254,11 @@ final class MapModel: NSObject, ObservableObject {
         }
     }
 
-    func wentToBackground() { manager.stopUpdatingLocation() }
+    func wentToBackground() {
+        manager.stopUpdatingLocation()
+        // Fresh on the lock screen right when the phone is put away.
+        if let car = parkedCar { ParkedNotification.show(car, delay: 1) }
+    }
 
     func refreshMyProfile() async {
         guard let p = try? await api.myProfile() else { return }

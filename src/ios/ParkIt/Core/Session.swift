@@ -169,7 +169,7 @@ final class Session: ObservableObject {
 
     func signOut() {
         Keychain.write(nil)
-        ParkedActivity.sync(nil)
+        ParkedNotification.cancel()
         for key in d.dictionaryRepresentation().keys where key.hasPrefix("s.") { d.removeObject(forKey: key) }
         token = nil
         userId = nil
