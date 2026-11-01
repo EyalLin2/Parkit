@@ -819,7 +819,10 @@ fun MapScreen(
 
     /** "I'm leaving": the driver's own spot becomes a report in one tap — no
      * photo, they're standing right at it (the distance check still runs). */
+    var handingOn by remember { mutableStateOf(false) }
     fun leaveSpot(car: com.parkit.app.auth.ParkedCar) {
+        if (handingOn) return // the answer can take a few seconds; a second tap adds nothing
+        handingOn = true
         scope.launch {
             val fix = currentFix()
             try {
@@ -845,6 +848,8 @@ fun MapScreen(
                 snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
             } catch (e: Exception) {
                 if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
+            } finally {
+                handingOn = false
             }
         }
     }

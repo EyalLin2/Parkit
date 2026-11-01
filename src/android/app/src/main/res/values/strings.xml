@@ -484,7 +484,7 @@
     <string name="rewards_owned">Yours</string>
     <string name="rewards_in_use">In use</string>
     <string name="profile_change_backdrop">Change background</string>
-    <string name="car_line_hint">Details and payment</string>
+    <string name="car_line_hint">Details</string>
     <string name="car_pay_short">Pay for parking</string>
     <string name="car_handoff_title">Hand the spot to the next driver?</string>
     <string name="car_handoff_body">It shows on the map for drivers looking nearby, and you get +15 points.</string>

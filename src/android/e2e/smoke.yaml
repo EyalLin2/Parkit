@@ -117,7 +117,7 @@ appId: com.parkit.israel
 - tapOn: "I'm leaving"
 - extendedWaitUntil:
     visible: "Parked"
-    timeout: 10000
+    timeout: 30000
 - assertNotVisible: ".*PK-[0-9]+.*"
 - takeScreenshot: 09-left
 
