@@ -179,6 +179,12 @@ final class MapModel: NSObject, ObservableObject {
         }
     }
 
+    /// The pin is further from the phone than the server shows spots.
+    var tooFar: Bool {
+        guard let me = deviceLocation else { return false }
+        return me.distance(to: geocodeTarget) > Double(MapConst.radiusM)
+    }
+
     func coord(_ s: SpotOut) -> Coord { Coord(latitude: s.lat, longitude: s.lng) }
     func distanceLabel(_ s: SpotOut) -> String { formatDistance(coord(s).distance(to: reference)) }
 
@@ -298,9 +304,16 @@ final class MapModel: NSObject, ObservableObject {
     }
 
     private func loadSpots(_ target: Coord) async {
+        // No fix, no spots: the server only answers for a real position.
+        guard let me = deviceLocation else {
+            spots = []
+            spotsLoaded = !locating
+            spotsFailed = false
+            return
+        }
         while !Task.isCancelled {
             do {
-                let result = try await api.nearbySpots(lat: target.latitude, lng: target.longitude, radiusM: MapConst.radiusM)
+                let result = try await api.nearbySpots(lat: target.latitude, lng: target.longitude, radiusM: MapConst.radiusM, me: me)
                 guard !Task.isCancelled else { return }
                 spots = result
                 spotsLoaded = true
@@ -320,9 +333,10 @@ final class MapModel: NSObject, ObservableObject {
     }
 
     func refreshSpotsNow() {
+        guard let me = deviceLocation else { return }
         let target = geocodeTarget
         Task {
-            if let s = try? await api.nearbySpots(lat: target.latitude, lng: target.longitude, radiusM: MapConst.radiusM) { spots = s }
+            if let s = try? await api.nearbySpots(lat: target.latitude, lng: target.longitude, radiusM: MapConst.radiusM, me: me) { spots = s }
         }
     }
 
@@ -458,7 +472,11 @@ final class MapModel: NSObject, ObservableObject {
             locateTimeout?.cancel()
             firstFix = here
             firstFixAt = Date()
-            if flyFromButton || !userTookOver { goTo(here) }
+            if flyFromButton || !userTookOver {
+                goTo(here)
+            } else if firstKnown {
+                targetChanged(debounced: false) // the first fix is what lets spots load at all
+            }
             loadDailyTip(here)
         } else if let first = firstFix, let at = firstFixAt, Date().timeIntervalSince(at) < 20, !userTookOver, here.distance(to: first) > 60 {
             // GPS precision arriving after the first quick fix: move only if meaningfully off.
@@ -671,9 +689,8 @@ final class MapModel: NSObject, ObservableObject {
 
     private func pushSpots() {
         guard let style, let source = style.source(withIdentifier: ParkMapView.sourceSpots) as? MLNShapeSource else { return }
-        let me = session.userId
         let features: [MLNPointFeature] = visibleSpots.map { spot in
-            let color = pinColor(spot, me: me)
+            let color = pinColor(spot)
             let tag = relativeShort(spot.reportedAt)
             let disabled = spot.spotType == "disabled"
             let hot = spot.hotMinutes != nil && spot.status == "active"
@@ -745,9 +762,9 @@ extension MapModel: CLLocationManagerDelegate {
 }
 
 // Google-Maps-adjacent status colours: green = go, brand blue = yours, amber = someone's on the way.
-func pinColor(_ spot: SpotOut, me: String?) -> String {
+func pinColor(_ spot: SpotOut) -> String {
     if spot.status == "claimed" { return "#E8710A" }
-    if spot.reporterId == me { return "#1B4F91" }
+    if spot.mine { return "#1B4F91" }
     if spot.reporterLevel == "legend" { return "#7B3FE4" }
     // A free spot starts deep green and pales as it waits, in five steps the eye can tell apart.
     switch ageMinutes(spot.reportedAt) {

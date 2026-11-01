@@ -46,7 +46,9 @@ struct SpotCreate: Codable {
 
 struct SpotOut: Codable, Identifiable, Equatable {
     let id: String
-    let reporterId: String
+    /// Whether this driver reported it. Never who did: the server sends no user IDs on spots.
+    var isMine: Bool?
+    var leftByDriver: Bool?
     let lat: Double
     let lng: Double
     let spotType: String
@@ -57,12 +59,13 @@ struct SpotOut: Codable, Identifiable, Equatable {
     var note: String?
     let status: String
     let reportedAt: String
-    var claimedBy: String?
     var reporterLevel: String?
     var hotMinutes: Int?
 
     /// The server stores a spot's street in Hebrew; the English UI looks it up again.
     var localAddress: String? { L10n.isHebrew ? address : nil }
+    var mine: Bool { isMine == true }
+    var left: Bool { leftByDriver == true }
 }
 
 struct FeedbackCreate: Codable { let type: String }

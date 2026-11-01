@@ -15,7 +15,7 @@ struct SpotSheet: View {
     @State private var photoFull = false
     @State private var askReport = false
 
-    private var isMine: Bool { spot.reporterId == Session.shared.userId }
+    private var isMine: Bool { spot.mine }
     private var isClaimed: Bool { spot.status == "claimed" }
     private var canClaim: Bool { spot.status == "active" && !isMine }
     private var photoURL: URL? { spot.photoUrl.flatMap(ApiConfig.url(path:)) }
@@ -114,7 +114,7 @@ struct SpotSheet: View {
     private var status: some View {
         let short = relativeShort(spot.reportedAt)
         let age = short == L("time_now_short") ? L("time_now_long") : L("spot_age_short", short)
-        let text = isClaimed ? L("spot_someone_on_the_way") : isMine ? L("map_spot_yours") : L("spot_status_free")
+        let text = isClaimed ? L("spot_someone_on_the_way") : isMine ? L("map_spot_yours") : L(spot.left ? "spot_source_left" : "spot_source_seen")
         let minutes = ageMinutes(spot.reportedAt)
         let color: Color = isClaimed ? .pkOrange : isMine ? .pkBlue : minutes < 10 ? .pkGreen : minutes < 30 ? .pkOrange : Color(hex: 0x80868B)
         return HStack(spacing: 10) {

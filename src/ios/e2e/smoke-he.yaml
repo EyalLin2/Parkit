@@ -89,8 +89,9 @@ appId: com.parkit.israel
     timeout: 8000
 - takeScreenshot: he-12-report-sheet
 - swipe:
-    start: "50%,6%"
-    end: "50%,90%"
+    start: "50%,12%"
+    end: "50%,95%"
+    duration: 600
 
 - extendedWaitUntil:
     visible: "מותר לחנות?"

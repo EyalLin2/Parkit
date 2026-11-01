@@ -179,7 +179,7 @@ appId: com.parkit.israel
     visible: "It's free, no need"
     timeout: 8000
 - tapOn: "It's free, no need"
-- tapOn: "Parked ✓"
+- tapOn: "My car"
 - extendedWaitUntil:
     visible: "End parking"
     timeout: 8000

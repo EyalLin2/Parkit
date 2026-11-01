@@ -102,7 +102,6 @@ struct MapScreen: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     FilterChip(label: L("map_filter_all"), icon: "parkingsign", selected: model.typeFilter == nil) { model.typeFilter = nil }
-                    FilterChip(label: L("map_filter_regular"), icon: "car.fill", selected: model.typeFilter == "street") { model.typeFilter = "street" }
                     // Only drivers with a disabled permit need this filter.
                     if model.prefs.hasDisabledPermit || model.typeFilter == "disabled" {
                         FilterChip(label: L("map_filter_disabled"), icon: "figure.roll", selected: model.typeFilter == "disabled") { model.typeFilter = "disabled" }
@@ -357,7 +356,7 @@ private struct NearbySheet<G: Gesture>: View {
 
     private func header(_ spots: [SpotOut]) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(!model.spotsLoaded ? L("map_nearby_searching") : spots.isEmpty ? L("map_nearby_none") : LP("map_nearby_count", spots.count))
+            Text(!model.spotsLoaded ? L("map_nearby_searching") : spots.isEmpty ? L(model.tooFar ? "map_get_closer_title" : "map_nearby_none") : LP("map_nearby_count", spots.count))
                 .font(PKFont.titleLarge).foregroundStyle(Color.pkText)
             if model.forecast != nil || model.forecastNoData { forecastLine }
             if let tip = model.dailyTip {
@@ -398,7 +397,7 @@ private struct NearbySheet<G: Gesture>: View {
         if !model.spotsLoaded { return L("map_nearby_searching_hint") }
         let usable = spots.filter { !DriverFit(spot: $0, prefs: model.prefs).unusable }
         guard let nearest = (usable.isEmpty ? spots : usable).min(by: { model.coord($0).distance(to: model.reference) < model.coord($1).distance(to: model.reference) }) else {
-            return L("map_nearby_empty_hint")
+            return L(model.tooFar ? "map_get_closer_hint" : "map_nearby_empty_hint")
         }
         return L("map_nearest", model.distanceLabel(nearest), relativeLong(nearest.reportedAt))
     }
@@ -429,7 +428,7 @@ private struct SpotRow: View {
 
     var body: some View {
         let fit = DriverFit(spot: spot, prefs: model.prefs)
-        let color = Color(hexString: pinColor(spot, me: Session.shared.userId)) ?? .pkGreen
+        let color = Color(hexString: pinColor(spot)) ?? .pkGreen
         let disabled = spot.spotType == "disabled"
         Button(action: onTap) {
             HStack(spacing: 14) {
@@ -453,13 +452,14 @@ private struct SpotRow: View {
     }
 
     private func details(disabled: Bool) -> String {
-        var parts = [L(disabled ? "map_spot_kind_disabled" : "map_spot_kind_regular")]
+        var parts = spot.left ? [L("spot_source_left")] : []
+        parts.append(L(disabled ? "map_spot_kind_disabled" : "map_spot_kind_regular"))
         if spot.payment == "paid" { parts.append(L("spot_blue_white_short")) }
         parts.append(relativeLong(spot.reportedAt))
         if spot.hotMinutes != nil { parts.append(L("hot_short")) }
         if spot.status == "claimed" {
             parts.append(L("report_status_claimed"))
-        } else if spot.reporterId == Session.shared.userId {
+        } else if spot.mine {
             parts.append(L("map_spot_yours"))
         }
         return parts.joined(separator: " · ")

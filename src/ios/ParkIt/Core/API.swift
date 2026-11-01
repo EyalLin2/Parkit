@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import UIKit
 
@@ -193,8 +194,9 @@ final class API {
 
     // MARK: Spots
 
-    func nearbySpots(lat: Double, lng: Double, radiusM: Int) async throws -> [SpotOut] {
-        try await get("spots", [("lat", "\(lat)"), ("lng", "\(lng)"), ("radius_m", "\(radiusM)")])
+    /// `me` is the phone's real position: free spots are only for drivers close by.
+    func nearbySpots(lat: Double, lng: Double, radiusM: Int, me: CLLocationCoordinate2D) async throws -> [SpotOut] {
+        try await get("spots", [("lat", "\(lat)"), ("lng", "\(lng)"), ("radius_m", "\(radiusM)"), ("me_lat", "\(me.latitude)"), ("me_lng", "\(me.longitude)")])
     }
     func reportSpot(_ s: SpotCreate) async throws -> SpotOut { try await post("spots", s) }
     func claimSpot(_ id: String) async throws -> SpotOut { try decoder.decode(SpotOut.self, from: try await send("POST", "spots/\(id)/claim")) }
