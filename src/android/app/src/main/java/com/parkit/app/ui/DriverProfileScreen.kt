@@ -91,6 +91,7 @@ fun DriverProfileScreen(
     var loading by remember { mutableStateOf(true) }
     var vehicleSize by remember { mutableStateOf(cached.preferences.vehicleSize) }
     var carLabel by remember { mutableStateOf(cached.preferences.carLabel) }
+    var carPaint by remember { mutableStateOf(cached.preferences.carPaint) }
     var disabledPermit by remember { mutableStateOf(cached.preferences.hasDisabledPermit) }
     var city by remember { mutableStateOf(cached.preferences.homeCity) }
     var cityCentre by remember { mutableStateOf(cached.homeLat?.let { lat -> cached.homeLng?.let { lng -> lat to lng } }) }
@@ -121,6 +122,7 @@ fun DriverProfileScreen(
             }
             vehicleSize = server.vehicleSize
             carLabel = server.carLabel
+            carPaint = server.carPaint
             disabledPermit = server.hasDisabledPermit
             if (server.homeCity != city) cityCentre = null
             city = server.homeCity
@@ -145,6 +147,8 @@ fun DriverProfileScreen(
             try {
                 val car = api.lookupVehicle(digits)
                 carLabel = car.label
+                carPaint = car.paint
+                sessionStore.carPaint = -1 // a new car shows its own colour again
                 vehicleSize = car.size
                 plate = ""
                 focusManager.clearFocus()
@@ -169,6 +173,7 @@ fun DriverProfileScreen(
                     Preferences(
                         vehicleSize = vehicleSize,
                         carLabel = carLabel,
+                        carPaint = carPaint,
                         hasDisabledPermit = disabledPermit,
                         homeCity = city,
                     ),

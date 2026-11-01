@@ -1,6 +1,8 @@
+import asyncio
 import logging
 import uuid
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
@@ -163,6 +165,18 @@ def _email_or_422(raw: str) -> str:
     return email
 
 
+async def _account_for_proved_email(db: AsyncSession, email: str) -> User | None:
+    """The account this person just proved they own. An address someone only
+    typed into their profile opens nothing: the real owner takes it back and
+    gets their own account, so nobody can wait inside an account for its owner."""
+    user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    if user is not None and not user.email_verified:
+        user.email = None
+        await db.flush()
+        return None
+    return user
+
+
 @router.post("/email/request", response_model=EmailOtpRequested)
 async def request_email_code(
     payload: EmailOtpRequest,
@@ -206,9 +220,15 @@ async def verify_email_code(
         raise HTTPException(e.status, e.detail) from None
     # Same person whether they first came in by phone or by email: an
     # address already on an account signs into that account.
-    user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    user = await _account_for_proved_email(db, email)
     if user is None:
-        user = User(auth_provider="email", external_id=f"email:{email}", email=email, display_name="")
+        user = User(
+            auth_provider="email",
+            external_id=f"email:{uuid.uuid4()}",
+            email=email,
+            email_verified=True,
+            display_name="",
+        )
         db.add(user)
         await db.commit()
         await db.refresh(user)
@@ -224,4 +244,65 @@ async def refresh(user_id: uuid.UUID = Depends(get_current_user_id), db: AsyncSe
     if user is None:
         raise HTTPException(401, "Invalid or expired token")
     needs_profile = user.auth_provider in ("phone", "email") and not (user.first_name and user.last_name and user.email)
+    return TokenOut(access_token=create_access_token(user.id), user_id=user.id, needs_profile=needs_profile)
+
+
+# --- Sign in with Google -------------------------------------------------------
+
+_GOOGLE_KEYS = jwt.PyJWKClient("https://www.googleapis.com/oauth2/v3/certs", cache_keys=True)
+
+
+class GoogleLogin(BaseModel):
+    id_token: str = Field(min_length=20, max_length=4096)
+
+
+def _verify_google(token: str) -> dict:
+    """Google's ID token, checked against Google's own signing keys: issuer,
+    audience (our client ID), expiry, and a verified email."""
+    key = _GOOGLE_KEYS.get_signing_key_from_jwt(token).key
+    claims = jwt.decode(
+        token,
+        key,
+        algorithms=["RS256"],
+        audience=settings.google_client_id,
+        issuer=["https://accounts.google.com", "accounts.google.com"],
+    )
+    if not claims.get("email") or not claims.get("email_verified"):
+        raise jwt.InvalidTokenError("no verified email")
+    return claims
+
+
+@router.post("/google", response_model=TokenOut)
+async def google_login(payload: GoogleLogin, db: AsyncSession = Depends(get_db)) -> TokenOut:
+    """One tap with the Google account on the phone. The same address as an
+    email-code sign-in lands in the same account."""
+    if not settings.google_client_id:
+        raise HTTPException(503, "Google sign-in isn't switched on")
+    try:
+        claims = await asyncio.to_thread(_verify_google, payload.id_token)
+    except (jwt.PyJWTError, jwt.PyJWKClientError):
+        raise HTTPException(401, "Google sign-in failed — try again") from None
+    email = otp.normalise_email(claims["email"])
+    if email is None:
+        raise HTTPException(401, "Google sign-in failed — try again")
+    external_id = f"google:{claims['sub']}"
+    user = (await db.execute(select(User).where(User.external_id == external_id))).scalar_one_or_none()
+    if user is None:
+        user = await _account_for_proved_email(db, email)
+    if user is None:
+        first = (claims.get("given_name") or "").strip()[:60]
+        last = (claims.get("family_name") or "").strip()[:60]
+        user = User(
+            auth_provider="google",
+            external_id=external_id,
+            email=email,
+            email_verified=True,
+            first_name=first or None,
+            last_name=last or None,
+            display_name=f"{first} {last[0]}." if first and last else first,
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    needs_profile = not (user.first_name and user.last_name)
     return TokenOut(access_token=create_access_token(user.id), user_id=user.id, needs_profile=needs_profile)

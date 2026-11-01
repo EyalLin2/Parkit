@@ -36,6 +36,10 @@ object ApiClient {
         val client = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
+            // Sending mail, blurring a photo and reading a sign can take a while on
+            // the server; the 10s default showed a failure for what then succeeded.
+            .readTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
         val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()

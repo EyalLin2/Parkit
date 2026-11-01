@@ -64,3 +64,17 @@ async def test_content_reports_are_rate_limited(client, make_user):
         for _ in range(11)
     ]
     assert codes[:10] == [204] * 10 and codes[10] == 429
+
+
+async def test_reported_note_is_removed_at_once(client, make_user):
+    _, reporter = await make_user("reporter")
+    _, viewer = await make_user("viewer")
+    report = await client.post(
+        "/spots", json={**TLV, "spot_type": "street", "payment": "free", "note": "rude words"}, headers=reporter
+    )
+    spot_id = report.json()["id"]
+
+    resp = await client.post(f"/spots/{spot_id}/report-content", json={"reason": "note"}, headers=viewer)
+    assert resp.status_code == 204
+    nearby = (await client.get("/spots", params={**TLV, "radius_m": 500})).json()
+    assert next(s for s in nearby if s["id"] == spot_id)["note"] is None

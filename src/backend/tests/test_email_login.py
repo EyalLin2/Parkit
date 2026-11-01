@@ -43,8 +43,9 @@ async def test_bad_address_is_rejected(client):
     assert (await client.post("/auth/email/request", json={"email": "not an email"})).status_code == 422
 
 
-async def test_phone_account_can_sign_in_by_its_email(client):
-    """Signed up by phone and gave an email → the email signs into that account."""
+async def test_a_typed_email_opens_nothing_and_its_owner_takes_it_back(client):
+    """Someone typed an address into their profile without proving it. Its real
+    owner signs in with a code: they get their own account, not the squatter's."""
     r = await client.post("/auth/otp/request", json={"phone": "0541112233"})
     token = (await client.post("/auth/otp/verify", json={"phone": "0541112233", "code": r.json()["dev_code"]})).json()
     headers = {"Authorization": f"Bearer {token['access_token']}"}
@@ -54,7 +55,27 @@ async def test_phone_account_can_sign_in_by_its_email(client):
     by_email = (
         await client.post("/auth/email/verify", json={"email": NORMAL, "code": await _code(client, NORMAL)})
     ).json()
-    assert by_email["user_id"] == token["user_id"]
+    assert by_email["user_id"] != token["user_id"]
+    assert (await client.get("/users/me", headers=headers)).json()["account"]["email"] is None
+    owner = {"Authorization": f"Bearer {by_email['access_token']}"}
+    assert (await client.get("/users/me", headers=owner)).json()["account"]["email_verified"] is True
+
+
+async def test_the_email_you_sign_in_with_cannot_be_changed(client):
+    token = (await client.post("/auth/email/verify", json={"email": EMAIL, "code": await _code(client)})).json()
+    headers = {"Authorization": f"Bearer {token['access_token']}"}
+    body = {"first_name": "A", "last_name": "B", "email": "other@example.com"}
+    assert (await client.patch("/users/me/details", json=body, headers=headers)).status_code == 409
+    body["email"] = NORMAL
+    assert (await client.patch("/users/me/details", json=body, headers=headers)).status_code == 200
+
+
+async def test_missing_mail_settings_answer_503(client, monkeypatch):
+    import mailer
+
+    monkeypatch.setattr(mailer.settings, "email_provider", "smtp")
+    monkeypatch.setattr(mailer.settings, "smtp_host", "")
+    assert (await client.post("/auth/email/request", json={"email": EMAIL})).status_code == 503
 
 
 async def test_an_email_belongs_to_one_account(client, make_user):

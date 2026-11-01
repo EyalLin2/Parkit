@@ -7,11 +7,12 @@ Production is one Docker Compose stack in `~/Parkit/deployments/production` on t
 ```bash
 ssh ubuntu@<server>
 cd ~/Parkit
-git fetch origin && git switch main && git pull --ff-only
-cd deployments/production
-docker compose up -d --build backend        # rebuild and restart the API only
-docker compose exec backend alembic upgrade head
+cd ~/Parkit/deployments/production
+git pull --ff-only   # first, so you run the newest deploy.sh
+bash ./deploy.sh     # checks settings, backs up, builds, migrates, starts, verifies
 ```
+
+Migrations run **before** the new code starts: new code on an old schema fails on every `User` query.
 
 ## Verify
 

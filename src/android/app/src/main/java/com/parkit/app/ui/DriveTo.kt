@@ -26,5 +26,6 @@ object DriveTo {
                 // try the next app
             }
         }
+        android.widget.Toast.makeText(context, com.parkit.app.R.string.navigation_unavailable, android.widget.Toast.LENGTH_LONG).show()
     }
 }

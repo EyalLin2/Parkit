@@ -14,6 +14,16 @@ Photos are not backed up on purpose: they are temporary and deleted when a spot 
 **Limitation:** the dumps sit on the same VM. They protect against a bad migration or a mistake, not
 against losing the server. Copying them to object storage is the next step.
 
+## Weekly map data refresh
+
+`deployments/production/osm-refresh.sh` re-imports Israel's OpenStreetMap extract every Sunday at
+04:00 UTC (addresses, streets, paid car parks). The import swaps the tables in one transaction, so the
+app never sees a half-loaded state. Check it with `tail ~/backups/osm-refresh.log`.
+
+```
+0 4 * * 0 /home/ubuntu/Parkit/deployments/production/osm-refresh.sh >> /home/ubuntu/backups/osm-refresh.log 2>&1
+```
+
 ## Check that backups work
 
 ```bash

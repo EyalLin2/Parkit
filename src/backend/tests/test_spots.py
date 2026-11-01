@@ -251,3 +251,97 @@ async def test_blue_white_tick_marks_an_existing_spot_paid_but_never_unmarks_it(
 
     again = await _report(client, third)  # no tick
     assert again.json()["payment"] == "paid"
+
+
+async def test_optional_note_is_tidied_and_shown(client, make_user):
+    _, headers = await make_user("noter")
+    resp = await _report(client, headers, note="  broken glass\n by the  curb ")
+    assert resp.status_code == 201
+    spot = next(
+        s for s in (await client.get("/spots", params={**TLV, "radius_m": 500})).json() if s["id"] == resp.json()["id"]
+    )
+    assert spot["note"] == "broken glass by the curb"
+
+
+async def test_note_is_limited_in_length(client, make_user):
+    _, headers = await make_user("long-noter")
+    assert (await _report(client, headers, note="x" * 121)).status_code == 422
+
+
+async def test_leaving_your_own_spot_earns_a_handoff_bonus(client, make_user):
+    _, headers = await make_user("leaver")
+    resp = await _report(client, headers, handoff=True)
+    assert resp.status_code == 201
+    me = (await client.get("/users/me", headers=headers)).json()
+    assert me["points"] == 15
+
+
+async def test_taking_a_handed_on_spot_back_returns_the_bonus_too(client, make_user):
+    _, headers = await make_user("changed-mind")
+    spot = (await _report(client, headers, handoff=True)).json()
+    assert (await client.delete(f"/spots/{spot['id']}", headers=headers)).status_code == 204
+    me = (await client.get("/users/me", headers=headers)).json()
+    assert me["points"] == 0
+
+
+async def test_cleanup_expires_spots_and_drops_their_photo_pointer(client, make_user):
+    from sqlalchemy import text as sql
+
+    import cleanup
+    from database import engine
+
+    _, headers = await make_user("cleaner")
+    spot = (await _report(client, headers)).json()
+    async with engine.begin() as conn:
+        await conn.execute(
+            sql(
+                "UPDATE spots SET reported_at = now() - interval '2 hours', photo_url = '/media/x.jpg', note = 'old' "
+                "WHERE id = :id"
+            ),
+            {"id": spot["id"]},
+        )
+    await cleanup.run_once()
+    async with engine.begin() as conn:
+        row = (
+            await conn.execute(sql("SELECT status, photo_url, note FROM spots WHERE id = :id"), {"id": spot["id"]})
+        ).one()
+    assert row.status == "expired" and row.photo_url is None and row.note == "old"
+
+
+async def test_only_drivers_close_by_see_and_take_a_spot(client, make_user):
+    _, reporter = await make_user("reporter")
+    _, driver = await make_user("driver")
+    spot = (await _report(client, reporter, lat=32.09, lng=34.79)).json()
+    params = {"lat": 32.09, "lng": 34.79}
+
+    near = await client.get("/spots", params={**params, "me_lat": 32.092, "me_lng": 34.79})
+    assert [s["id"] for s in near.json()] == [spot["id"]]
+    far = await client.get("/spots", params={**params, "me_lat": 32.20, "me_lng": 34.79})
+    assert far.json() == []
+
+    claim = f"/spots/{spot['id']}/claim"
+    too_far = await client.post(claim, params={"me_lat": 32.20, "me_lng": 34.79}, headers=driver)
+    assert too_far.status_code == 403
+    assert (await client.post(claim, params={"me_lat": 32.092, "me_lng": 34.79}, headers=driver)).status_code == 200
+
+
+async def test_a_spot_says_whether_a_driver_just_left_it(client, make_user):
+    _, headers = await make_user("leaver")
+    left = (await _report(client, headers, lat=32.09, lng=34.79, leaving=True)).json()
+    assert left["left_by_driver"] is True
+    _, other = await make_user("walker")
+    seen = (await _report(client, other, lat=32.10, lng=34.80)).json()
+    assert seen["left_by_driver"] is False
+
+
+async def test_a_driver_can_let_go_of_a_spot_they_took(client, make_user):
+    _, reporter = await make_user("reporter")
+    _, driver = await make_user("driver")
+    _, other = await make_user("other")
+    spot = (await _report(client, reporter, lat=32.09, lng=34.79)).json()
+    claim = f"/spots/{spot['id']}/claim"
+    assert (await client.post(claim, headers=driver)).status_code == 200
+    assert (await client.delete(claim, headers=other)).status_code == 404
+    assert (await client.delete(claim, headers=driver)).status_code == 204
+    assert spot["id"] in await _nearby_ids(client, lat=32.09, lng=34.79)
+    assert (await client.post(claim, headers=other)).status_code == 200

@@ -1,20 +1,28 @@
+import asyncio
 import mimetypes
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
+import cleanup
+from config import settings
 from database import check_postgres
 from media import MEDIA_DIR
 from ratelimit import RateLimitMiddleware
 from redis_client import check_redis
+from routers.ads import router as ads_router
 from routers.auth import router as auth_router
 from routers.feedback import router as feedback_router
 from routers.geocode import router as geocode_router
+from routers.insights import router as insights_router
 from routers.lots import router as lots_router
 from routers.me import router as me_router
 from routers.photos import router as photos_router
+from routers.rewards import router as rewards_router
+from routers.signs import router as signs_router
 from routers.spots import router as spots_router
 from routers.users import router as users_router
 
@@ -27,7 +35,23 @@ mimetypes.add_type("application/vnd.android.package-archive", ".apk")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-app = FastAPI(title="ParkIt API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    task = asyncio.create_task(cleanup.loop())
+    yield
+    task.cancel()
+
+
+# The API map and the web demo are for development; production serves neither.
+IS_PRODUCTION = settings.app_env == "production"
+app = FastAPI(
+    title="ParkIt API",
+    lifespan=lifespan,
+    docs_url=None if IS_PRODUCTION else "/docs",
+    redoc_url=None if IS_PRODUCTION else "/redoc",
+    openapi_url=None if IS_PRODUCTION else "/openapi.json",
+)
 # Spot lists and geocoder answers are JSON that compresses ~5×.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(RateLimitMiddleware)
@@ -40,8 +64,13 @@ app.include_router(geocode_router)
 app.include_router(me_router)
 app.include_router(lots_router)
 app.include_router(feedback_router)
+app.include_router(rewards_router)
+app.include_router(signs_router)
+app.include_router(ads_router)
+app.include_router(insights_router)
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
-app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
+if not IS_PRODUCTION:
+    app.mount("/demo", StaticFiles(directory=str(STATIC_DIR), html=True), name="demo")
 
 
 @app.get("/healthz")

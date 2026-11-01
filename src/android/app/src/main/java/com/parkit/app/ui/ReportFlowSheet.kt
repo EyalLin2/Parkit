@@ -20,15 +20,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.FaceRetouchingOff
+import androidx.compose.material.icons.filled.MoneyOff
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
@@ -76,6 +78,8 @@ import java.io.ByteArrayOutputStream
 
 private val Gold = Color(0xFFC9971C)
 
+private const val NOTE_MAX = 120
+
 /**
  * Reporting stays the fewest possible decisions — photo (mandatory, it's
  * what makes reports trustworthy), Regular vs Disabled, car size, confirm —
@@ -94,6 +98,7 @@ fun ReportFlowSheet(
     defaultVehicleSize: String?,
     /** The phone's latest fix, read at the moment of sending. */
     currentFix: () -> android.location.Location?,
+    onLeavingNow: (() -> Unit)?,
     onDismiss: () -> Unit,
     onReported: () -> Unit,
     onSessionExpired: () -> Unit,
@@ -111,7 +116,14 @@ fun ReportFlowSheet(
     var selectedVehicleSize by remember { mutableStateOf(defaultVehicleSize ?: "regular") }
     // Optional, off by default: one tap if the curb is blue-white (paid).
     // Deliberately not a required question — the form stays short.
-    var blueWhite by remember { mutableStateOf(false) }
+    var blueWhite by remember { mutableStateOf<Boolean?>(null) } // no choice yet
+    // Optional heads-up for the next driver: a hazard, a low branch…
+    var note by remember { mutableStateOf("") }
+    // AI hints from the photo: they fill only what the driver hasn't touched.
+    var typeTouched by remember { mutableStateOf(false) }
+    var blueWhiteTouched by remember { mutableStateOf(false) }
+    var autoFilled by remember { mutableStateOf(false) }
+    var notASpot by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -125,6 +137,17 @@ fun ReportFlowSheet(
             val part = MultipartBody.Part.createFormData("file", "photo.jpg", body)
             val staged = api.stagePhoto(part)
             stagingId = staged.stagingId
+            // Ask what the photo shows in the background; the form never waits for it.
+            val id = staged.stagingId
+            if (com.parkit.app.Features.PHOTO_HINTS) scope.launch {
+                val hints = runCatching { api.analyzePhoto(id) }.getOrNull() ?: return@launch
+                if (stagingId != id) return@launch // a newer photo was taken meanwhile
+                notASpot = !hints.looksLikeFreeSpot
+                var filled = false
+                if (!typeTouched && hints.disabledSpot) { selectedType = "disabled"; filled = true }
+                if (!blueWhiteTouched && hints.blueWhiteCurb && selectedType == "street") { blueWhite = true; filled = true }
+                autoFilled = filled
+            }
             facesBlurred = staged.facesBlurred + staged.platesBlurred
             val previewBytes = Base64.decode(staged.previewBase64, Base64.DEFAULT)
             blurredPreview = BitmapFactory.decodeByteArray(previewBytes, 0, previewBytes.size)
@@ -147,7 +170,7 @@ fun ReportFlowSheet(
         }
     }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) cameraLauncher.launch(photoUri)
+        if (granted) cameraLauncher.launch(photoUri) else error = context.getString(R.string.permission_camera_needed)
     }
 
     fun startCamera() {
@@ -166,10 +189,11 @@ fun ReportFlowSheet(
                         lat = lat,
                         lng = lng,
                         spotType = selectedType,
-                        payment = if (blueWhite && selectedType == "street") "paid" else "free",
+                        payment = if (blueWhite == true && selectedType == "street") "paid" else "free",
                         vehicleSize = selectedVehicleSize,
                         photoStagingId = stagingId,
                         address = streetAddress,
+                        note = note.trim().ifEmpty { null },
                         reporterLat = fix?.latitude,
                         reporterLng = fix?.longitude,
                         reporterAccuracyM = fix?.takeIf { it.hasAccuracy() }?.accuracy,
@@ -185,12 +209,12 @@ fun ReportFlowSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.report_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
                 // What you get for it, right where you decide — Waze shows the
@@ -215,6 +239,16 @@ fun ReportFlowSheet(
                 )
             }
 
+            if (onLeavingNow != null) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onLeavingNow,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                ) {
+                    Text(stringResource(R.string.report_leaving_now))
+                }
+            }
+
             PhotoArea(
                 preview = blurredPreview,
                 facesBlurred = facesBlurred,
@@ -233,63 +267,107 @@ fun ReportFlowSheet(
                 )
             }
 
-            FieldLabel(stringResource(R.string.report_type_question))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TypeOption(
-                    label = stringResource(R.string.map_spot_kind_regular),
-                    icon = Icons.Filled.DirectionsCar,
-                    selected = selectedType == "street",
-                    onClick = { selectedType = "street" },
-                    modifier = Modifier.weight(1f),
-                )
-                TypeOption(
-                    label = stringResource(R.string.map_spot_kind_disabled),
-                    icon = Icons.AutoMirrored.Filled.Accessible,
-                    selected = selectedType == "disabled",
-                    onClick = { selectedType = "disabled" },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            if (selectedType == "street") {
-                androidx.compose.material3.FilterChip(
-                    selected = blueWhite,
-                    onClick = { blueWhite = !blueWhite },
-                    label = { Text(stringResource(R.string.report_blue_white)) },
-                    leadingIcon = {
-                        Icon(
-                            if (blueWhite) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
+            if (autoFilled) {
+                Text(
+                    stringResource(R.string.report_auto_filled),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 10.dp),
                 )
             }
-
-            FieldLabel(stringResource(R.string.report_size_question))
-            val sizes = listOf(
-                "compact" to stringResource(R.string.report_size_compact),
-                "regular" to stringResource(R.string.report_size_regular),
-                "large" to stringResource(R.string.report_size_large),
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                sizes.forEachIndexed { index, (value, label) ->
-                    SegmentedButton(
-                        selected = selectedVehicleSize == value,
-                        onClick = { selectedVehicleSize = value },
-                        shape = SegmentedButtonDefaults.itemShape(index, sizes.size),
-                        icon = {},
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = MaterialTheme.colorScheme.primary,
-                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+            if (notASpot) {
+                Text(
+                    stringResource(R.string.report_not_a_spot),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFB06000),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            // Whether the next driver pays is the one thing every report must say.
+            if (selectedType == "street") {
+                FieldLabel(stringResource(R.string.report_curb_question))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    TypeOption(
+                        label = stringResource(R.string.report_curb_blue_white),
+                        icon = Icons.Filled.Payments,
+                        selected = blueWhite == true,
+                        onClick = { blueWhite = true; blueWhiteTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TypeOption(
+                        label = stringResource(R.string.report_curb_gray),
+                        icon = Icons.Filled.MoneyOff,
+                        selected = blueWhite == false,
+                        onClick = { blueWhite = false; blueWhiteTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 
+            // The rest is for whoever wants to add it.
+            var showDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+            androidx.compose.material3.TextButton(
+                onClick = { showDetails = !showDetails },
+                modifier = Modifier.padding(top = 6.dp),
+            ) {
+                Text(stringResource(if (showDetails) R.string.report_less else R.string.report_more))
+            }
+            if (showDetails) {
+                FieldLabel(stringResource(R.string.report_type_question))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    TypeOption(
+                        label = stringResource(R.string.map_spot_kind_regular),
+                        icon = Icons.Filled.DirectionsCar,
+                        selected = selectedType == "street",
+                        onClick = { selectedType = "street"; typeTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TypeOption(
+                        label = stringResource(R.string.map_spot_kind_disabled),
+                        icon = Icons.AutoMirrored.Filled.Accessible,
+                        selected = selectedType == "disabled",
+                        onClick = { selectedType = "disabled"; typeTouched = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                FieldLabel(stringResource(R.string.report_size_question))
+                val sizes = listOf(
+                    "compact" to stringResource(R.string.report_size_compact),
+                    "regular" to stringResource(R.string.report_size_regular),
+                    "large" to stringResource(R.string.report_size_large),
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    sizes.forEachIndexed { index, (value, label) ->
+                        SegmentedButton(
+                            selected = selectedVehicleSize == value,
+                            onClick = { selectedVehicleSize = value },
+                            shape = SegmentedButtonDefaults.itemShape(index, sizes.size),
+                            icon = {},
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = MaterialTheme.colorScheme.primary,
+                                activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+                    }
+                }
+
+                FieldLabel(stringResource(R.string.report_note_label))
+                androidx.compose.material3.OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it.replace('\n', ' ').take(NOTE_MAX) },
+                    placeholder = { Text(stringResource(R.string.report_note_hint)) },
+                    supportingText = { Text("${note.length}/$NOTE_MAX") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp)) }
 
-            val ready = stagingId != null
+            val hasPhoto = stagingId != null
+            val curbKnown = selectedType != "street" || blueWhite != null
+            val ready = hasPhoto && curbKnown
             Button(
                 onClick = { submit() },
                 enabled = ready && !submitting && !uploading,
@@ -300,7 +378,13 @@ fun ReportFlowSheet(
                     CircularProgressIndicator(modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.5.dp)
                 } else {
                     Text(
-                        stringResource(if (ready) R.string.report_confirm else R.string.report_needs_photo),
+                        stringResource(
+                            when {
+                                !hasPhoto -> R.string.report_needs_photo
+                                !curbKnown -> R.string.report_needs_curb
+                                else -> R.string.report_confirm
+                            },
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }
@@ -398,7 +482,7 @@ private fun TypeOption(label: String, icon: ImageVector, selected: Boolean, onCl
 
 /** Decode the camera's full-size JPEG at a sensible size (≤ ~1600 px on the
  * long side), upright according to its EXIF orientation. */
-private fun loadReportPhoto(file: java.io.File, maxSide: Int = 1600): Bitmap? {
+internal fun loadReportPhoto(file: java.io.File, maxSide: Int = 1600): Bitmap? {
     if (!file.exists()) return null
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.path, bounds)

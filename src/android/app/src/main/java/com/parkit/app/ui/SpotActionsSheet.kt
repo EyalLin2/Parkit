@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.ui.graphics.graphicsLayer
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -93,6 +95,7 @@ fun SpotActionsSheet(
     api: ApiService,
     spot: SpotOut,
     myUserId: String?,
+    myFix: Pair<Double, Double>?,
     fit: DriverFit,
     distanceLabel: String?,
     onDismiss: () -> Unit,
@@ -147,12 +150,12 @@ fun SpotActionsSheet(
     val canClaim = spot.status == "active" && !isMine
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding()) {
             // 1. Where — the address, with the close button.
             Row(verticalAlignment = Alignment.Top) {
                 Text(
@@ -180,7 +183,8 @@ fun SpotActionsSheet(
             val statusText = when {
                 isClaimed -> stringResource(R.string.spot_someone_on_the_way)
                 isMine -> stringResource(R.string.map_spot_yours)
-                else -> stringResource(R.string.spot_status_free)
+                spot.leftByDriver -> stringResource(R.string.spot_source_left)
+                else -> stringResource(R.string.spot_source_seen)
             }
             val statusColor = if (isClaimed || isMine) accent else freshnessColor(spot.reportedAt)
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
@@ -269,6 +273,7 @@ fun SpotActionsSheet(
             // 4. Details — each on its own line with an icon, in one soft
             // panel, so nothing is lost and nothing competes with the button.
             val details = buildList {
+                spot.note?.let { add(Triple(Icons.Filled.Info, stringResource(R.string.spot_note, it), Color(0xFFE37400))) }
                 spot.vehicleSize?.let { size ->
                     val label = stringResource(
                         when (size) {
@@ -298,11 +303,15 @@ fun SpotActionsSheet(
                     error = null
                     scope.launch {
                         try {
-                            val claimed = api.claimSpot(spot.id).copy(address = spot.localAddress ?: address, reporterLevel = spot.reporterLevel)
+                            val claimed = api.claimSpot(spot.id, myFix?.first, myFix?.second).copy(address = spot.localAddress ?: address, reporterLevel = spot.reporterLevel)
                             navigate()
                             onClaimed(claimed)
                         } catch (e: Exception) {
-                            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                            error = when {
+                                e.isUnauthorized() -> { onSessionExpired(); null }
+                                (e as? retrofit2.HttpException)?.code() == 403 -> context.getString(R.string.map_get_closer_hint)
+                                else -> e.friendlyMessage(context)
+                            }
                         } finally {
                             busy = false
                         }
@@ -346,7 +355,12 @@ fun SpotActionsSheet(
                         enabled = !busy,
                         onClick = {
                             run {
-                                api.submitFeedback(spot.id, FeedbackCreate("confirmed_taken"))
+                                try {
+                                    api.submitFeedback(spot.id, FeedbackCreate("confirmed_taken"))
+                                } catch (e: retrofit2.HttpException) {
+                                    // Already voted or closed: the driver still parked here.
+                                    if (e.code() != 409) throw e
+                                }
                                 onParked()
                             }
                         },
@@ -398,9 +412,10 @@ fun SpotActionsSheet(
                 Column {
                     listOf(
                         "photo" to R.string.content_report_photo,
+                        "note" to R.string.content_report_note,
                         "user" to R.string.content_report_user,
                         "other" to R.string.content_report_other,
-                    ).filter { (reason, _) -> reason != "photo" || photoUrl != null }.forEach { (reason, label) ->
+                    ).filter { (reason, _) -> (reason != "photo" || photoUrl != null) && (reason != "note" || spot.note != null) }.forEach { (reason, label) ->
                         TextButton(
                             onClick = {
                                 showContentReport = false

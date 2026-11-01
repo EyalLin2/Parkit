@@ -3,6 +3,7 @@ sent, still rate-limited, and no effect on anyone else."""
 
 import pytest
 
+import otp
 from config import settings
 
 
@@ -21,8 +22,8 @@ async def test_review_account_signs_in_with_its_fixed_code(client, review_login)
     assert resp.json()["access_token"]
 
 
-async def test_review_account_rejects_a_wrong_code_and_locks_after_five(client, review_login):
-    for _ in range(5):
+async def test_review_account_rejects_a_wrong_code_and_locks_after_max_attempts(client, review_login):
+    for _ in range(otp.MAX_ATTEMPTS):
         wrong = await client.post("/auth/email/verify", json={"email": "play-review@parkit.test", "code": "000000"})
         assert wrong.status_code == 400
     locked = await client.post("/auth/email/verify", json={"email": "play-review@parkit.test", "code": "246810"})

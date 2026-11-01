@@ -45,7 +45,7 @@ import kotlin.math.sin
 /** Milestone badges, earned from numbers the server already tracks — how
  * many spots you reported and how many of them a driver actually parked
  * in. No extra storage: a badge is just "count ≥ goal". */
-private enum class Badge(val goal: Int, val helped: Boolean, val color: Color, val icon: ImageVector, val nameRes: Int) {
+internal enum class Badge(val goal: Int, val helped: Boolean, val color: Color, val icon: ImageVector, val nameRes: Int) {
     First(1, false, Color(0xFF12A594), Icons.Filled.Flag, R.string.badge_first),
     Reports10(10, false, Color(0xFFB0703C), Icons.Filled.LocalParking, R.string.badge_reports_10),
     Reports50(50, false, Color(0xFF7D8DA3), Icons.Filled.Stars, R.string.badge_reports_50),

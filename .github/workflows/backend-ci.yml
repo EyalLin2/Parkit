@@ -124,3 +124,19 @@ jobs:
           tags: parkit-backend:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Known vulnerabilities in dependencies, and secrets anywhere in git history.
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit && pip-audit -r src/backend/requirements.txt
+      - name: Secrets in git history
+        if: always()
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.18.4 detect --source=/repo --no-banner --redact
+

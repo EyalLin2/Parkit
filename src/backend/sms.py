@@ -13,6 +13,7 @@ import logging
 from typing import Protocol
 
 import httpx
+from fastapi import HTTPException
 
 from config import settings
 
@@ -54,7 +55,7 @@ class TwilioSmsSender:
         if r.status_code >= 400:
             # Twilio's message explains why (unverified trial number, bad sender…);
             # it goes to our logs, never to the user.
-            log.error("Twilio refused SMS to %s: %s %s", phone, r.status_code, r.text[:300])
+            log.error("Twilio refused SMS to ...%s: %s %s", phone[-3:], r.status_code, r.text[:300])
             raise SmsError(f"twilio {r.status_code}")
 
 
@@ -74,11 +75,19 @@ class SmsGateSender:
         except httpx.HTTPError as e:
             raise SmsError(str(e)) from e
         if r.status_code >= 400:
-            log.error("SMS gateway refused SMS to %s: %s %s", phone, r.status_code, r.text[:300])
+            log.error("SMS gateway refused SMS to ...%s: %s %s", phone[-3:], r.status_code, r.text[:300])
             raise SmsError(f"smsgate {r.status_code}")
 
 
 def get_sms_sender() -> SmsSender:
+    try:
+        return _build_sender()
+    except RuntimeError as e:
+        log.error("SMS isn't configured: %s", e)
+        raise HTTPException(503, "Sign-in by SMS isn't available right now") from None
+
+
+def _build_sender() -> SmsSender:
     if settings.sms_provider == "dev":
         return DevSmsSender()
     if settings.sms_provider == "smsgate":

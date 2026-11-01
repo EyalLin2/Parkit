@@ -52,7 +52,7 @@ fun LotSheet(lot: ParkingLotOut, onDismiss: () -> Unit) {
         stringResource(R.string.spot_distance_away, formatLotDistance(context, lot.distanceM)),
     )
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(48.dp).background(slate, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
@@ -71,6 +71,19 @@ fun LotSheet(lot: ParkingLotOut, onDismiss: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 12.dp),
             )
+            // Price and hours only when someone actually mapped them — never guessed.
+            Text(
+                lot.charge?.let { stringResource(R.string.lot_charge, it) } ?: stringResource(R.string.lot_charge_unknown),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            lot.openingHours?.let {
+                Text(
+                    stringResource(R.string.lot_hours, if (it == "24/7") stringResource(R.string.lot_hours_always) else it),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             Button(
                 onClick = {
                     DriveTo.open(context, lot.lat, lot.lng)
@@ -81,8 +94,9 @@ fun LotSheet(lot: ParkingLotOut, onDismiss: () -> Unit) {
                 Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(stringResource(R.string.spot_navigate), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
             }
+            val updated = lot.dataUpdatedAt?.take(10)?.split("-")?.takeIf { it.size == 3 }?.let { (y, m, d) -> "$d.$m.$y" }
             Text(
-                stringResource(R.string.lot_source_note),
+                if (updated != null) stringResource(R.string.lot_data_note, updated) else stringResource(R.string.lot_source_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 10.dp),

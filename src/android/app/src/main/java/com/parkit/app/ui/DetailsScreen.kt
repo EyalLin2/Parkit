@@ -57,6 +57,7 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
     var avatar by remember { mutableStateOf<String?>(avatarId((0..15).random())) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var emailLocked by remember { mutableStateOf(false) }
     val emailOk = EMAIL.matches(email.trim())
     val valid = first.isNotBlank() && last.isNotBlank() && emailOk
 
@@ -67,6 +68,7 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
                 first = it.firstName.orEmpty()
                 last = it.lastName.orEmpty()
                 email = it.email.orEmpty()
+                emailLocked = it.emailVerified
             }
         }
     }
@@ -128,6 +130,7 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
                 onValueChange = { email = it.take(254) },
                 label = { Text(stringResource(R.string.details_email)) },
                 singleLine = true,
+                enabled = !emailLocked,
                 isError = email.isNotBlank() && !emailOk,
                 supportingText = { if (email.isNotBlank() && !emailOk) Text(stringResource(R.string.details_email_invalid)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),

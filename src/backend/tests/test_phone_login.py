@@ -51,7 +51,13 @@ async def test_first_login_creates_an_account_that_needs_details(client):
     assert r.status_code == 200
     me = (await client.get("/users/me", headers=headers)).json()
     assert me["display_name"] == "דנה כ."  # public name: last initial only
-    assert me["account"] == {"phone": E164, "first_name": "דנה", "last_name": "כהן", "email": "dana@example.com"}
+    assert me["account"] == {
+        "phone": E164,
+        "first_name": "דנה",
+        "last_name": "כהן",
+        "email": "dana@example.com",
+        "email_verified": False,  # typed, not proved
+    }
 
     # Second login: same account, details already there.
     await redis_client.delete(f"otp:cooldown:{E164}")

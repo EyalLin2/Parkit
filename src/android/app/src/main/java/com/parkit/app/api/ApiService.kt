@@ -24,6 +24,9 @@ interface ApiService {
     @POST("auth/email/request")
     suspend fun requestEmailOtp(@Body body: EmailOtpRequest): EmailOtpRequested
 
+    @POST("auth/google")
+    suspend fun googleLogin(@Body body: GoogleLogin): TokenOut
+
     @POST("auth/email/verify")
     suspend fun verifyEmailOtp(@Body body: EmailOtpVerify): TokenOut
 
@@ -41,13 +44,22 @@ interface ApiService {
         @Query("lat") lat: Double,
         @Query("lng") lng: Double,
         @Query("radius_m") radiusM: Int,
+        @Query("me_lat") meLat: Double?,
+        @Query("me_lng") meLng: Double?,
     ): List<SpotOut>
 
     @POST("spots")
     suspend fun reportSpot(@Body body: SpotCreate): SpotOut
 
     @POST("spots/{id}/claim")
-    suspend fun claimSpot(@Path("id") spotId: String): SpotOut
+    suspend fun claimSpot(
+        @Path("id") spotId: String,
+        @Query("me_lat") meLat: Double?,
+        @Query("me_lng") meLng: Double?,
+    ): SpotOut
+
+    @DELETE("spots/{id}/claim")
+    suspend fun releaseClaim(@Path("id") spotId: String): retrofit2.Response<Unit>
 
     @POST("spots/{id}/feedback")
     suspend fun submitFeedback(@Path("id") spotId: String, @Body body: FeedbackCreate)
@@ -57,6 +69,13 @@ interface ApiService {
 
     @DELETE("spots/{id}")
     suspend fun cancelSpot(@Path("id") spotId: String)
+
+    @POST("photos/{id}/analyze")
+    suspend fun analyzePhoto(@Path("id") stagingId: String): PhotoHints
+
+    @Multipart
+    @POST("signs/read")
+    suspend fun readSign(@Part photo: MultipartBody.Part): SignReading
 
     @Multipart
     @POST("photos/stage")
@@ -71,6 +90,12 @@ interface ApiService {
     @GET("users/me")
     suspend fun myProfile(): ProfileOut
 
+    @GET("rewards")
+    suspend fun rewards(): ShopOut
+
+    @POST("rewards/{id}/redeem")
+    suspend fun redeemReward(@Path("id") id: Int): ShopOut
+
     /** Sends the whole set: the screen edits all of it, and an explicit null
      * clears a value (the client serializes nulls for exactly this). */
     @PATCH("users/me/preferences")
@@ -78,6 +103,21 @@ interface ApiService {
 
     @GET("vehicles/lookup")
     suspend fun lookupVehicle(@Query("plate") plate: String): VehicleLookupOut
+
+    @GET("insights/area")
+    suspend fun areaForecast(@Query("lat") lat: Double, @Query("lng") lng: Double): AreaForecast?
+
+    @GET("insights/best-hour")
+    suspend fun bestHour(@Query("lat") lat: Double, @Query("lng") lng: Double): BestHour?
+
+    @GET("ads/nearby")
+    suspend fun nearbyAd(@Query("lat") lat: Double, @Query("lng") lng: Double, @Query("placement") placement: String = "card"): AdOut?
+
+    @POST("ads/{id}/view")
+    suspend fun adView(@Path("id") id: Int)
+
+    @POST("ads/{id}/click")
+    suspend fun adClick(@Path("id") id: Int)
 
     @GET("parking-lots")
     suspend fun parkingLots(

@@ -26,7 +26,11 @@ class ParkingLotOut(BaseModel):
     fee: str | None
     capacity: int | None
     operator: str | None
+    charge: str | None = None
+    opening_hours: str | None = None
     distance_m: float
+    # When the car park data was last refreshed from OpenStreetMap (ISO date).
+    data_updated_at: str | None = None
 
 
 @router.get("/parking-lots", response_model=list[ParkingLotOut])
@@ -39,7 +43,7 @@ async def parking_lots(
     rows = await db.execute(
         text(
             "SELECT id, ST_Y(geom::geometry) AS lat, ST_X(geom::geometry) AS lng, "
-            "COALESCE(name_he, name) AS name, name_en, kind, fee, capacity, operator, "
+            "COALESCE(name_he, name) AS name, name_en, kind, fee, capacity, operator, charge, opening_hours, "
             "ST_Distance(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) AS distance_m "
             "FROM osm_parking_lots "
             "WHERE ST_DWithin(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius) "
@@ -47,4 +51,5 @@ async def parking_lots(
         ),
         {"lat": lat, "lng": lng, "radius": radius_m, "limit": MAX_LOTS},
     )
-    return [ParkingLotOut(**r._mapping) for r in rows]
+    updated = (await db.execute(text("SELECT value FROM osm_meta WHERE key = 'imported_at'"))).scalar_one_or_none()
+    return [ParkingLotOut(**r._mapping, data_updated_at=updated) for r in rows]

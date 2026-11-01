@@ -28,6 +28,7 @@ import asyncio
 import tempfile
 import time
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 import asyncpg
@@ -117,6 +118,8 @@ class Extractor(osmium.SimpleHandler):
                 tags.get("fee"),
                 capacity if capacity.isdigit() else None,
                 (tags.get("operator") or "")[:120] or None,
+                (tags.get("charge") or "")[:120] or None,
+                (tags.get("opening_hours") or "")[:200] or None,
             )
         )
 
@@ -251,7 +254,18 @@ async def _load(ex: Extractor) -> None:
                 ("osm_places", ("wkt", "kind", "name", "name_he", "name_en"), ex.places),
                 (
                     "osm_parking_lots",
-                    ("wkt", "name", "name_he", "name_en", "kind", "fee", "capacity", "operator"),
+                    (
+                        "wkt",
+                        "name",
+                        "name_he",
+                        "name_en",
+                        "kind",
+                        "fee",
+                        "capacity",
+                        "operator",
+                        "charge",
+                        "opening_hours",
+                    ),
                     ex.lots,
                 ),
             ):
@@ -267,6 +281,11 @@ async def _load(ex: Extractor) -> None:
                     f"SELECT ST_GeogFromText('SRID=4326;' || wkt), {select_rest} FROM {stage}"
                 )
                 print(f"  {table}: {len(rows):,} rows", flush=True)
+            await conn.execute(
+                "INSERT INTO osm_meta (key, value) VALUES ('imported_at', $1) "
+                "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            )
         for table in ("osm_addresses", "osm_streets", "osm_areas", "osm_places", "osm_parking_lots"):
             await conn.execute(f"ANALYZE {table}")
     finally:

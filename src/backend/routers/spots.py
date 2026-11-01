@@ -27,7 +27,7 @@ CLAIM_TTL_SECONDS = 120
 NEARBY_LIMIT = 50
 RECONCILE_EVERY_SECONDS = 15
 SPOT_TTL_MINUTES = 30  # the same for everyone: a stale spot helps no one
-REPORT_COOLDOWN_SECONDS = 120
+REPORT_COOLDOWN_SECONDS = 30
 CANCEL_WINDOW_MINUTES = 2
 DEDUP_RADIUS_M = 15
 SAME_SPOT_WINDOW_SECONDS = 600
@@ -41,11 +41,17 @@ POINTS_REPORT = 10
 POINTS_CONFIRM_BONUS = 5
 POINTS_REFRESH_BONUS = 3
 POINTS_FALSE_PENALTY = 5
+# "I'm leaving" from a saved car: the driver hands their own spot to the
+# next one — the most reliable report there is, so it earns a little more.
+POINTS_HANDOFF_BONUS = 5
 CONTENT_REPORTS_PER_HOUR = 10
 # A report must come from near the spot. GPS in a street is often 20–50 m
 # off, so the phone's own accuracy is added on top — capped, so a "±5 km"
 # fix can't stretch the limit across town.
 MAX_REPORT_DISTANCE_M = 150
+# Free spots are for drivers already close by: nobody crosses town for one
+# that's gone by the time they arrive.
+VISIBLE_RADIUS_M = 800
 MAX_ACCURACY_ALLOWANCE_M = 100
 
 
@@ -90,7 +96,7 @@ async def _reconcile_spot_states(db: AsyncSession) -> None:
             Spot.status == SpotStatus.active,
             Spot.reported_at + func.make_interval(0, 0, 0, 0, 0, Spot.ttl_minutes) < now,
         )
-        .values(status=SpotStatus.expired, removed_reason=RemovedReason.expired, removed_at=now)
+        .values(status=SpotStatus.expired, removed_reason=RemovedReason.expired, removed_at=now, photo_url=None)
     )
     await db.commit()
 
@@ -130,6 +136,7 @@ async def report_spot(
     # label is only a fallback for areas our OSM tables don't cover.
     address = (await reverse_cached(db, redis, payload.lat, payload.lng, "he")).street
     address = address or (payload.address or "").strip() or None
+    note = " ".join((payload.note or "").split()) or None
 
     origin = ST_SetSRID(ST_MakePoint(payload.lng, payload.lat), 4326)
     # Serialise reports around the same place (≈100 m cell) for the rest of
@@ -151,9 +158,12 @@ async def report_spot(
     hot = await hot_minutes(db, payload.lat, payload.lng, now)
     if existing is not None:
         existing.reported_at = now
+        existing.left_by_driver = existing.left_by_driver or payload.leaving or payload.handoff
         existing.hot_minutes = hot
         if existing.address is None and address:
             existing.address = address
+        if note:
+            existing.note = note  # the latest heads-up is the one that matters
         # "Blue-white" is an optional tick, so a report without it says
         # nothing about the curb: it can mark a spot paid, never un-mark it.
         if payload.payment == Payment.paid:
@@ -163,6 +173,7 @@ async def report_spot(
         spot = existing
     else:
         spot = Spot(
+            left_by_driver=payload.leaving or payload.handoff,
             reporter_id=user_id,
             lat=payload.lat,
             lng=payload.lng,
@@ -171,11 +182,16 @@ async def report_spot(
             payment=payload.payment,
             vehicle_size=payload.vehicle_size,
             address=address,
+            note=note,
             ttl_minutes=SPOT_TTL_MINUTES,
             hot_minutes=hot,
         )
         db.add(spot)
-        award_points(user, POINTS_REPORT)
+        award_points(user, POINTS_REPORT + (POINTS_HANDOFF_BONUS if payload.handoff else 0))
+        if payload.handoff:
+            # Remembered for the cancel window, so taking it back returns the bonus too.
+            await db.flush()
+            await redis.set(f"handoff:{spot.id}", "1", ex=CANCEL_WINDOW_MINUTES * 60 + 60)
 
     if payload.photo_staging_id:
         await db.flush()  # assigns spot.id (a new spot's PK default runs at INSERT, not construction)
@@ -204,6 +220,8 @@ async def nearby_spots(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
     radius_m: int = Query(800, gt=0, le=5000),
+    me_lat: float | None = Query(None, ge=-90, le=90),
+    me_lng: float | None = Query(None, ge=-180, le=180),
     spot_type: list[SpotType] | None = Query(None),
     payment: Payment | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -229,6 +247,9 @@ async def nearby_spots(
         # map move's payload (load-test bug #6: ~145 KB before).
         .limit(NEARBY_LIMIT)
     )
+    if me_lat is not None and me_lng is not None:
+        me = ST_SetSRID(ST_MakePoint(me_lng, me_lat), 4326)
+        stmt = stmt.where(ST_DWithin(Spot.location, me, VISIBLE_RADIUS_M))
     if spot_type:
         stmt = stmt.where(Spot.spot_type.in_(spot_type))
     if payment:
@@ -245,6 +266,8 @@ async def nearby_spots(
 @router.post("/{spot_id}/claim", response_model=SpotOut)
 async def claim_spot(
     spot_id: uuid.UUID,
+    me_lat: float | None = Query(None, ge=-90, le=90),
+    me_lng: float | None = Query(None, ge=-180, le=180),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
@@ -254,6 +277,11 @@ async def claim_spot(
     spot = await db.get(Spot, spot_id)
     if spot is None or spot.status != SpotStatus.active:
         raise HTTPException(404, "Spot not available")
+    if me_lat is not None and me_lng is not None:
+        me = ST_SetSRID(ST_MakePoint(me_lng, me_lat), 4326)
+        close = await db.scalar(select(ST_DWithin(Spot.location, me, VISIBLE_RADIUS_M)).where(Spot.id == spot_id))
+        if not close:
+            raise HTTPException(403, "Get closer to take this spot")
 
     acquired = await redis.set(f"claim:{spot_id}", str(user_id), nx=True, ex=CLAIM_TTL_SECONDS)
     if not acquired:
@@ -265,6 +293,24 @@ async def claim_spot(
     await db.commit()
     await db.refresh(spot)
     return spot
+
+
+@router.delete("/{spot_id}/claim", status_code=204)
+async def release_claim(
+    spot_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+) -> None:
+    """Changed my mind: the spot goes straight back on the map for the next driver."""
+    spot = await db.get(Spot, spot_id)
+    if spot is None or spot.status != SpotStatus.claimed or spot.claimed_by != user_id:
+        raise HTTPException(404, "No hold on this spot")
+    spot.status = SpotStatus.active
+    spot.claimed_by = None
+    spot.claimed_at = None
+    await db.commit()
+    await redis.delete(f"claim:{spot_id}")
 
 
 @router.post("/{spot_id}/report-content", status_code=204)
@@ -297,11 +343,17 @@ async def report_content(
         delete_photo(spot.photo_url)
         spot.photo_url = None
         photo_removed = True
+    reported_note = spot.note
+    note_removed = False
+    if payload.reason == "note" and spot.note:
+        spot.note = None
+        note_removed = True
 
     who = (reporter.display_name or "?") if reporter else "deleted user"
     message = (
         f"Content report: {payload.reason}\nSpot {spot.id} ({spot.address or f'{spot.lat:.5f},{spot.lng:.5f}'})"
         f"\nPosted by: {who} ({spot.reporter_id})\nPhoto removed: {'yes' if photo_removed else 'no'}"
+        f"\nSpot note: {reported_note or '-'} (removed: {'yes' if note_removed else 'no'})"
     )
     if payload.note:
         message += f"\nNote: {payload.note.strip()}"
@@ -347,6 +399,7 @@ async def submit_feedback(
         spot.removed_reason = RemovedReason.taken_confirmed
         spot.removed_at = now
         delete_photo(spot.photo_url)
+        spot.photo_url = None
         reporter.consecutive_bad_reports = 0
         if now - spot.reported_at <= timedelta(minutes=CONFIRM_BONUS_WINDOW_MINUTES):
             award_points(reporter, POINTS_CONFIRM_BONUS)
@@ -363,6 +416,7 @@ async def submit_feedback(
             spot.removed_reason = RemovedReason.flagged_false
             spot.removed_at = now
             delete_photo(spot.photo_url)
+            spot.photo_url = None
             award_points(reporter, -POINTS_FALSE_PENALTY)
             reporter.consecutive_bad_reports += 1
             if reporter.consecutive_bad_reports >= BAD_REPORT_BLOCK_THRESHOLD:
@@ -396,7 +450,8 @@ async def cancel_report(
         raise HTTPException(409, "Cancel window has passed")
 
     user = await db.get(User, user_id)
-    award_points(user, -POINTS_REPORT)
+    handoff = await redis.delete(f"handoff:{spot_id}")
+    award_points(user, -(POINTS_REPORT + (POINTS_HANDOFF_BONUS if handoff else 0)))
     delete_photo(spot.photo_url)
 
     bucket = _location_bucket(spot.lat, spot.lng)

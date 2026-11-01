@@ -9,13 +9,14 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
-set -a; source .env; set +a
 
 dest="$HOME/backups"
 mkdir -p "$dest"
 file="$dest/parkit-$(date -u +%Y-%m-%d).sql.gz"
 
-docker compose exec -T db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner | gzip > "$file.tmp"
+# The db container has POSTGRES_USER/DB in its own environment, so .env isn't
+# sourced here (a value like EMAIL_FROM=ParkIt <a@b> breaks a shell).
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner' | gzip > "$file.tmp"
 mv "$file.tmp" "$file"
 
 # Delete dumps older than 14 days.
