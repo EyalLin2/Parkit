@@ -291,20 +291,17 @@ appId: com.parkit.israel
     visible: "Filter that never appears"
     timeout: 31000
     optional: true
+# Back to the phone with the locate button: on a slow runner a tap takes as long as the
+# "Go to me" snackbar stays up, and that button already has its step above.
+- tapOn: "My location"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 3000
+    optional: true
 - tapOn: "Report"
 - extendedWaitUntil:
-    visible: "Go to me|Report a free spot"
+    visible: "Report a free spot"
     timeout: 8000
-- runFlow:
-    when:
-      visible: "Go to me"
-    commands:
-      - tapOn: "Go to me"
-      - extendedWaitUntil:
-          visible: "Filter that never appears"
-          timeout: 3000
-          optional: true
-      - tapOn: "Report"
 - tapOn: "Leaving your spot now? One tap, no photo"
 - extendedWaitUntil:
     visible: "Spot reported"

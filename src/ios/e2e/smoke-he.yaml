@@ -6,6 +6,10 @@ appId: com.parkit.israel
     clearState: true
     permissions:
       all: allow
+# The test location, even if the English run stopped somewhere else.
+- setLocation:
+    latitude: 32.0853
+    longitude: 34.7818
 
 - assertNotVisible: "איך זה עובד"
 - takeScreenshot: he-01-welcome

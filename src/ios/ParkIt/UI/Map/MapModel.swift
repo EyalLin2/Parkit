@@ -363,7 +363,7 @@ final class MapModel: NSObject, ObservableObject {
         snackbar = Snackbar(message: message, actionLabel: action, action: run)
         snackTask?.cancel()
         snackTask = Task {
-            try? await Task.sleep(for: .seconds(seconds ?? (action == nil ? 4 : 8)))
+            try? await Task.sleep(for: .seconds(seconds ?? (action == nil ? 4 : 10)))
             if !Task.isCancelled { snackbar = nil }
         }
     }
