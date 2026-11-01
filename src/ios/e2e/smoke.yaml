@@ -119,9 +119,18 @@ appId: com.parkit.israel
 - takeScreenshot: 15-report-content-sent
 
 # Claim: navigation opens outside the app (Maps here, Waze on a phone that has it)
-- swipe:
-    start: "50%,86%"
-    end: "50%,40%"
+- extendedWaitUntil:
+    notVisible: "Thanks, your report was sent.*"
+    timeout: 10000
+- repeat:
+    while:
+      notVisible:
+        id: "spot_row_1"
+    times: 3
+    commands:
+      - swipe:
+          start: "50%,86%"
+          end: "50%,40%"
 - tapOn:
     id: "spot_row_1"
 - tapOn: "On my way.*"
