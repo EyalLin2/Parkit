@@ -256,7 +256,7 @@ appId: com.parkit.israel
 - takeScreenshot: 30-rewards-characters
 - tapOn: "Car"
 - takeScreenshot: 31-rewards-car
-- tapOn: "Backgrounds"
+- tapOn: "Themes"
 - takeScreenshot: 32-rewards-backgrounds
 - tapOn: "Back"
 - tapOn: "League"
