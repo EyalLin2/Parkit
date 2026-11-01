@@ -104,6 +104,19 @@ data class SpotOut(
 @JsonClass(generateAdapter = true)
 data class FeedbackCreate(val type: String)
 
+/** Whether the server currently limits ParkIt to the launch city. */
+@JsonClass(generateAdapter = true)
+data class ServiceAreaOut(@Json(name = "tel_aviv_only") val telAvivOnly: Boolean = false)
+
+/** POST /spots outside the launch city. 403 alone isn't enough: a driver
+ * blocked for bad reports gets one too. Peeks, so the body stays readable. */
+fun Throwable.isOutsideServiceArea(): Boolean {
+    val http = this as? retrofit2.HttpException ?: return false
+    if (http.code() != 403) return false
+    val body = runCatching { http.response()?.errorBody()?.source()?.peek()?.readUtf8() }.getOrNull()
+    return body?.contains("only open in Tel Aviv") == true
+}
+
 /** "This photo / note / name is offensive" — reason is photo, note, user or other. */
 @JsonClass(generateAdapter = true)
 data class ContentReport(val reason: String, val note: String? = null)
