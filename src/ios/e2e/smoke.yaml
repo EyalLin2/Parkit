@@ -140,11 +140,6 @@ appId: com.parkit.israel
     visible: "Filter that never appears"
     timeout: 4000
     optional: true
-# Maps asks for location itself, and its prompt would stay over the app. Refusing also
-# avoids the second prompt it shows once allowed. (iOS writes a curly apostrophe.)
-- tapOn:
-    text: "Don.t Allow"
-    optional: true
 - takeScreenshot: 16-navigation-opened
 - launchApp:
     stopApp: false
@@ -181,9 +176,6 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: "Filter that never appears"
     timeout: 4000
-    optional: true
-- tapOn:
-    text: "Don.t Allow"
     optional: true
 - launchApp:
     stopApp: false
@@ -286,7 +278,7 @@ appId: com.parkit.israel
 - tapOn:
     id: "report_note"
 - inputText: "Low curb e2e"
-- tapOn: "Note for the next driver.*"
+- pressKey: Enter
 - scrollUntilVisible:
     element: "Confirm Report"
     direction: DOWN

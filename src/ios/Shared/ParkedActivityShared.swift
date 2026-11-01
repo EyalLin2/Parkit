@@ -1,6 +1,7 @@
 import ActivityKit
 import AppIntents
 import Foundation
+import os
 
 /// What the parked-car Live Activity shows. The app fills in the wording in the language
 /// chosen inside it, because an extension only knows the phone's language.
@@ -26,6 +27,7 @@ struct LeaveSpotIntent: LiveActivityIntent {
     init() {}
 
     func perform() async throws -> some IntentResult {
+        Logger(subsystem: "com.parkit.israel", category: "live").notice("LeaveSpotIntent performed in \(Bundle.main.bundleIdentifier ?? "?", privacy: .public)")
         await ParkedHandOff.run()
         return .result()
     }

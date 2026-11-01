@@ -112,6 +112,8 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
           xcrun simctl location "$udid" set 32.0853,34.7818
+          # "On my way" opens Maps; already refused, it asks nothing over the app.
+          xcrun simctl privacy "$udid" revoke location com.apple.Maps
       - name: Build and install the app
         working-directory: src/ios
         run: |
@@ -133,7 +135,9 @@ jobs:
           bash src/ios/e2e/seed_spots.sh he
           (cd e2e-output/he && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/smoke-he.yaml") || status=1
           (cd e2e-output/live && maestro --device "$UDID" test --debug-output="$PWD/debug" "$root/src/ios/e2e/live-activity.yaml") || status=1
-          grep -E 'POST /spots ' "$RUNNER_TEMP/backend.log" | tail -n 3 || true
+          # What the lock-screen button did, whichever process ran it.
+          xcrun simctl spawn "$UDID" log show --last 12m --style compact --info \
+            --predicate 'subsystem == "com.parkit.israel" OR eventMessage CONTAINS[c] "LeaveSpotIntent"' | tail -n 60 || true
           exit $status
       - name: Backend log
         if: always()
