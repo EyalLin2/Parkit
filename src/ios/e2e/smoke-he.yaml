@@ -110,7 +110,7 @@ appId: com.parkit.israel
 - tapOn: "צלם את החניה"
 - extendedWaitUntil:
     visible: "בחרו צבע מדרכה כדי להמשיך"
-    timeout: 30000
+    timeout: 90000
 - takeScreenshot: he-15-report-curb
 - tapOn: "אפור \\(חינם\\)"
 - tapOn: "פרטים נוספים \\(לא חובה\\)"

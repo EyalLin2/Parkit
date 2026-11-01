@@ -55,7 +55,7 @@ struct MapScreen: View {
                         model.fly(to: model.coord(spot), zoom: 16.5)
                         model.sheet = .spot(spot)
                         sheetExpanded = false
-                    }, dragGesture: DragGesture()
+                    }, dragGesture: DragGesture(coordinateSpace: .global)
                         .updating($drag) { v, s, _ in s = -v.translation.height }
                         .onEnded { v in
                             withAnimation(.spring(duration: 0.3)) { sheetExpanded = -v.predictedEndTranslation.height + base > (open + closed) / 2 }

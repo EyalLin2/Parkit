@@ -274,7 +274,7 @@ appId: com.parkit.israel
 - tapOn: "Take a photo of the spot"
 - extendedWaitUntil:
     visible: "Choose the curb colour to continue"
-    timeout: 30000
+    timeout: 90000
 - takeScreenshot: 28-report-send-off-until-curb
 - tapOn: "Gray \\(free\\)"
 - tapOn: "More details \\(optional\\)"

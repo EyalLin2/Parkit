@@ -1,0 +1,13 @@
+# Phones without an always-on display go dark when locked; Home wakes them. The Live
+# Activity button is on the lock screen once something can be seen there.
+appId: com.parkit.israel
+---
+- runFlow:
+    when:
+      notVisible: "יוצא מהחניה|I'm leaving"
+    commands:
+      - pressKey: Home
+      - extendedWaitUntil:
+          visible: "יוצא מהחניה|I'm leaving"
+          timeout: 6000
+          optional: true
