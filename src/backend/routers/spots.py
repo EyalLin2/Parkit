@@ -49,6 +49,9 @@ CONTENT_REPORTS_PER_HOUR = 10
 # off, so the phone's own accuracy is added on top — capped, so a "±5 km"
 # fix can't stretch the limit across town.
 MAX_REPORT_DISTANCE_M = 150
+# Free spots are for drivers already close by: nobody crosses town for one
+# that's gone by the time they arrive.
+VISIBLE_RADIUS_M = 800
 MAX_ACCURACY_ALLOWANCE_M = 100
 
 
@@ -215,6 +218,8 @@ async def nearby_spots(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
     radius_m: int = Query(800, gt=0, le=5000),
+    me_lat: float | None = Query(None, ge=-90, le=90),
+    me_lng: float | None = Query(None, ge=-180, le=180),
     spot_type: list[SpotType] | None = Query(None),
     payment: Payment | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -240,6 +245,9 @@ async def nearby_spots(
         # map move's payload (load-test bug #6: ~145 KB before).
         .limit(NEARBY_LIMIT)
     )
+    if me_lat is not None and me_lng is not None:
+        me = ST_SetSRID(ST_MakePoint(me_lng, me_lat), 4326)
+        stmt = stmt.where(ST_DWithin(Spot.location, me, VISIBLE_RADIUS_M))
     if spot_type:
         stmt = stmt.where(Spot.spot_type.in_(spot_type))
     if payment:
@@ -256,6 +264,8 @@ async def nearby_spots(
 @router.post("/{spot_id}/claim", response_model=SpotOut)
 async def claim_spot(
     spot_id: uuid.UUID,
+    me_lat: float | None = Query(None, ge=-90, le=90),
+    me_lng: float | None = Query(None, ge=-180, le=180),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
@@ -265,6 +275,11 @@ async def claim_spot(
     spot = await db.get(Spot, spot_id)
     if spot is None or spot.status != SpotStatus.active:
         raise HTTPException(404, "Spot not available")
+    if me_lat is not None and me_lng is not None:
+        me = ST_SetSRID(ST_MakePoint(me_lng, me_lat), 4326)
+        close = await db.scalar(select(ST_DWithin(Spot.location, me, VISIBLE_RADIUS_M)).where(Spot.id == spot_id))
+        if not close:
+            raise HTTPException(403, "Get closer to take this spot")
 
     acquired = await redis.set(f"claim:{spot_id}", str(user_id), nx=True, ex=CLAIM_TTL_SECONDS)
     if not acquired:

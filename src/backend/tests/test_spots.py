@@ -306,3 +306,21 @@ async def test_cleanup_expires_spots_and_drops_their_photo_pointer(client, make_
             await conn.execute(sql("SELECT status, photo_url, note FROM spots WHERE id = :id"), {"id": spot["id"]})
         ).one()
     assert row.status == "expired" and row.photo_url is None and row.note == "old"
+
+
+async def test_only_drivers_close_by_see_and_take_a_spot(client, make_user):
+    _, reporter = await make_user("reporter")
+    _, driver = await make_user("driver")
+    spot = (await _report(client, reporter, lat=32.09, lng=34.79)).json()
+    params = {"lat": 32.09, "lng": 34.79}
+
+    near = await client.get("/spots", params={**params, "me_lat": 32.092, "me_lng": 34.79})
+    assert [s["id"] for s in near.json()] == [spot["id"]]
+    far = await client.get("/spots", params={**params, "me_lat": 32.20, "me_lng": 34.79})
+    assert far.json() == []
+
+    claim = f"/spots/{spot['id']}/claim"
+    too_far = await client.post(claim, params={"me_lat": 32.20, "me_lng": 34.79}, headers=driver)
+    assert too_far.status_code == 403
+    assert (await client.post(claim, params={"me_lat": 32.092, "me_lng": 34.79}, headers=driver)).status_code == 200
+

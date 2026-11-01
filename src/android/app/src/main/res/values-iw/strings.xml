@@ -504,4 +504,7 @@
     <string name="permission_camera_needed">כדי לצלם, צריך לאשר גישה למצלמה בהגדרות הטלפון</string>
     <string name="permission_notifications_needed">כדי לקבל תזכורת, צריך לאשר התראות בהגדרות הטלפון</string>
     <string name="permission_bluetooth_needed">כדי להשתמש בזה, צריך לאשר Bluetooth והתראות בהגדרות הטלפון</string>
+    <string name="map_get_closer_title">התקרבו כדי לראות חניות פנויות</string>
+    <string name="map_get_closer_hint">חניות פנויות מוצגות רק עד 800 מטר מכם.</string>
+    <string name="report_leaving_now">יוצאים עכשיו מהחניה? לחיצה אחת, בלי תמונה</string>
 </resources>

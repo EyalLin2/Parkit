@@ -41,6 +41,10 @@ appId: com.parkit.israel
     direction: DOWN
 - tapOn: "First name"
 - inputText: "Test"
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Last name"
+    direction: DOWN
 - tapOn: "Last name"
 - inputText: "Driver"
 - hideKeyboard

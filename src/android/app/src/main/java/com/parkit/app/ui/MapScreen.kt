@@ -499,11 +499,15 @@ fun MapScreen(
 
     // Spots load independently of the address — a slow geocoder must never
     // delay the thing people actually opened the app for.
-    LaunchedEffect(geocodeTarget, reloadTick) {
+    // Moving about 100 m refreshes which spots are within reach.
+    val myCell = deviceLocation?.let { "%.3f,%.3f".format(java.util.Locale.ROOT, it.latitude, it.longitude) }
+    LaunchedEffect(geocodeTarget, reloadTick, myCell) {
         delay(300)
         while (true) {
             try {
-                spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
+                spots = sessionStore.lastFix?.let { (meLat, meLng) ->
+                    api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M, meLat, meLng)
+                }.orEmpty()
                 spotsLoaded = true
                 spotsFailed = false
                 break
@@ -783,7 +787,9 @@ fun MapScreen(
     fun refreshSpotsNow() {
         scope.launch {
             try {
-                spots = api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M)
+                spots = sessionStore.lastFix?.let { (meLat, meLng) ->
+                    api.nearbySpots(geocodeTarget.latitude, geocodeTarget.longitude, DEFAULT_RADIUS_M, meLat, meLng)
+                }.orEmpty()
             } catch (_: Exception) {
                 // next camera-idle pass will retry
             }
@@ -813,6 +819,37 @@ fun MapScreen(
                 )
                 forgetCar()
                 leftSpot = spot.id to car.copy(at = System.currentTimeMillis())
+                refreshSpotsNow()
+                refreshMyProfile()
+                snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
+            } catch (e: Exception) {
+                if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
+            }
+        }
+    }
+
+    /** "I'm leaving" without a saved car: the spot is where the phone is now. */
+    fun leaveHereNow() {
+        scope.launch {
+            val fix = currentFix()
+            if (fix == null) {
+                snackbarHostState.showSnackbar(context.getString(R.string.location_denied))
+                return@launch
+            }
+            try {
+                api.reportSpot(
+                    com.parkit.app.api.SpotCreate(
+                        lat = fix.latitude,
+                        lng = fix.longitude,
+                        spotType = "street",
+                        payment = "free",
+                        vehicleSize = sessionStore.driver.value.preferences.vehicleSize,
+                        address = null,
+                        reporterLat = fix.latitude,
+                        reporterLng = fix.longitude,
+                        reporterAccuracyM = fix.takeIf { it.hasAccuracy() }?.accuracy,
+                    ),
+                )
                 refreshSpotsNow()
                 refreshMyProfile()
                 snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
@@ -1136,6 +1173,9 @@ fun MapScreen(
         sheetContent = {
             NearbySheet(
                 spots = sortedSpots,
+                tooFar = sessionStore.lastFix?.let { (meLat, meLng) ->
+                    LatLng(meLat, meLng).distanceTo(geocodeTarget) > DEFAULT_RADIUS_M
+                } ?: true,
                 loaded = spotsLoaded,
                 failed = spotsFailed,
                 onRetry = { spotsFailed = false; reloadTick++ },
@@ -1494,6 +1534,10 @@ fun MapScreen(
             streetAddress = resolvedStreet,
             defaultVehicleSize = driverPrefs.preferences.vehicleSize,
             currentFix = { currentFix() },
+            onLeavingNow = {
+                showReportFlow = false
+                parkedCar?.let { leaveSpot(it) } ?: leaveHereNow()
+            },
             onDismiss = { showReportFlow = false },
             onReported = {
                 showReportFlow = false
@@ -1516,6 +1560,7 @@ fun MapScreen(
             api = api,
             spot = spot,
             myUserId = myUserId,
+            myFix = sessionStore.lastFix,
             fit = fitOf(spot, driverPrefs.preferences),
             distanceLabel = context.getString(
                 R.string.spot_distance_away,
@@ -1790,6 +1835,7 @@ private fun CenterPin(lifted: Boolean, modifier: Modifier = Modifier) {
 @Composable
 private fun NearbySheet(
     spots: List<SpotOut>,
+    tooFar: Boolean,
     loaded: Boolean,
     addresses: Map<String, String>,
     reference: LatLng,
@@ -1835,7 +1881,8 @@ private fun NearbySheet(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    if (!loaded) stringResource(R.string.map_nearby_searching)
+                    if (spots.isEmpty() && tooFar) stringResource(R.string.map_get_closer_title)
+                    else if (!loaded) stringResource(R.string.map_nearby_searching)
                     else if (spots.isEmpty()) stringResource(R.string.map_nearby_none)
                     else pluralStringResource(R.plurals.map_nearby_count, spots.size, spots.size),
                     style = MaterialTheme.typography.titleLarge,
@@ -1891,7 +1938,8 @@ private fun NearbySheet(
                 val nearest = (spots.filterNot { fitOf(it, prefs).unusable }.ifEmpty { spots })
                     .minByOrNull { LatLng(it.lat, it.lng).distanceTo(reference) }
                 Text(
-                    if (!loaded) stringResource(R.string.map_nearby_searching_hint)
+                    if (spots.isEmpty() && tooFar) stringResource(R.string.map_get_closer_hint)
+                    else if (!loaded) stringResource(R.string.map_nearby_searching_hint)
                     else if (nearest == null) stringResource(R.string.map_nearby_empty_hint)
                     else stringResource(
                         R.string.map_nearest,

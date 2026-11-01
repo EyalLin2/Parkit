@@ -44,13 +44,19 @@ interface ApiService {
         @Query("lat") lat: Double,
         @Query("lng") lng: Double,
         @Query("radius_m") radiusM: Int,
+        @Query("me_lat") meLat: Double?,
+        @Query("me_lng") meLng: Double?,
     ): List<SpotOut>
 
     @POST("spots")
     suspend fun reportSpot(@Body body: SpotCreate): SpotOut
 
     @POST("spots/{id}/claim")
-    suspend fun claimSpot(@Path("id") spotId: String): SpotOut
+    suspend fun claimSpot(
+        @Path("id") spotId: String,
+        @Query("me_lat") meLat: Double?,
+        @Query("me_lng") meLng: Double?,
+    ): SpotOut
 
     @POST("spots/{id}/feedback")
     suspend fun submitFeedback(@Path("id") spotId: String, @Body body: FeedbackCreate)

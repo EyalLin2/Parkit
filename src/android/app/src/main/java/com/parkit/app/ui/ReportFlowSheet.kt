@@ -97,6 +97,7 @@ fun ReportFlowSheet(
     defaultVehicleSize: String?,
     /** The phone's latest fix, read at the moment of sending. */
     currentFix: () -> android.location.Location?,
+    onLeavingNow: () -> Unit,
     onDismiss: () -> Unit,
     onReported: () -> Unit,
     onSessionExpired: () -> Unit,
@@ -235,6 +236,14 @@ fun ReportFlowSheet(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(start = 4.dp),
                 )
+            }
+
+            androidx.compose.material3.OutlinedButton(
+                onClick = onLeavingNow,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+            ) {
+                Text(stringResource(R.string.report_leaving_now))
             }
 
             PhotoArea(

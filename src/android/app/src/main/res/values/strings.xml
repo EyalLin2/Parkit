@@ -497,4 +497,7 @@
     <string name="permission_camera_needed">Allow camera access in your phone\'s settings to take the photo</string>
     <string name="permission_notifications_needed">Allow notifications in your phone\'s settings to get the reminder</string>
     <string name="permission_bluetooth_needed">Allow Bluetooth and notifications in your phone\'s settings to use this</string>
+    <string name="map_get_closer_title">Get closer to see free spots</string>
+    <string name="map_get_closer_hint">Free spots show only within 800 m of you.</string>
+    <string name="report_leaving_now">Leaving your spot now? One tap, no photo</string>
 </resources>

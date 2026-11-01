@@ -95,6 +95,7 @@ fun SpotActionsSheet(
     api: ApiService,
     spot: SpotOut,
     myUserId: String?,
+    myFix: Pair<Double, Double>?,
     fit: DriverFit,
     distanceLabel: String?,
     onDismiss: () -> Unit,
@@ -301,11 +302,15 @@ fun SpotActionsSheet(
                     error = null
                     scope.launch {
                         try {
-                            val claimed = api.claimSpot(spot.id).copy(address = spot.localAddress ?: address, reporterLevel = spot.reporterLevel)
+                            val claimed = api.claimSpot(spot.id, myFix?.first, myFix?.second).copy(address = spot.localAddress ?: address, reporterLevel = spot.reporterLevel)
                             navigate()
                             onClaimed(claimed)
                         } catch (e: Exception) {
-                            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                            error = when {
+                                e.isUnauthorized() -> { onSessionExpired(); null }
+                                (e as? retrofit2.HttpException)?.code() == 403 -> context.getString(R.string.map_get_closer_hint)
+                                else -> e.friendlyMessage(context)
+                            }
                         } finally {
                             busy = false
                         }
