@@ -25,6 +25,7 @@ def clean(text: str) -> str:
         text = text[1:-1]
     text = re.sub(r"\\([\'\"@?])", r"\1", text)
     text = text.replace("\\n", "\n")
+    text = re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), text)
     # Android formats to Cocoa formats.
     text = re.sub(r"%(\d+\$)?s", lambda m: f"%{m.group(1) or ''}@", text)
     text = re.sub(r"%(\d+\$)?d", lambda m: f"%{m.group(1) or ''}ld", text)

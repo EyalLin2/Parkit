@@ -15,8 +15,8 @@ extension CLLocationCoordinate2D: @retroactive Equatable {
 enum MapConst {
     static let telAviv = Coord(latitude: 32.0809, longitude: 34.7806)
     static let israelOverview = Coord(latitude: 31.6, longitude: 34.95)
-    static let overviewZoom = 6.6 - 1 // MapLibre iOS counts 512pt tiles one level off Android's dp
-    static let streetZoom = 15.0 - 0.5
+    static let overviewZoom = 6.6
+    static let streetZoom = 15.0
     static let radiusM = 800
     static let lotsRadiusM = 1500
     /// Same limit as the server (routers/spots.py): you report spots you can see.

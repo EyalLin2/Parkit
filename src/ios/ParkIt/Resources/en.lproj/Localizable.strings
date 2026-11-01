@@ -177,7 +177,7 @@
 "lot_capacity" = "%1$ld spaces";
 "lot_source_note" = "Lot data from OpenStreetMap — check the entrance for hours and prices.";
 "spot_no_photo_cd" = "No photo for this spot";
-"spot_age_short" = "%1$@\\u00A0ago";
+"spot_age_short" = "%1$@ ago";
 "profile_tab_league" = "League";
 "profile_tab_reports" = "My reports";
 "league_not_ranked" = "You're not in this week's league yet — report a spot to get on the board.";
