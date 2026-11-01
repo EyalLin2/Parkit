@@ -122,7 +122,7 @@
     <string name="settings_map_data">נתוני מפה</string>
     <string name="settings_map_data_value">© OpenStreetMap</string>
     <string name="settings_logout_confirm_title">להתנתק?</string>
-    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם קוד לטלפון או למייל.</string>
+    <string name="settings_logout_confirm_body">אפשר להתחבר שוב בכל רגע עם קוד למייל.</string>
     <string name="settings_cancel">ביטול</string>
     <string name="map_spot_kind_regular">חניה רגילה</string>
     <string name="map_spot_kind_disabled">חניית נכים</string>
@@ -140,7 +140,7 @@
     <string name="map_nearby_searching">מחפש חניות פנויות…</string>
     <string name="map_nearby_searching_hint">בודק דיווחים סביב הנעץ</string>
     <string name="map_address_unavailable">לא הצלחנו לאתר כתובת</string>
-    <string name="map_report_here">דווח על חניה כאן</string>
+    <string name="map_report_here">דווח</string>
     <string name="spot_photo_taken">צילום המדווח · %1$s</string>
     <string name="spot_photo_expand_cd">פתיחת התמונה במסך מלא</string>
     <string name="map_locating_you">מאתר את מיקומך…</string>
@@ -165,7 +165,7 @@
     <string name="league_subtitle">נקודות השבוע · מתאפס בכל שבוע</string>
     <string name="spot_reported_by_level">דווח ע״י נהג %1$s</string>
     <string name="claim_trip_title">בדרך לחניה</string>
-    <string name="claim_drive_safely">שמורה לך. אין צורך למהר — סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
+    <string name="claim_drive_safely">שמורה לך ל-2 דקות. סעו בבטחה, ואל תגעו בטלפון בזמן נהיגה.</string>
     <string name="claim_taken_thanks">תודה — עדכנו את שאר הנהגים</string>
     <string name="claim_expired">החניה חזרה למפה. בלי לחץ — יש עוד חניות בסביבה.</string>
     <!-- פרופיל נהג: רכב, תגים, אזור מועדף -->
@@ -251,7 +251,7 @@
     <string name="login_dev_code">הקוד שלך: %1$s · הקישו למילוי</string>
     <string name="login_phone_invalid">הזינו מספר נייד ישראלי (05X-XXXXXXX)</string>
     <string name="login_too_many">רגע… חכו כמה שניות ונסו שוב</string>
-    <string name="login_code_wrong">הקוד שגוי — בדקו את ה-SMS ונסו שוב</string>
+    <string name="login_code_wrong">הקוד שגוי — בדקו את המייל ונסו שוב</string>
     <string name="login_code_expired">פג תוקף הקוד — שלחו קוד חדש</string>
     <string name="login_terms_note">הטלפון או המייל שלך משמשים רק לכניסה. נהגים אחרים לא רואים אותם.</string>
     <string name="details_title">הפרטים שלי</string>
@@ -295,7 +295,7 @@
         <item>בריסטה</item>
     </string-array>
     <string name="settings_section_account">חשבון</string>
-    <string name="settings_details_sub">שם, אימייל וטלפון</string>
+    <string name="settings_details_sub">שם ואימייל</string>
     <string name="hero_points">נקודות</string>
     <string name="hero_helped">נהגים שעזרת</string>
     <string name="hero_rank">השבוע</string>
@@ -347,7 +347,7 @@
     <string name="tip_go_title">בדרך לחניה</string>
     <string name="tip_go_body">\"אני בדרך\" ← הניווט נפתח.</string>
     <string name="tip_report_title">יוצאים? דווחו</string>
-    <string name="tip_report_body">מצלמים, שולחים, ‎+10.</string>
+    <string name="tip_report_body">לחיצה אחת, בלי תמונה, ‎+15.</string>
     <string name="tip_photo_points">פנים ולוחיות מטושטשים</string>
     <string name="tip_close_title">סוגרים מעגל</string>
     <string name="tip_close_body">הגעתם? \"חניתי כאן\".</string>
@@ -363,7 +363,7 @@
     <string name="content_report_user">שם המשתמש פוגעני</string>
     <string name="content_report_other">משהו אחר</string>
     <string name="content_report_sent">תודה, הדיווח נשלח ונבדוק אותו</string>
-    <string name="map_empty_show_lots">חניונים בתשלום</string>
+    <string name="map_empty_show_lots">חניונים</string>
     <string name="map_empty_invite">הזמן חברים</string>
     <string name="map_open_profile_cd">הפרופיל שלי</string>
     <string name="report_blue_white">המדרכה כחול־לבן (בתשלום)</string>
@@ -491,8 +491,8 @@
     <string name="rewards_owned">שלך</string>
     <string name="rewards_in_use">בשימוש</string>
     <string name="profile_change_backdrop">החלפת רקע</string>
-    <string name="car_line_hint">לפרטים, תשלום וסיום חניה</string>
-    <string name="car_pay_short">תשלום בפנגו / סלופארק</string>
+    <string name="car_line_hint">פרטים ותשלום</string>
+    <string name="car_pay_short">תשלום חניה</string>
     <string name="car_handoff_title">למסור את החניה לנהג הבא?</string>
     <string name="car_handoff_body">החניה תופיע במפה לנהגים שמחפשים, ואתה מקבל ‎+15 נק׳.</string>
     <string name="car_handoff_yes">כן, למסור (‎+15)</string>

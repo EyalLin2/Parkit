@@ -118,7 +118,7 @@
     <string name="settings_map_data">Map data</string>
     <string name="settings_map_data_value">© OpenStreetMap</string>
     <string name="settings_logout_confirm_title">Log out?</string>
-    <string name="settings_logout_confirm_body">You can sign back in any time with a code to your phone or email.</string>
+    <string name="settings_logout_confirm_body">You can sign back in any time with a code to your email.</string>
     <string name="settings_cancel">Cancel</string>
     <string name="map_spot_kind_regular">Regular spot</string>
     <string name="map_spot_kind_disabled">Disabled parking</string>
@@ -136,7 +136,7 @@
     <string name="map_nearby_searching">Looking for free spots…</string>
     <string name="map_nearby_searching_hint">Checking reports around the pin</string>
     <string name="map_address_unavailable">Couldn\'t get the address</string>
-    <string name="map_report_here">Report a spot here</string>
+    <string name="map_report_here">Report</string>
     <string name="spot_photo_taken">Photo from the reporter · %1$s</string>
     <string name="spot_photo_expand_cd">Open photo full screen</string>
     <string name="map_locating_you">Finding your location…</string>
@@ -161,7 +161,7 @@
     <string name="league_subtitle">Points this week · resets every week</string>
     <string name="spot_reported_by_level">Reported by a %1$s driver</string>
     <string name="claim_trip_title">You\'re on your way</string>
-    <string name="claim_drive_safely">Held for you. No need to rush — drive safely, and only touch the phone when parked.</string>
+    <string name="claim_drive_safely">Held for you for 2 minutes. Drive safely, and only touch the phone when parked.</string>
     <string name="claim_taken_thanks">Thanks — we warned other drivers</string>
     <string name="claim_expired">The spot went back on the map. Take your time — there are more around.</string>
     <!-- Driver profile: car, permits, preferred area -->
@@ -245,7 +245,7 @@
     <string name="login_dev_code">Your code is %1$s · tap to fill it in</string>
     <string name="login_phone_invalid">Enter an Israeli mobile number (05X-XXXXXXX)</string>
     <string name="login_too_many">Hold on — wait a few seconds and try again</string>
-    <string name="login_code_wrong">Wrong code — check the SMS and try again</string>
+    <string name="login_code_wrong">Wrong code — check your email and try again</string>
     <string name="login_code_expired">The code expired — send a new one</string>
     <string name="login_terms_note">Your phone or email is used only to sign you in. Other drivers never see it.</string>
     <string name="details_title">My details</string>
@@ -289,7 +289,7 @@
         <item>Barista</item>
     </string-array>
     <string name="settings_section_account">Account</string>
-    <string name="settings_details_sub">Name, email and phone</string>
+    <string name="settings_details_sub">Name and email</string>
     <string name="hero_points">Points</string>
     <string name="hero_helped">Drivers helped</string>
     <string name="hero_rank">This week</string>
@@ -341,7 +341,7 @@
     <string name="tip_go_title">Heading to a spot</string>
     <string name="tip_go_body">\"On my way\" → navigation opens.</string>
     <string name="tip_report_title">Leaving? Report it</string>
-    <string name="tip_report_body">Snap, send, +10.</string>
+    <string name="tip_report_body">One tap, no photo, +15.</string>
     <string name="tip_photo_points">Faces and plates blurred</string>
     <string name="tip_close_title">Close the loop</string>
     <string name="tip_close_body">Got there? \"I parked here\".</string>
@@ -357,8 +357,8 @@
     <string name="content_report_user">The user\'s name is offensive</string>
     <string name="content_report_other">Something else</string>
     <string name="content_report_sent">Thanks, your report was sent and we\'ll review it</string>
-    <string name="map_empty_show_lots">Paid car parks</string>
-    <string name="map_empty_invite">Invite friends</string>
+    <string name="map_empty_show_lots">Car parks</string>
+    <string name="map_empty_invite">Invite</string>
     <string name="map_open_profile_cd">My profile</string>
     <string name="report_blue_white">Blue-white curb (paid)</string>
     <string name="spot_blue_white">Blue-white curb · paid, you can use Pango</string>
@@ -484,8 +484,8 @@
     <string name="rewards_owned">Yours</string>
     <string name="rewards_in_use">In use</string>
     <string name="profile_change_backdrop">Change background</string>
-    <string name="car_line_hint">Details, payment and ending parking</string>
-    <string name="car_pay_short">Pay in Pango / Cellopark</string>
+    <string name="car_line_hint">Details and payment</string>
+    <string name="car_pay_short">Pay for parking</string>
     <string name="car_handoff_title">Hand the spot to the next driver?</string>
     <string name="car_handoff_body">It shows on the map for drivers looking nearby, and you get +15 points.</string>
     <string name="car_handoff_yes">Yes, hand it on (+15)</string>

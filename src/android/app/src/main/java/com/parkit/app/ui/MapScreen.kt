@@ -562,6 +562,7 @@ fun MapScreen(
     fun forgetCar() {
         parkedCar = null
         sessionStore.parkedCar = null
+        com.parkit.app.remind.ParkingReminder.cancel(context)
         ParkingPay.sessionApp(context)?.let { stopPayIn = it }
         ParkingPay.clearSession(context)
     }
@@ -852,7 +853,7 @@ fun MapScreen(
                 )
                 refreshSpotsNow()
                 refreshMyProfile()
-                snackbarHostState.showSnackbar(context.getString(R.string.car_leaving_thanks))
+                snackbarHostState.showSnackbar(context.getString(R.string.map_reported_snackbar))
             } catch (e: Exception) {
                 if (e.isUnauthorized()) onLoggedOut() else snackbarHostState.showSnackbar(e.friendlyMessage(context))
             }
@@ -985,7 +986,7 @@ fun MapScreen(
         ?.takeIf { it in 0..REMINDER_SOON_MIN }
     val nearMyCar = parkedCar?.let { car -> deviceLocation?.distanceTo(LatLng(car.lat, car.lng))?.let { it <= NEAR_CAR_M } } == true
     val mainAction: MainAction = when {
-        reminderLeftMin != null -> MainAction.Reminder(reminderLeftMin.toInt())
+        reminderLeftMin != null && parkedCar != null -> MainAction.Reminder(reminderLeftMin.toInt())
         nearMyCar -> MainAction.Leave
         else -> MainAction.Report
     }
@@ -1027,6 +1028,7 @@ fun MapScreen(
                 val here = LatLng(loc.latitude, loc.longitude)
                 if (!inServiceArea(here)) return
                 deviceLocation = here
+                sessionStore.lastFix = here.latitude to here.longitude
                 runCatching { map?.locationComponent?.takeIf { it.isLocationComponentActivated }?.forceLocationUpdate(loc) }
             }
         }
@@ -1175,7 +1177,7 @@ fun MapScreen(
                 spots = sortedSpots,
                 tooFar = sessionStore.lastFix?.let { (meLat, meLng) ->
                     LatLng(meLat, meLng).distanceTo(geocodeTarget) > DEFAULT_RADIUS_M
-                } ?: true,
+                } ?: false,
                 loaded = spotsLoaded,
                 failed = spotsFailed,
                 onRetry = { spotsFailed = false; reloadTick++ },
@@ -1534,9 +1536,12 @@ fun MapScreen(
             streetAddress = resolvedStreet,
             defaultVehicleSize = driverPrefs.preferences.vehicleSize,
             currentFix = { currentFix() },
-            onLeavingNow = {
-                showReportFlow = false
-                parkedCar?.let { leaveSpot(it) } ?: leaveHereNow()
+            // A saved car has its own one-tap "I'm leaving" next to the car.
+            onLeavingNow = if (parkedCar != null) null else {
+                {
+                    showReportFlow = false
+                    leaveHereNow()
+                }
             },
             onDismiss = { showReportFlow = false },
             onReported = {
@@ -1909,7 +1914,7 @@ private fun NearbySheet(
                             } ?: stringResource(R.string.forecast_no_data),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(start = 6.dp),
                         )
@@ -2319,7 +2324,7 @@ private fun walkTo(context: android.content.Context, lat: Double, lng: Double) {
     try {
         context.startActivity(walk)
     } catch (_: android.content.ActivityNotFoundException) {
-        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("geo:$lat,$lng?q=$lat,$lng")))
+        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("geo:$lat,$lng?q=$lat,$lng"))) }
     }
 }
 

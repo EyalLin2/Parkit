@@ -137,7 +137,7 @@ fun RewardsScreen(
                     newCode = updated.redemptions.firstOrNull { it.rewardId == reward.id }?.code
                 }
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                if (e.isUnauthorized()) onSessionExpired() else android.widget.Toast.makeText(context, e.friendlyMessage(context, aboutSpot = false), android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
