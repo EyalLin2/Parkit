@@ -35,7 +35,7 @@
     <string name="spot_go">On my way · Navigate</string>
     <string name="spot_status_free">Free</string>
     <string name="spot_i_took_it">I parked here</string>
-    <string name="spot_flag_taken">Already taken</string>
+    <string name="spot_flag_taken">Taken</string>
     <string name="spot_cancel_report">Cancel my report</string>
     <string name="error_not_found">That spot isn\'t there anymore.</string>
     <string name="error_conflict">Someone else just did that first.</string>

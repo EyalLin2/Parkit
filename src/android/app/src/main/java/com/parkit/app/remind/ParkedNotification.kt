@@ -111,7 +111,7 @@ class LeaveSpotReceiver : BroadcastReceiver() {
                     lat = car.lat,
                     lng = car.lng,
                     spotType = car.spotType,
-                    payment = "free",
+                    payment = if (ParkingPay.sessionApp(context) != null) "paid" else "free", // they were paying, so the next driver pays too
                     vehicleSize = session.driver.value.preferences.vehicleSize,
                     address = car.address,
                     reporterLat = fix?.latitude,

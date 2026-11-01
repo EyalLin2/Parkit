@@ -121,3 +121,43 @@ appId: com.parkit.israel
 - assertNotVisible: ".*PK-[0-9]+.*"
 - takeScreenshot: 09-left
 
+
+# Take someone's spot, then change your mind
+- swipe:
+    start: "50%,88%"
+    end: "50%,35%"
+- tapOn: "Regular spot ·.*ago.*"
+- tapOn: "On my way · Navigate"
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Never mind, let it go"
+    timeout: 15000
+- takeScreenshot: 10-trip
+- tapOn: "Never mind, let it go"
+- extendedWaitUntil:
+    notVisible: "Never mind, let it go"
+    timeout: 10000
+- assertNotVisible: ".*PK-[0-9]+.*"
+
+# Settings, then log out
+- tapOn: "My profile"
+- extendedWaitUntil:
+    visible: ".*Test D\\..*"
+    timeout: 10000
+- tapOn: "Settings"
+- tapOn: "My details"
+- assertVisible: "Email"
+- takeScreenshot: 11-details
+- back
+- scrollUntilVisible:
+    element: "Log out"
+    direction: DOWN
+- takeScreenshot: 12-settings
+- tapOn: "Log out"
+- assertVisible: "Log out?"
+- tapOn: "Log out"
+- extendedWaitUntil:
+    visible: "Send code"
+    timeout: 10000
+- takeScreenshot: 13-logged-out
