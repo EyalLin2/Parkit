@@ -323,4 +323,3 @@ async def test_only_drivers_close_by_see_and_take_a_spot(client, make_user):
     too_far = await client.post(claim, params={"me_lat": 32.20, "me_lng": 34.79}, headers=driver)
     assert too_far.status_code == 403
     assert (await client.post(claim, params={"me_lat": 32.092, "me_lng": 34.79}, headers=driver)).status_code == 200
-
