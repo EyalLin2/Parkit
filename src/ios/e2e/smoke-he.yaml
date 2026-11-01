@@ -1,0 +1,149 @@
+# The same journey in Hebrew, the default, to look at full right-to-left layout on every
+# main screen. Follows smoke.yaml, which deleted the account: this signs up anew.
+appId: com.parkit.israel
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+# The test location, even if the English run stopped somewhere else.
+- setLocation:
+    latitude: 32.0853
+    longitude: 34.7818
+
+- assertNotVisible: "איך זה עובד"
+- takeScreenshot: he-01-welcome
+- tapOn: "יאללה"
+
+- extendedWaitUntil:
+    visible: "שליחת קוד"
+    timeout: 8000
+- takeScreenshot: he-03-login
+- tapOn:
+    id: "login_email"
+- inputText: "e2e@parkit.dev"
+- tapOn: "שליחת קוד"
+- extendedWaitUntil:
+    visible:
+      id: "login_code"
+    timeout: 15000
+- takeScreenshot: he-04-code
+- tapOn:
+    id: "login_code"
+- inputText: "246810"
+
+# First-time details, unless the English run stopped before deleting its account.
+- extendedWaitUntil:
+    visible: "ברוכים הבאים ל-ParkIt!|דווח"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "ברוכים הבאים ל-ParkIt!"
+    commands:
+      - takeScreenshot: he-05-details
+      - scrollUntilVisible:
+          element:
+            id: "details_email"
+          direction: DOWN
+      - tapOn:
+          id: "details_first"
+      - inputText: "Test"
+      - pressKey: Enter
+      - extendedWaitUntil:
+          visible: "Filter that never appears"
+          timeout: 1500
+          optional: true
+      - inputText: "Driver"
+      - pressKey: Enter
+      - extendedWaitUntil:
+          visible: "Filter that never appears"
+          timeout: 1500
+          optional: true
+      - takeScreenshot: he-06-details-email-locked
+      - tapOn: "שמירה והמשך"
+
+- extendedWaitUntil:
+    visible: "דווח"
+    timeout: 20000
+- extendedWaitUntil:
+    visible: ".*דיזנגוף.*"
+    timeout: 20000
+- assertVisible: "מותר לחנות?"
+- takeScreenshot: he-09-map
+
+- swipe:
+    from:
+      id: "nearby_handle"
+    direction: UP
+- takeScreenshot: he-10-nearby-list
+- tapOn:
+    id: "spot_row_0"
+- assertVisible: ".*ניווט.*"
+- takeScreenshot: he-11-spot-sheet
+- tapOn: "אני בדרך.*"
+- extendedWaitUntil:
+    visible: "Filter that never appears"
+    timeout: 4000
+    optional: true
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "חנית כאן?"
+    timeout: 15000
+- takeScreenshot: he-12-did-you-park-here
+- tapOn: "לא בחניה הזו"
+- extendedWaitUntil:
+    visible: "לא צריך, לשחרר את החניה"
+    timeout: 8000
+- takeScreenshot: he-13-trip-card
+- tapOn: "לא צריך, לשחרר את החניה"
+
+- extendedWaitUntil:
+    visible: "דווח"
+    timeout: 8000
+- tapOn: "דווח"
+- extendedWaitUntil:
+    visible: "דיווח על חניה פנויה"
+    timeout: 8000
+- takeScreenshot: he-14-report-sheet
+- tapOn: "צלם את החניה"
+- extendedWaitUntil:
+    visible: "בחרו צבע מדרכה כדי להמשיך"
+    timeout: 90000
+- takeScreenshot: he-15-report-curb
+- tapOn: "אפור \\(חינם\\)"
+- tapOn: "פרטים נוספים \\(לא חובה\\)"
+- takeScreenshot: he-16-report-more-details
+- swipe:
+    start: "50%,12%"
+    end: "50%,95%"
+    duration: 600
+
+- extendedWaitUntil:
+    visible: "מותר לחנות?"
+    timeout: 8000
+- tapOn: "מותר לחנות?"
+- assertVisible: "מותר לחנות כאן?"
+- takeScreenshot: he-17-sign-reader
+- tapOn: "צלם שלט"
+- extendedWaitUntil:
+    visible: "נקרא קודם משלט שנראה זהה במקום הזה."
+    timeout: 30000
+- takeScreenshot: he-18-sign-from-cache
+- tapOn:
+    point: "50%,10%"
+
+- extendedWaitUntil:
+    visible: "הפרופיל שלי"
+    timeout: 8000
+- tapOn: "הפרופיל שלי"
+- extendedWaitUntil:
+    visible: ".*Test D.*"
+    timeout: 15000
+- takeScreenshot: he-19-profile
+- tapOn: "הטבות"
+- takeScreenshot: he-20-rewards
+- tapOn: "חזרה"
+- assertNotVisible: "ליגה"
+- tapOn: "הגדרות"
+- takeScreenshot: he-22-settings

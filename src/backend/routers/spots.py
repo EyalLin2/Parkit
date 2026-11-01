@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user_id
+from config import settings
 from database import get_db
 from geocoder import reverse_cached
 from hotspots import hot_minutes
@@ -20,13 +21,14 @@ from models import AppFeedback, FeedbackType, Payment, RemovedReason, Spot, Spot
 from points import award_points, reconcile_weekly_points
 from redis_client import get_redis
 from schemas import ContentReport, FeedbackCreate, SpotCreate, SpotOut
+from service_area import in_service_area
 
 router = APIRouter(prefix="/spots", tags=["spots"])
 
-CLAIM_TTL_SECONDS = 120
+CLAIM_TTL_SECONDS = 300  # 800 m in city traffic can take this long
 NEARBY_LIMIT = 50
 RECONCILE_EVERY_SECONDS = 15
-SPOT_TTL_MINUTES = 30  # the same for everyone: a stale spot helps no one
+SPOT_TTL_MINUTES = 10  # the same for everyone: a stale spot helps no one
 REPORT_COOLDOWN_SECONDS = 30
 CANCEL_WINDOW_MINUTES = 2
 DEDUP_RADIUS_M = 15
@@ -101,6 +103,12 @@ async def _reconcile_spot_states(db: AsyncSession) -> None:
     await db.commit()
 
 
+@router.get("/service-area")
+async def service_area() -> dict[str, bool]:
+    """Lets the app explain an empty map outside the launch city."""
+    return {"tel_aviv_only": settings.tel_aviv_only}
+
+
 @router.post("", response_model=SpotOut, status_code=201)
 async def report_spot(
     payload: SpotCreate,
@@ -121,6 +129,9 @@ async def report_spot(
 
     if await redis.exists(f"report_cooldown:{user_id}"):
         raise HTTPException(429, "Please wait before reporting again")
+
+    if not in_service_area(payload.lat, payload.lng):
+        raise HTTPException(403, "ParkIt is only open in Tel Aviv for now")
 
     if payload.reporter_lat is not None and payload.reporter_lng is not None:
         allowance = min(payload.reporter_accuracy_m or 0, MAX_ACCURACY_ALLOWANCE_M)
@@ -230,6 +241,9 @@ async def nearby_spots(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ) -> list[Spot]:
+    if not in_service_area(me_lat, me_lng):
+        return []
+
     # The map's hot path. Persisting expiries (UPDATEs + photo deletes) runs
     # at most once per RECONCILE_EVERY_SECONDS across all servers instead of
     # on every map move (load-test bug #7); the query below filters expired

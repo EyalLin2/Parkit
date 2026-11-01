@@ -14,8 +14,8 @@ android {
         applicationId = "com.parkit.israel"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.3.6"
+        versionCode = 10
+        versionName = "0.4.0"
 
         // MapLibre ships a native renderer per ABI (~13MB each). Real phones
         // are arm64; x86_64 covers the emulator — the 32-bit ABIs only

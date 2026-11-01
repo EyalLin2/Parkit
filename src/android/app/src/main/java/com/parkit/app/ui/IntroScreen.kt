@@ -65,7 +65,7 @@ private val SLIDES = listOf(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun IntroScreen(onDone: () -> Unit) {
-    val pages = SLIDES.size + 1
+    val pages = if (com.parkit.app.Features.INTRO_SLIDES) SLIDES.size + 1 else 1
     val pager = rememberPagerState(pageCount = { pages })
     val scope = rememberCoroutineScope()
     val last = pager.currentPage == pages - 1
@@ -76,12 +76,14 @@ fun IntroScreen(onDone: () -> Unit) {
         HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
             if (page == 0) WelcomePage() else SlidePage(SLIDES[page - 1])
         }
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp)) {
-            repeat(pages) { i ->
-                Box(
-                    Modifier.padding(horizontal = 4.dp).size(width = if (i == pager.currentPage) 22.dp else 8.dp, height = 8.dp)
-                        .background(if (i == pager.currentPage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(50)),
-                )
+        if (pages > 1) {
+            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp)) {
+                repeat(pages) { i ->
+                    Box(
+                        Modifier.padding(horizontal = 4.dp).size(width = if (i == pager.currentPage) 22.dp else 8.dp, height = 8.dp)
+                            .background(if (i == pager.currentPage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(50)),
+                    )
+                }
             }
         }
         Button(
@@ -92,8 +94,8 @@ fun IntroScreen(onDone: () -> Unit) {
             Text(
                 stringResource(
                     when {
-                        pager.currentPage == 0 -> R.string.intro_how_it_works
                         last -> R.string.intro_start
+                        pager.currentPage == 0 -> R.string.intro_how_it_works
                         else -> R.string.intro_next
                     },
                 ),
@@ -112,6 +114,7 @@ private fun WelcomePage() {
     fun choose(code: String) {
         if (code == current) return
         LocaleManager.setLanguage(context, code)
+        com.parkit.app.api.Geocoder.clear()
         (context as? Activity)?.recreate()
     }
     Column(

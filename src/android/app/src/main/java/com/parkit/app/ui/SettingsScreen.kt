@@ -220,6 +220,7 @@ fun SettingsScreen(
                 dialog = null
                 if (code != languageCode) {
                     LocaleManager.setLanguage(context, code)
+                    com.parkit.app.api.Geocoder.clear()
                     (context as? Activity)?.recreate()
                 }
             },
@@ -310,7 +311,7 @@ fun SettingsScreen(
                             try {
                                 onDeleteAccount()
                             } catch (e: Exception) {
-                                deleteError = e.friendlyMessage(context)
+                                deleteError = e.friendlyMessage(context, aboutSpot = false)
                                 deleting = false
                             }
                         }
@@ -439,7 +440,7 @@ private fun FeedbackDialog(onSend: suspend (String) -> Unit, onDismiss: () -> Un
                                 onSend(text.trim())
                                 sent = true
                             } catch (e: Exception) {
-                                error = e.friendlyMessage(context)
+                                error = e.friendlyMessage(context, aboutSpot = false)
                             } finally {
                                 sending = false
                             }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payments
@@ -101,12 +102,16 @@ fun SpotActionsSheet(
     onChanged: () -> Unit,
     onClaimed: (SpotOut) -> Unit,
     onParked: () -> Unit,
+    onFlagged: () -> Unit,
+    /** The spot is no longer there (taken or expired): close and say why. */
+    onGone: (String) -> Unit,
     onSessionExpired: () -> Unit,
 ) {
     val context = LocalContext.current
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var address by remember { mutableStateOf(spot.localAddress ?: SpotAddressCache.get(spot.id)) }
+    var addressLookupDone by remember { mutableStateOf(address != null) }
     val scope = rememberCoroutineScope()
     val isMine = spot.isMine
     val isClaimed = spot.status == "claimed"
@@ -126,6 +131,7 @@ fun SpotActionsSheet(
 
     LaunchedEffect(spot.id) {
         if (address == null) address = SpotAddressCache.resolve(spot.id, spot.lat, spot.lng)
+        addressLookupDone = true
     }
 
     fun run(action: suspend () -> Unit) {
@@ -136,7 +142,11 @@ fun SpotActionsSheet(
                 action()
                 onChanged()
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                when {
+                    e.isUnauthorized() -> onSessionExpired()
+                    (e as? retrofit2.HttpException)?.code() == 404 -> onGone(e.friendlyMessage(context))
+                    else -> error = e.friendlyMessage(context)
+                }
             } finally {
                 busy = false
             }
@@ -154,11 +164,11 @@ fun SpotActionsSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding()) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding()) {
             // 1. Where — the address, with the close button.
             Row(verticalAlignment = Alignment.Top) {
                 Text(
-                    address ?: stringResource(R.string.map_locating),
+                    address ?: stringResource(if (addressLookupDone) R.string.map_address_unavailable else R.string.map_locating),
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -306,10 +316,12 @@ fun SpotActionsSheet(
                             navigate()
                             onClaimed(claimed)
                         } catch (e: Exception) {
-                            error = when {
-                                e.isUnauthorized() -> { onSessionExpired(); null }
-                                (e as? retrofit2.HttpException)?.code() == 403 -> context.getString(R.string.map_get_closer_hint)
-                                else -> e.friendlyMessage(context)
+                            val code = (e as? retrofit2.HttpException)?.code()
+                            when {
+                                e.isUnauthorized() -> onSessionExpired()
+                                code == 403 -> error = context.getString(R.string.map_get_closer_hint)
+                                code == 404 || code == 409 -> onGone(e.friendlyMessage(context))
+                                else -> error = e.friendlyMessage(context)
                             }
                         } finally {
                             busy = false
@@ -371,7 +383,12 @@ fun SpotActionsSheet(
                         icon = Icons.Filled.DoNotDisturbOn,
                         color = Claimed,
                         enabled = !busy,
-                        onClick = { run { api.submitFeedback(spot.id, FeedbackCreate("flagged_false")) } },
+                        onClick = {
+                            run {
+                                api.submitFeedback(spot.id, FeedbackCreate("flagged_false"))
+                                onFlagged()
+                            }
+                        },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -493,8 +510,8 @@ private fun freshnessColor(iso: String): Color {
         0
     }
     return when {
-        minutes < 10 -> Free
-        minutes < 30 -> Claimed
+        minutes < 3 -> Free
+        minutes < 7 -> Claimed
         else -> Color(0xFF80868B)
     }
 }

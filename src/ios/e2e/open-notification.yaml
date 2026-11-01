@@ -1,0 +1,28 @@
+# Opens the actions of the parked-car notification: a long press, or else swipe and View.
+# A press while the notification is still arriving does nothing, so it tries again.
+appId: com.parkit.israel
+---
+- extendedWaitUntil:
+    visible: "הרכב שלך חונה|Your car is parked"
+    timeout: 8000
+- repeat:
+    while:
+      notVisible: "יוצא מהחניה|I'm leaving"
+    times: 3
+    commands:
+      - longPressOn: "הרכב שלך חונה|Your car is parked"
+      - extendedWaitUntil:
+          visible: "יוצא מהחניה|I'm leaving"
+          timeout: 3000
+          optional: true
+      - runFlow:
+          when:
+            notVisible: "יוצא מהחניה|I'm leaving"
+          commands:
+            - swipe:
+                from:
+                  text: "הרכב שלך חונה|Your car is parked"
+                direction: LEFT
+            - tapOn:
+                text: "View"
+                optional: true

@@ -1,0 +1,13 @@
+# Phones with a Home button go dark when locked, though the notification is still in the
+# accessibility tree: Home wakes them. Others stay lit, and Home would leave the lock screen.
+appId: com.parkit.israel
+---
+- runFlow:
+    when:
+      true: ${HOME_BUTTON == 'yes'}
+    commands:
+      - pressKey: Home
+      - extendedWaitUntil:
+          visible: "הרכב שלך חונה|Your car is parked"
+          timeout: 6000
+          optional: true

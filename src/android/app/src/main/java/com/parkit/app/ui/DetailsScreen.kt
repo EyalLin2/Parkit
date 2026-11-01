@@ -61,15 +61,26 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
     val emailOk = EMAIL.matches(email.trim())
     val valid = first.isNotBlank() && last.isNotBlank() && emailOk
 
+    var loaded by remember { mutableStateOf(false) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var reload by remember { mutableStateOf(0) }
+
     // Prefill whatever we already know (e.g. the address an email sign-in used).
-    LaunchedEffect(Unit) {
-        run {
-            runCatching { api.myProfile().account }.getOrNull()?.let {
-                first = it.firstName.orEmpty()
-                last = it.lastName.orEmpty()
-                email = it.email.orEmpty()
+    // Saving waits for it: until then we don't know whether the email is locked.
+    LaunchedEffect(reload) {
+        loadError = null
+        try {
+            api.myProfile().account?.let {
+                if (first.isBlank()) first = it.firstName.orEmpty()
+                if (last.isBlank()) last = it.lastName.orEmpty()
+                if (email.isBlank() || it.emailVerified) email = it.email.orEmpty()
                 emailLocked = it.emailVerified
             }
+            loaded = true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (e.isUnauthorized()) onSessionExpired() else loadError = e.friendlyMessage(context, aboutSpot = false)
         }
     }
 
@@ -79,13 +90,14 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
         scope.launch {
             try {
                 api.updateDetails(DetailsUpdate(first.trim(), last.trim(), email.trim()))
-                if (firstTime) avatar?.let { runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(it)) } }
+                // Without the grid nobody chose one, so no picture is set for them.
+                if (firstTime && com.parkit.app.Features.FIRST_RUN_AVATAR) avatar?.let { runCatching { api.setAvatar(com.parkit.app.api.AvatarUpdate(it)) } }
                 val token = sessionStore.token.value
                 val userId = sessionStore.userId.value
                 if (token != null && userId != null) sessionStore.save(token, userId, "${first.trim()} ${last.trim().first()}.")
                 onDone()
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context, aboutSpot = false, conflictRes = R.string.details_email_taken)
             } finally {
                 saving = false
             }
@@ -104,8 +116,10 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
                 )
-                Text(stringResource(R.string.details_pick_avatar), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(bottom = 10.dp))
-                AvatarGrid(selected = avatar, onPick = { avatar = it }, modifier = Modifier.padding(bottom = 20.dp))
+                if (com.parkit.app.Features.FIRST_RUN_AVATAR) {
+                    Text(stringResource(R.string.details_pick_avatar), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(bottom = 10.dp))
+                    AvatarGrid(selected = avatar, onPick = { avatar = it }, modifier = Modifier.padding(bottom = 20.dp))
+                }
             } else {
                 Spacer(Modifier.height(8.dp))
             }
@@ -130,7 +144,7 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
                 onValueChange = { email = it.take(254) },
                 label = { Text(stringResource(R.string.details_email)) },
                 singleLine = true,
-                enabled = !emailLocked,
+                enabled = loaded && !emailLocked,
                 isError = email.isNotBlank() && !emailOk,
                 supportingText = { if (email.isNotBlank() && !emailOk) Text(stringResource(R.string.details_email_invalid)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
@@ -142,11 +156,15 @@ fun DetailsScreen(api: ApiService, sessionStore: SessionStore, firstTime: Boolea
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
             )
+            loadError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp))
+                androidx.compose.material3.TextButton(onClick = { reload++ }) { Text(stringResource(R.string.map_offline_retry)) }
+            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp)) }
         }
         Button(
             onClick = ::save,
-            enabled = valid && !saving,
+            enabled = valid && loaded && !saving,
             shape = RoundedCornerShape(50),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).navigationBarsPadding().height(52.dp),
         ) {

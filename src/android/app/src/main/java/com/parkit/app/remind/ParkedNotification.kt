@@ -19,6 +19,7 @@ import com.parkit.app.MainActivity
 import com.parkit.app.R
 import com.parkit.app.api.ApiClient
 import com.parkit.app.api.SpotCreate
+import com.parkit.app.api.isOutsideServiceArea
 import com.parkit.app.auth.ParkedCar
 import com.parkit.app.auth.SessionStore
 import com.parkit.app.ui.ParkingPay
@@ -90,12 +91,15 @@ object ParkedNotification {
 
 class LeaveSpotReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        // Nothing on screen changes while this runs, so a second tap is likely.
+        if (!running.compareAndSet(false, true)) return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // A receiver starts in the phone's language, not the one chosen in the app.
                 handOn(com.parkit.app.locale.LocaleManager.wrap(context.applicationContext))
             } finally {
+                running.set(false)
                 pending.finish()
             }
         }
@@ -104,7 +108,7 @@ class LeaveSpotReceiver : BroadcastReceiver() {
     private suspend fun handOn(context: Context) {
         val session = SessionStore(context)
         val car = session.parkedCar ?: return ParkedNotification.cancel(context)
-        val fix = lastKnownFix(context)
+        val fix = freshFix(context)
         try {
             ApiClient.create(session).reportSpot(
                 SpotCreate(
@@ -120,11 +124,29 @@ class LeaveSpotReceiver : BroadcastReceiver() {
                     handoff = true,
                 ),
             )
-        } catch (e: HttpException) {
-            val problem = if (e.code() == 422) R.string.parked_notification_far else R.string.parked_notification_failed
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Outside the launch city there's nobody to hand it to: just end the parking.
+            if (e.isOutsideServiceArea()) {
+                val paying = ParkingPay.sessionApp(context) != null
+                session.parkedCar = null
+                ParkingReminder.cancel(context)
+                ParkingPay.clearSession(context)
+                if (paying) {
+                    ParkedNotification.finished(context, context.getString(R.string.parked_notification_ended_stop_paying))
+                } else {
+                    ParkedNotification.cancel(context)
+                }
+                return
+            }
+            if (session.parkedCar == null) return // ended in the app meanwhile: nothing to offer again
+            val problem = when ((e as? HttpException)?.code()) {
+                401 -> R.string.parked_notification_signin
+                422 -> R.string.parked_notification_far
+                else -> R.string.parked_notification_failed
+            }
             return ParkedNotification.show(context, car, context.getString(problem))
-        } catch (_: java.io.IOException) {
-            return ParkedNotification.show(context, car, context.getString(R.string.parked_notification_failed))
         }
         session.parkedCar = null
         ParkingReminder.cancel(context)
@@ -134,6 +156,35 @@ class LeaveSpotReceiver : BroadcastReceiver() {
             context,
             context.getString(if (paying) R.string.parked_notification_stop_paying else R.string.parked_notification_done),
         )
+    }
+
+    /** Where the phone is now. The app isn't running, so the cached fix may be
+     * from somewhere else entirely: too old counts as unknown, and the server
+     * doesn't reject a report for an unknown position. */
+    private suspend fun freshFix(context: Context): Location? =
+        currentFix(context) ?: lastKnownFix(context)?.takeIf { System.currentTimeMillis() - it.time <= MAX_FIX_AGE_MS }
+
+    @SuppressLint("MissingPermission") // checked first
+    private suspend fun currentFix(context: Context): Location? {
+        val allowed = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!allowed) return null
+        return try {
+            val client = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+            val cancel = com.google.android.gms.tasks.CancellationTokenSource()
+            kotlinx.coroutines.withTimeoutOrNull(FIX_TIMEOUT_MS) {
+                kotlinx.coroutines.suspendCancellableCoroutine<Location?> { cont ->
+                    cont.invokeOnCancellation { cancel.cancel() }
+                    client.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY, cancel.token)
+                        .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc) { } }
+                        .addOnFailureListener { if (cont.isActive) cont.resume(null) { } }
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null // no Google Play services on this phone
+        }
     }
 
     private fun lastKnownFix(context: Context): Location? {
@@ -146,5 +197,11 @@ class LeaveSpotReceiver : BroadcastReceiver() {
         } catch (_: SecurityException) {
             null
         }
+    }
+
+    private companion object {
+        const val FIX_TIMEOUT_MS = 5_000L
+        const val MAX_FIX_AGE_MS = 2 * 60_000L
+        val running = java.util.concurrent.atomic.AtomicBoolean(false)
     }
 }

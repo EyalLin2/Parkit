@@ -46,6 +46,8 @@ services:
     env_file: .env
     environment:
       APP_ENV: production
+      # Set to "false" to open the app outside Tel Aviv.
+      TEL_AVIV_ONLY: "${TEL_AVIV_ONLY:-true}"
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       DATABASE_SSL: disable  # Postgres is on the private compose network

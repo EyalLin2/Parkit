@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = "local"
+    # Launch is Tel Aviv only: reports and free spots elsewhere are switched off.
+    tel_aviv_only: bool = False
     database_url: str
     # TLS to Postgres: "require" for hosted databases (Supabase), "disable" when
     # Postgres runs next to the API on a private network (our production

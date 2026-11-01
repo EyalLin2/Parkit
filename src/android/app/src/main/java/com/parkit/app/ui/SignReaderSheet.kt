@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CheckCircle
@@ -135,18 +136,30 @@ fun SignReaderSheet(api: ApiService, myFix: Pair<Double, Double>?, onDismiss: ()
             if (bitmap != null) send(bitmap)
         }
     }
+    // After "don't ask again" Android shows no prompt: only Settings can undo it.
+    var cameraDenied by remember { mutableStateOf(false) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) camera.launch(photoUri) else error = context.getString(R.string.permission_camera_needed)
+        if (granted) {
+            camera.launch(photoUri)
+        } else {
+            error = context.getString(R.string.permission_camera_needed)
+            cameraDenied = true
+        }
     }
     fun shoot() {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-        if (granted) camera.launch(photoUri) else permission.launch(Manifest.permission.CAMERA)
+        if (granted) {
+            cameraDenied = false
+            camera.launch(photoUri)
+        } else {
+            permission.launch(Manifest.permission.CAMERA)
+        }
     }
 
     ModalBottomSheet(windowInsets = androidx.compose.foundation.layout.WindowInsets(0), onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding(),
+            modifier = Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding(),
         ) {
             val r = reading
             when {
@@ -224,6 +237,11 @@ fun SignReaderSheet(api: ApiService, myFix: Pair<Double, Double>?, onDismiss: ()
                 }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 10.dp)) }
+            if (cameraDenied) {
+                androidx.compose.material3.TextButton(onClick = { openAppSettings(context) }) {
+                    Text(stringResource(R.string.permission_open_settings))
+                }
+            }
             if (!busy) {
                 Button(onClick = { shoot() }, shape = RoundedCornerShape(50), modifier = Modifier.fillMaxWidth().padding(top = 18.dp).height(52.dp)) {
                     Text(stringResource(if (reading == null) R.string.sign_shoot else R.string.sign_again), style = MaterialTheme.typography.labelLarge)

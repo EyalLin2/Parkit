@@ -105,9 +105,28 @@ fun DriverProfileScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var pickCity by remember { mutableStateOf(false) }
 
+    var citiesFailed by remember { mutableStateOf(false) }
+
     fun finish() {
         sessionStore.onboardingSeen = true
         onDone()
+    }
+
+    suspend fun loadCities() {
+        try {
+            cities = api.cities()
+            citiesFailed = false
+            city?.let { name -> cities.firstOrNull { it.name == name }?.let { cityCentre = it.lat to it.lng } }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            citiesFailed = true
+        }
+    }
+
+    // Opening the picker tries again if the list didn't load.
+    LaunchedEffect(pickCity) {
+        if (pickCity && cities.isEmpty()) loadCities()
     }
 
     LaunchedEffect(Unit) {
@@ -116,7 +135,17 @@ fun DriverProfileScreen(
             // Onboarding is for new drivers; an account that already answered
             // (on another device, or before reinstalling) goes straight on.
             if (onboarding && !server.isEmpty) {
-                sessionStore.syncDriver(server)
+                // With the city's centre, so the map can open there without GPS.
+                val centre = server.homeCity?.let { name ->
+                    try {
+                        api.cities().firstOrNull { it.name == name }?.let { it.lat to it.lng }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                if (centre != null) sessionStore.saveDriver(DriverPrefs(server, centre.first, centre.second)) else sessionStore.syncDriver(server)
                 finish()
                 return@LaunchedEffect
             }
@@ -127,17 +156,16 @@ fun DriverProfileScreen(
             if (server.homeCity != city) cityCentre = null
             city = server.homeCity
             loading = false
-            cities = api.cities()
-            city?.let { name -> cities.firstOrNull { it.name == name }?.let { cityCentre = it.lat to it.lng } }
+            loadCities()
         } catch (e: Exception) {
             loading = false
-            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context, aboutSpot = false)
         }
     }
 
     fun lookup() {
         val digits = plate.filter { it.isDigit() }
-        if (digits.length !in 7..8) {
+        if (digits.length !in 5..8) {
             lookupError = context.getString(R.string.driver_plate_invalid)
             return
         }
@@ -181,7 +209,7 @@ fun DriverProfileScreen(
                 sessionStore.saveDriver(DriverPrefs(saved, cityCentre?.first, cityCentre?.second))
                 finish()
             } catch (e: Exception) {
-                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+                if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context, aboutSpot = false)
             } finally {
                 saving = false
             }
@@ -351,6 +379,7 @@ fun DriverProfileScreen(
                 pickCity = false
             },
             onDismiss = { pickCity = false },
+            footer = if (citiesFailed) stringResource(R.string.driver_cities_failed) else null,
         )
     }
 

@@ -125,16 +125,19 @@ fun ProfileScreen(
     var cityScope by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(homeCity != null) }
     // Keyed on the city: it can arrive (or change) with the profile sync.
     LaunchedEffect(homeCity) {
+        if (!com.parkit.app.Features.LEAGUE) return@LaunchedEffect
         cityBoard = homeCity?.let { city -> runCatching { api.leaderboard(10, city = city) }.getOrDefault(emptyList()) } ?: emptyList()
     }
     var error by remember { mutableStateOf<String?>(null) }
+    var reload by remember { mutableStateOf(0) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reload) {
+        error = null
         try {
             profile = api.myProfile().also { sessionStore.syncDriver(it.preferences) }
-            leaderboard = api.leaderboard(10)
+            if (com.parkit.app.Features.LEAGUE) leaderboard = api.leaderboard(10)
         } catch (e: Exception) {
-            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context)
+            if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context, aboutSpot = false)
         }
     }
 
@@ -186,7 +189,14 @@ fun ProfileScreen(
             }
         }
 
-        error?.let { msg -> item { Text(msg, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(20.dp)) } }
+        error?.let { msg ->
+            item {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(msg, color = MaterialTheme.colorScheme.error)
+                    androidx.compose.material3.TextButton(onClick = { reload++ }) { Text(stringResource(R.string.map_offline_retry)) }
+                }
+            }
+        }
 
         if (p == null) {
             if (error == null) {
@@ -583,7 +593,9 @@ private fun ProfileShortcuts(p: ProfileOut, leagueLabel: String, onRewards: () -
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 16.dp)) {
         ShortcutTile(Icons.Filled.CardGiftcard, Color(0xFFB06000), Color(0xFFFEF7E0), stringResource(R.string.rewards_title), stringResource(R.string.profile_rewards_hint, p.pointsBalance), onRewards, Modifier.weight(1f))
         ShortcutTile(Icons.Filled.Place, Color(0xFF1B4F91), Color(0xFFE8F0FE), stringResource(R.string.profile_tab_reports), androidx.compose.ui.res.pluralStringResource(R.plurals.profile_reports_count, p.totalReports, p.totalReports), onReports, Modifier.weight(1f))
-        ShortcutTile(Icons.Filled.EmojiEvents, Color(0xFF188038), Color(0xFFE6F4EA), stringResource(R.string.profile_tab_league), leagueLabel, onLeague, Modifier.weight(1f))
+        if (com.parkit.app.Features.LEAGUE) {
+            ShortcutTile(Icons.Filled.EmojiEvents, Color(0xFF188038), Color(0xFFE6F4EA), stringResource(R.string.profile_tab_league), leagueLabel, onLeague, Modifier.weight(1f))
+        }
     }
 }
 
@@ -619,8 +631,10 @@ private fun ProfileStats(p: ProfileOut) {
 private fun ProfileLinks(badgesLabel: String, onBadges: () -> Unit, onLevels: () -> Unit, onInvite: () -> Unit) {
     Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 12.dp)) {
         Column {
-            LinkRow(Icons.Filled.MilitaryTech, stringResource(R.string.badges_title), badgesLabel, onBadges)
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(start = 64.dp))
+            if (com.parkit.app.Features.BADGES) {
+                LinkRow(Icons.Filled.MilitaryTech, stringResource(R.string.badges_title), badgesLabel, onBadges)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(start = 64.dp))
+            }
             LinkRow(Icons.Filled.Star, stringResource(R.string.profile_levels_link), null, onLevels)
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), modifier = Modifier.padding(start = 64.dp))
             LinkRow(Icons.Filled.PersonAdd, stringResource(R.string.map_empty_invite), null, onInvite)
