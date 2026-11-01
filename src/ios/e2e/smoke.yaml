@@ -129,12 +129,19 @@ appId: com.parkit.israel
     visible: "Filter that never appears"
     timeout: 4000
     optional: true
+# Maps asks for location itself, and those prompts would stay over the app.
 - tapOn:
     text: "Allow While Using App"
+    optional: true
+- tapOn:
+    text: "Don't Allow"
     optional: true
 - takeScreenshot: 16-navigation-opened
 - launchApp:
     stopApp: false
+- tapOn:
+    text: "Don't Allow"
+    optional: true
 - extendedWaitUntil:
     visible: "You're on your way"
     timeout: 15000
