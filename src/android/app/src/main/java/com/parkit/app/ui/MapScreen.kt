@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -1824,13 +1825,15 @@ private fun AddressSkeleton() {
     )
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(24.dp)) {
         Box(
-            Modifier.width(150.dp).height(14.dp)
+            // Gives way on small screens, so the text next to it stays whole.
+            Modifier.weight(1f, fill = false).widthIn(max = 150.dp).fillMaxWidth().height(14.dp)
                 .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f * alpha), RoundedCornerShape(7.dp)),
         )
         Text(
             stringResource(R.string.map_locating),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+            maxLines = 1,
             modifier = Modifier.padding(start = 8.dp),
         )
     }

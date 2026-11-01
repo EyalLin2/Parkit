@@ -290,7 +290,7 @@ private fun ShopTabs(selected: Int, onSelect: (Int) -> Unit) {
             ) {
                 Text(
                     stringResource(res),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
@@ -313,7 +313,7 @@ private fun ShopItem(reward: RewardOut, hebrew: Boolean, balance: Int, inUse: Bo
             picture()
             Text(
                 if (hebrew) reward.titleHe else reward.titleEn,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 minLines = if (twoLines) 2 else 1,
