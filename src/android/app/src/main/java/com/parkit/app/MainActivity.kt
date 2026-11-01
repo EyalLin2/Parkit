@@ -98,6 +98,7 @@ fun ParkItApp(sessionStore: SessionStore) {
     // the back stack regardless of which screen triggered it.
     val goToLogin: () -> Unit = {
         sessionStore.clear()
+        com.parkit.app.remind.ParkedNotification.cancel(navController.context)
         navController.navigate("login") { popUpTo(0) { inclusive = true } }
     }
 

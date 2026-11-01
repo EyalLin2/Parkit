@@ -91,7 +91,9 @@ object ParkingReminder {
 }
 
 class ReminderReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(received: Context, intent: Intent) {
+        // A receiver starts in the phone's language, not the one chosen in the app.
+        val context = com.parkit.app.locale.LocaleManager.wrap(received)
         ParkingReminder.notify(context, intent.getStringExtra("text").orEmpty())
     }
 }

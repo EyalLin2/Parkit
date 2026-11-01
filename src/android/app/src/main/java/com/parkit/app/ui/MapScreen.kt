@@ -789,6 +789,11 @@ fun MapScreen(
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            // "I'm leaving" on the lock screen ends the parking while the app is closed.
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && parkedCar != sessionStore.parkedCar) {
+                parkedCar = sessionStore.parkedCar
+                reloadTick++
+            }
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && deviceLocation == null && !locating &&
                 hasAnyLocation(context) && locationServicesOn(context)
             ) {
@@ -1426,6 +1431,20 @@ fun MapScreen(
         }
     }
 
+    // While the car is parked, "I'm leaving" stays one tap away on the lock screen.
+    val parkedNotificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) parkedCar?.let { com.parkit.app.remind.ParkedNotification.show(context, it) }
+    }
+    LaunchedEffect(parkedCar) {
+        val car = parkedCar
+        when {
+            car == null -> com.parkit.app.remind.ParkedNotification.cancel(context)
+            com.parkit.app.remind.ParkedNotification.canPost(context) -> com.parkit.app.remind.ParkedNotification.show(context, car)
+            else -> parkedNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     LaunchedEffect(deviceLocation, headingTo) {
         val spot = headingTo ?: return@LaunchedEffect
         if (System.currentTimeMillis() - headingSince > ARRIVAL_PROMPT_MS) {

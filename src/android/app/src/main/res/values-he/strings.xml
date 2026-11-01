@@ -515,4 +515,11 @@
     <string name="report_helped_someone">חניה שדיווחת עזרה לנהג. תודה!</string>
     <string name="report_more">פרטים נוספים (לא חובה)</string>
     <string name="report_less">פחות פרטים</string>
+    <string name="parked_notification_channel">רכב חונה</string>
+    <string name="parked_notification_title">הרכב שלך חונה</string>
+    <string name="parked_notification_thanks">תודה, החניה על המפה</string>
+    <string name="parked_notification_done">הנהג הבא יכול לקחת אותה. ‎+15 נקודות.</string>
+    <string name="parked_notification_stop_paying">הנהג הבא יכול לקחת אותה. אל תשכחו לעצור את תשלום החניה.</string>
+    <string name="parked_notification_far">נראה שאתם לא ליד הרכב, אז לא דיווחנו.</string>
+    <string name="parked_notification_failed">זה לא עבר. נסו שוב בעוד רגע.</string>
 </resources>

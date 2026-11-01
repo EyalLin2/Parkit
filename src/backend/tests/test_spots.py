@@ -332,4 +332,3 @@ async def test_a_spot_says_whether_a_driver_just_left_it(client, make_user):
     _, other = await make_user("walker")
     seen = (await _report(client, other, lat=32.10, lng=34.80)).json()
     assert seen["left_by_driver"] is False
-

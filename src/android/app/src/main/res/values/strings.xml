@@ -508,4 +508,11 @@
     <string name="report_helped_someone">A spot you reported helped a driver. Thank you!</string>
     <string name="report_more">More details (optional)</string>
     <string name="report_less">Fewer details</string>
+    <string name="parked_notification_channel">Parked car</string>
+    <string name="parked_notification_title">Your car is parked</string>
+    <string name="parked_notification_thanks">Thanks, the spot is on the map</string>
+    <string name="parked_notification_done">The next driver can take it. +15 points.</string>
+    <string name="parked_notification_stop_paying">The next driver can take it. Remember to stop paying for parking.</string>
+    <string name="parked_notification_far">You don\'t seem to be near your car, so nothing was reported.</string>
+    <string name="parked_notification_failed">That didn\'t go through. Try again in a moment.</string>
 </resources>

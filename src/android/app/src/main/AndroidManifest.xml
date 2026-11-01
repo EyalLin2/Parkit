@@ -55,6 +55,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
         <receiver android:name=".remind.ReminderReceiver" android:exported="false" />
+        <receiver android:name=".remind.LeaveSpotReceiver" android:exported="false" />
         <receiver android:name=".remind.CarBluetoothReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
