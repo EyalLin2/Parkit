@@ -376,3 +376,20 @@ async def test_a_spot_never_says_who_reported_or_took_it(client, make_user):
     assert claimed["is_mine"] is False
     for seen in (spot, as_reporter, as_driver, claimed):
         assert "reporter_id" not in seen and "claimed_by" not in seen
+
+
+async def test_tel_aviv_only_closes_the_rest_of_the_country(client, make_user, monkeypatch):
+    from config import settings
+
+    monkeypatch.setattr(settings, "tel_aviv_only", True)
+    assert (await client.get("/spots/service-area")).json() == {"tel_aviv_only": True}
+    _, headers = await make_user("driver")
+    haifa = {"lat": 32.80, "lng": 34.99}
+    refused = await _report(client, headers, **haifa, reporter_lat=haifa["lat"], reporter_lng=haifa["lng"])
+    assert refused.status_code == 403
+    assert (await _report(client, headers)).status_code == 201
+    # Nearby needs the driver's own position: in Tel Aviv they see the spot, outside nothing.
+    here = await client.get("/spots", params={**TLV, "me_lat": TLV["lat"], "me_lng": TLV["lng"]}, headers=headers)
+    assert len(here.json()) == 1
+    away = await client.get("/spots", params={**haifa, "me_lat": haifa["lat"], "me_lng": haifa["lng"]}, headers=headers)
+    assert away.status_code == 200 and away.json() == []

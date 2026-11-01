@@ -188,6 +188,13 @@ class SessionStore(context: Context) {
 
     fun clear() {
         prefs.edit().clear().apply()
+        // What belongs to this driver, not to the phone: the next person must
+        // not inherit their whereabouts, car Bluetooth or payment choices.
+        device.edit()
+            .remove("last_lat").remove("last_lng")
+            .remove("pay_app").remove("pay_off").remove("pay_session_app")
+            .remove("car_bt_address").remove("car_bt_name")
+            .apply()
         token.value = null
         userId.value = null
         displayName.value = null

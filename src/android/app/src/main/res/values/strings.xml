@@ -95,8 +95,17 @@
         <item quantity="other">%1$d free spots nearby</item>
     </plurals>
     <string name="map_nearby_none">No free spots nearby yet</string>
-    <string name="map_nearby_empty_hint">Spotted one? Report it and earn points.</string>
+    <string name="map_nearby_empty_hint">You can still use “Can I park?” and save your car here.</string>
+    <string name="map_no_location_title">We don\'t know where you are</string>
+    <string name="map_no_location_hint">Turn on location to see free spots near you.</string>
+    <string name="map_tel_aviv_only">ParkIt is only open in Tel Aviv for now</string>
+    <string name="map_tel_aviv_only_hint">“Can I park?” and saving your car work here too.</string>
     <string name="map_nearest">Nearest %1$s away · %2$s</string>
+    <string name="map_nearest_here">Nearest is right here · %1$s</string>
+    <string name="distance_right_here">right here</string>
+    <string name="permission_open_settings">Open settings</string>
+    <string name="parked_notification_signin">Your session ended. Open ParkIt and sign in again.</string>
+    <string name="parked_notification_ended_stop_paying">Parking ended. Remember to stop paying for parking.</string>
     <string name="map_spot_yours">Your report</string>
     <string name="distance_m">%1$d m</string>
     <string name="distance_km">%1$.1f km</string>
@@ -147,7 +156,7 @@
     <string name="level_silver">Silver</string>
     <string name="level_gold">Gold</string>
     <string name="level_legend">Legend</string>
-    <string name="perk_newbie">Report, navigate, weekly league</string>
+    <string name="perk_newbie">Report and navigate</string>
     <string name="perk_bronze">Bronze frame on your pins + a bronze badge by your name</string>
     <string name="perk_silver">Silver frame on your pins</string>
     <string name="perk_gold">Gold frame on your pins</string>
@@ -161,7 +170,7 @@
     <string name="league_subtitle">Points this week · resets every week</string>
     <string name="spot_reported_by_level">Reported by a %1$s driver</string>
     <string name="claim_trip_title">You\'re on your way</string>
-    <string name="claim_drive_safely">Held for you for 2 minutes. Drive safely, and only touch the phone when parked.</string>
+    <string name="claim_drive_safely">Held for you for 5 minutes. Drive safely, and only touch the phone when parked.</string>
     <string name="claim_taken_thanks">Thanks for the update</string>
     <string name="claim_expired">The spot went back on the map. Take your time — there are more around.</string>
     <!-- Driver profile: car, permits, preferred area -->
@@ -174,7 +183,12 @@
     <string name="driver_plate_change">Different car? Enter its plate</string>
     <string name="driver_plate_lookup">Look up</string>
     <string name="driver_plate_privacy">We look up the model in the government vehicle registry. The plate itself isn\'t saved.</string>
-    <string name="driver_plate_invalid">An Israeli plate has 7 or 8 digits</string>
+    <string name="driver_plate_invalid">An Israeli plate has 5 to 8 digits</string>
+    <string name="driver_cities_failed">Couldn\'t load the city list. Close this and open it again to retry.</string>
+    <string name="login_too_many_wrong">Too many wrong tries — send a new code</string>
+    <string name="login_too_many_later">Too many requests — try again later</string>
+    <string name="details_email_taken">This email is already used by another account</string>
+    <string name="rewards_conflict">Not enough points, or you already have this.</string>
     <string name="driver_plate_not_found">No vehicle with this plate in the registry. Pick a size below.</string>
     <string name="driver_plate_lookup_failed">The registry isn\'t responding right now. Pick a size below.</string>
     <string name="driver_car_from_registry">From the vehicle registry</string>
@@ -322,7 +336,7 @@
     <string name="intro_climb_body">Car paints, characters and more.</string>
     <string name="intro_next">Next</string>
     <string name="intro_start">Let\'s go</string>
-    <string name="intro_welcome_body">Free parking spots, all over Israel.</string>
+    <string name="intro_welcome_body">Before you circle for 20 minutes, see who just left a spot near you.</string>
     <string name="intro_choose_language">Choose your language</string>
     <string name="intro_how_it_works">How it works</string>
     <string name="intro_go_title">See it, drive there</string>

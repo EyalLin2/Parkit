@@ -7,17 +7,11 @@ appId: com.parkit.israel
     permissions:
       all: allow
 
-# Intro
+# Welcome: language and start, no slides
 - tapOn:
     text: "English"
     optional: true
-- tapOn: "How it works"
-- repeat:
-    while:
-      visible: "Next"
-    times: 8
-    commands:
-      - tapOn: "Next"
+- assertNotVisible: "How it works"
 - tapOn: "Let's go"
 - takeScreenshot: 01-login
 
@@ -51,26 +45,14 @@ appId: com.parkit.israel
 - takeScreenshot: 02-details
 - tapOn: ".*(Continue|Save|continue).*"
 
-# Car onboarding and tips
-- extendedWaitUntil:
-    visible: "Skip"
-    timeout: 15000
-- tapOn: "Skip"
-- repeat:
-    while:
-      notVisible: "Got it, let's go"
-    times: 8
-    commands:
-      - tapOn: "Next"
-- tapOn: "Got it, let's go"
-
-# Map
+# Map: straight after the name, with no car step or tips
 - tapOn:
     text: "Continue"
     optional: true
 - extendedWaitUntil:
     visible: "Report"
     timeout: 20000
+- assertNotVisible: "Skip"
 - assertVisible: "Can I park?"
 - assertNotVisible: ".*PK-[0-9]+.*"
 - takeScreenshot: 03-map
@@ -90,8 +72,14 @@ appId: com.parkit.israel
 # Profile, then the rewards shop loads from the server
 - tapOn: "My profile"
 - assertVisible: ".*Test D\\..*"
+- assertNotVisible: "League"
+- assertNotVisible: "Badges"
 - takeScreenshot: 06-profile
 - tapOn: "Rewards"
+- extendedWaitUntil:
+    visible: "Characters"
+    timeout: 15000
+- assertNotVisible: "Partners"
 - extendedWaitUntil:
     visible: "To spend.*|.*to spend.*"
     timeout: 10000
@@ -150,6 +138,18 @@ appId: com.parkit.israel
 - assertVisible: "Email"
 - takeScreenshot: 11-details
 - back
+# What the first run skips is still reachable from Settings
+- tapOn: "My car & preferences"
+- extendedWaitUntil:
+    visible: "Licence plate"
+    timeout: 15000
+- back
+- scrollUntilVisible:
+    element: "How ParkIt works"
+    direction: DOWN
+- tapOn: "How ParkIt works"
+- assertVisible: "Next"
+- tapOn: "Skip"
 - scrollUntilVisible:
     element: "Log out"
     direction: DOWN
