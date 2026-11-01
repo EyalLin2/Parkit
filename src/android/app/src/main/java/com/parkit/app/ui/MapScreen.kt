@@ -1541,7 +1541,7 @@ fun MapScreen(
     }
 
     if (showSignReader) {
-        SignReaderSheet(api = api, onDismiss = { showSignReader = false }, onSessionExpired = onLoggedOut)
+        SignReaderSheet(api = api, myFix = sessionStore.lastFix, onDismiss = { showSignReader = false }, onSessionExpired = onLoggedOut)
     }
 
     if (showCarExplainer) {

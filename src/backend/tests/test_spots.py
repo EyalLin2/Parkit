@@ -376,4 +376,3 @@ async def test_a_spot_never_says_who_reported_or_took_it(client, make_user):
     assert claimed["is_mine"] is False
     for seen in (spot, as_reporter, as_driver, claimed):
         assert "reporter_id" not in seen and "claimed_by" not in seen
-

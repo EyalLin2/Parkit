@@ -277,6 +277,8 @@ data class SignReading(
     val paid: Boolean? = null,
     @Json(name = "summary_he") val summaryHe: String,
     @Json(name = "summary_en") val summaryEn: String,
+    /** Read earlier from a sign that looks the same here, at no AI cost. */
+    @Json(name = "from_cache") val fromCache: Boolean = false,
 )
 
 /** What the report photo seems to show — pre-fills the form (advice only). */

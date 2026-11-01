@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from geoalchemy2 import Geography
 from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -242,6 +242,20 @@ class AppFeedback(Base):
     message: Mapped[str] = mapped_column(String(8000))
     app_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     device: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class SignRules(Base):
+    """What a parking sign says, read once by AI and reused by the next driver
+    at the same sign. Holds no photo and no user."""
+
+    __tablename__ = "sign_rules"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    location: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326))
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    rules: Mapped[dict] = mapped_column(JSONB)
+    reuse_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 

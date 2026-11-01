@@ -66,7 +66,7 @@ import java.io.ByteArrayOutputStream
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: () -> Unit) {
+fun SignReaderSheet(api: ApiService, myFix: Pair<Double, Double>?, onDismiss: () -> Unit, onSessionExpired: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val hebrew = context.resources.configuration.locales[0].language in setOf("he", "iw")
@@ -107,7 +107,9 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
         }
     }
 
-    fun send(bitmap: Bitmap) {
+    var lastPhoto by remember { mutableStateOf<Bitmap?>(null) }
+    fun send(bitmap: Bitmap, fresh: Boolean = false) {
+        lastPhoto = bitmap
         busy = true
         error = null
         scope.launch {
@@ -116,7 +118,7 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
                 val part = MultipartBody.Part.createFormData("photo", "sign.jpg", stream.toByteArray().toRequestBody("image/jpeg".toMediaTypeOrNull()))
                 reminderSet = null // a new sign: its own reminder
-                reading = api.readSign(part)
+                reading = api.readSign(part, myFix?.first, myFix?.second, fresh)
             } catch (e: Exception) {
                 if (e.isUnauthorized()) onSessionExpired() else error = e.friendlyMessage(context, aboutSpot = false)
             } finally {
@@ -172,6 +174,17 @@ fun SignReaderSheet(api: ApiService, onDismiss: () -> Unit, onSessionExpired: ()
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 10.dp),
                     )
+                    if (r.fromCache) {
+                        Text(
+                            stringResource(R.string.sign_from_cache),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                        androidx.compose.material3.TextButton(onClick = { lastPhoto?.let { send(it, fresh = true) } }, enabled = !busy) {
+                            Text(stringResource(R.string.sign_read_again))
+                        }
+                    }
                     // The useful part: don't get a ticket when the rules change.
                     val changeAt = r.changesAt ?: r.until
                     if (changeAt != null && com.parkit.app.remind.ParkingReminder.changeTime(changeAt) != null) {

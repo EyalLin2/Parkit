@@ -521,4 +521,6 @@
     <string name="report_curb_blue_white">Blue-white (paid)</string>
     <string name="report_curb_gray">Gray (free)</string>
     <string name="report_needs_curb">Choose the curb colour to continue</string>
+    <string name="sign_from_cache">Read earlier from a sign that looks the same here.</string>
+    <string name="sign_read_again">Not this sign? Read it again</string>
 </resources>
