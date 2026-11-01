@@ -86,12 +86,29 @@ async def _clean_state():
         f.unlink()
 
 
+class _SignedInSearchClient(AsyncClient):
+    """Most tests search for spots as a signed-in driver standing at the search
+    point. Tests of those rules pass their own params and headers."""
+
+    async def get(self, url, *, params=None, headers=None, **kwargs):
+        if url == "/spots" and params is not None:
+            params = dict(params)
+            if "lat" in params and "lng" in params:
+                params.setdefault("me_lat", params["lat"])
+                params.setdefault("me_lng", params["lng"])
+            if headers is None:
+                from auth import create_access_token
+
+                headers = {"Authorization": f"Bearer {create_access_token(uuid.uuid4())}"}
+        return await super().get(url, params=params, headers=headers, **kwargs)
+
+
 @pytest_asyncio.fixture
 async def client():
     from main import app
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with _SignedInSearchClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 

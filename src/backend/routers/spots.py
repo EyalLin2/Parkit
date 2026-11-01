@@ -212,6 +212,7 @@ async def report_spot(
     await db.commit()
     await db.refresh(spot)
     spot.reporter_level = level_for(user.points).key if spot.reporter_id == user_id else "newbie"
+    spot.is_mine = spot.reporter_id == user_id
     return spot
 
 
@@ -220,10 +221,12 @@ async def nearby_spots(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
     radius_m: int = Query(800, gt=0, le=5000),
-    me_lat: float | None = Query(None, ge=-90, le=90),
-    me_lng: float | None = Query(None, ge=-180, le=180),
+    # Free spots are only for drivers who are signed in and close by.
+    me_lat: float = Query(..., ge=-90, le=90),
+    me_lng: float = Query(..., ge=-180, le=180),
     spot_type: list[SpotType] | None = Query(None),
     payment: Payment | None = Query(None),
+    user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ) -> list[Spot]:
@@ -247,9 +250,8 @@ async def nearby_spots(
         # map move's payload (load-test bug #6: ~145 KB before).
         .limit(NEARBY_LIMIT)
     )
-    if me_lat is not None and me_lng is not None:
-        me = ST_SetSRID(ST_MakePoint(me_lng, me_lat), 4326)
-        stmt = stmt.where(ST_DWithin(Spot.location, me, VISIBLE_RADIUS_M))
+    me = ST_SetSRID(ST_MakePoint(me_lng, me_lat), 4326)
+    stmt = stmt.where(ST_DWithin(Spot.location, me, VISIBLE_RADIUS_M))
     if spot_type:
         stmt = stmt.where(Spot.spot_type.in_(spot_type))
     if payment:
@@ -259,6 +261,7 @@ async def nearby_spots(
         # Plain attribute, not a column: the reporter's level is derived from
         # their points at read time (badge + legend pin in the app).
         spot.reporter_level = level_for(reporter_points).key
+        spot.is_mine = spot.reporter_id == user_id
         spots.append(spot)
     return spots
 
@@ -292,6 +295,7 @@ async def claim_spot(
     spot.claimed_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(spot)
+    spot.is_mine = spot.reporter_id == user_id
     return spot
 
 

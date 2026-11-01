@@ -336,9 +336,9 @@ private val ClaimSaver = androidx.compose.runtime.saveable.Saver<SpotOut?, Strin
     restore = { json -> runCatching<SpotOut?> { claimAdapter.fromJson(json) }.getOrNull() },
 )
 
-private fun pinColor(spot: SpotOut, myUserId: String?): String = when {
+private fun pinColor(spot: SpotOut): String = when {
     spot.status == "claimed" -> COLOR_CLAIMED
-    spot.reporterId == myUserId -> COLOR_MINE
+    spot.isMine -> COLOR_MINE
     // Legend-level perk: a distinct purple pin (see levels.py on the backend).
     spot.reporterLevel == "legend" -> COLOR_LEGEND
     else -> freshnessGreen(ageMinutes(spot.reportedAt))
@@ -383,7 +383,6 @@ fun MapScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = com.parkit.app.ui.theme.isDarkThemeActive()
     val language = context.resources.configuration.locales[0].language
-    val myUserId = sessionStore.userId.value
     val driverPrefs = sessionStore.driver.value
     val homeCentre = driverPrefs.homeLat?.let { lat -> driverPrefs.homeLng?.let { lng -> LatLng(lat, lng) } }
 
@@ -1156,7 +1155,7 @@ fun MapScreen(
     LaunchedEffect(style, visibleSpots, selectedSpot?.id) {
         val s = style ?: return@LaunchedEffect
         val features = visibleSpots.map { spot ->
-            val color = pinColor(spot, myUserId)
+            val color = pinColor(spot)
             val tag = MarkerBitmaps.relativeTimeShort(context, spot.reportedAt)
             val disabled = spot.spotType == "disabled"
             val hot = spot.hotMinutes != null && spot.status == "active"
@@ -1210,7 +1209,6 @@ fun MapScreen(
                 onRetry = { spotsFailed = false; reloadTick++ },
                 addresses = spotAddresses,
                 reference = reference,
-                myUserId = myUserId,
                 prefs = driverPrefs.preferences,
                 lotsShown = showLots,
                 onShowLots = { showLots = true },
@@ -1651,7 +1649,6 @@ fun MapScreen(
         SpotActionsSheet(
             api = api,
             spot = spot,
-            myUserId = myUserId,
             myFix = sessionStore.lastFix,
             fit = fitOf(spot, driverPrefs.preferences),
             distanceLabel = context.getString(
@@ -1935,7 +1932,6 @@ private fun NearbySheet(
     loaded: Boolean,
     addresses: Map<String, String>,
     reference: LatLng,
-    myUserId: String?,
     prefs: com.parkit.app.api.Preferences,
     failed: Boolean,
     onRetry: () -> Unit,
@@ -2075,7 +2071,7 @@ private fun NearbySheet(
                 // The card sits after the first two spots: seen, never in the way.
                 spots.forEachIndexed { index, spot ->
                     item(key = spot.id) {
-                        SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, myUserId, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
+                        SpotRow(spot, spot.localAddress ?: addresses[spot.id], reference, fitOf(spot, prefs), onClick = { onSpotClick(spot) })
                     }
                     if (ad != null && index == minOf(1, spots.lastIndex)) item(key = "ad") { SponsoredCard(ad, onAdClick, onAdShown) }
                 }
@@ -2087,9 +2083,9 @@ private fun NearbySheet(
 }
 
 @Composable
-private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId: String?, fit: DriverFit, onClick: () -> Unit) {
+private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, fit: DriverFit, onClick: () -> Unit) {
     val context = LocalContext.current
-    val color = Color(android.graphics.Color.parseColor(pinColor(spot, myUserId)))
+    val color = Color(android.graphics.Color.parseColor(pinColor(spot)))
     val disabled = spot.spotType == "disabled"
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -2141,7 +2137,7 @@ private fun SpotRow(spot: SpotOut, address: String?, reference: LatLng, myUserId
                     spot.hotMinutes?.let { stringResource(R.string.hot_short) },
                     when {
                         spot.status == "claimed" -> stringResource(R.string.report_status_claimed)
-                        spot.reporterId == myUserId -> stringResource(R.string.map_spot_yours)
+                        spot.isMine -> stringResource(R.string.map_spot_yours)
                         else -> null
                     },
                 ).joinToString(" · "),
