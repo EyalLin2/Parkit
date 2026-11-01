@@ -215,8 +215,10 @@ struct DetailsScreen: View {
                     if firstTime {
                         Text(L("details_welcome_title")).font(PKFont.headlineSmall).foregroundStyle(Color.pkText).padding(.top, 32)
                         Text(L("details_welcome_body")).font(PKFont.bodyMedium).foregroundStyle(Color.pkMuted)
-                        Text(L("details_pick_avatar")).font(PKFont.labelLarge).foregroundStyle(Color.pkText).padding(.top, 4)
-                        AvatarGrid(selected: avatar) { avatar = $0 }.padding(.bottom, 8)
+                        if Features.firstRunAvatar {
+                            Text(L("details_pick_avatar")).font(PKFont.labelLarge).foregroundStyle(Color.pkText).padding(.top, 4)
+                            AvatarGrid(selected: avatar) { avatar = $0 }.padding(.bottom, 8)
+                        }
                     }
                     LabeledField(label: L("details_first_name"), text: $first, capitalization: .words, content: .givenName, identifier: "details_first") { focus = .last }
                         .focused($focus, equals: .first).id(Field.first)
@@ -265,7 +267,8 @@ struct DetailsScreen: View {
             defer { saving = false }
             do {
                 _ = try await API.shared.updateDetails(DetailsUpdate(firstName: first.trimmed, lastName: last.trimmed, email: email.trimmed))
-                if firstTime, let avatar { try? await API.shared.setAvatar(avatar) }
+                // Without the grid nobody chose one, so no picture is set for them.
+                if firstTime, Features.firstRunAvatar, let avatar { try? await API.shared.setAvatar(avatar) }
                 if let token = session.token, let id = session.userId, let initial = last.trimmed.first {
                     session.save(token: token, userId: id, displayName: "\(first.trimmed) \(initial).")
                 }

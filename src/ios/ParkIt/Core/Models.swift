@@ -265,7 +265,17 @@ struct SignReading: Codable {
 
 struct AreaForecast: Codable { let everyMinutes: Int; let reports: Int; let days: Int; var scope: String? }
 struct BestHour: Codable { let hour: Int; let reports: Int; var scope: String? }
-struct ReverseGeocodeOut: Codable { var label: String?; var street: String? }
+struct ServiceAreaOut: Codable { var telAvivOnly: Bool }
+
+struct ReverseGeocodeOut: Codable {
+    var label: String?
+    var street: String?
+
+    /// "Street Number, City": for the pin and the report header.
+    var shortLabel: String? { [label, street].compactMap { $0 }.first { !$0.isEmpty } }
+    /// Just "Street Number": for list rows, where the city would only push the useful part off-screen.
+    var streetLabel: String? { [street, label].compactMap { $0 }.first { !$0.isEmpty } }
+}
 
 /// How a spot relates to this driver's car and permits. The map never hides a
 /// report because of these: it orders and labels them (DriverFit.kt).

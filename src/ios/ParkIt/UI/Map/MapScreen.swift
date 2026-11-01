@@ -9,7 +9,7 @@ struct MapScreen: View {
     @State private var sheetExpanded = false
     @GestureState private var drag: CGFloat = 0
 
-    private var peek: CGFloat { model.spotsLoaded && !model.spotsFailed && model.sortedSpots.isEmpty ? 178 : 114 }
+    private var peek: CGFloat { model.spotsLoaded && !model.spotsFailed && model.sortedSpots.isEmpty ? 198 : 114 }
 
     var body: some View {
         GeometryReader { g in
@@ -65,7 +65,11 @@ struct MapScreen: View {
             }
         }
         .background(Color.pkBackground.ignoresSafeArea())
-        .onAppear(perform: model.start)
+        .onAppear {
+            model.start()
+            model.mapAppeared()
+        }
+        .onDisappear(perform: model.mapDisappeared)
         .onChange(of: phase) { _, new in
             if new == .active { model.becameActive() }
             if new == .background { model.wentToBackground() }
@@ -363,7 +367,7 @@ private struct NearbySheet<G: Gesture>: View {
 
     private func header(_ spots: [SpotOut]) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(!model.spotsLoaded ? L("map_nearby_searching") : spots.isEmpty ? L(model.tooFar ? "map_get_closer_title" : "map_nearby_none") : LP("map_nearby_count", spots.count))
+            Text(title(spots))
                 .font(PKFont.titleLarge).foregroundStyle(Color.pkText)
             if model.forecast != nil || model.forecastNoData { forecastLine }
             if let tip = model.dailyTip {
@@ -376,7 +380,7 @@ private struct NearbySheet<G: Gesture>: View {
                     .accessibilityLabel(L("ad_close"))
                 }
             }
-            Text(hint(spots)).font(PKFont.bodyMedium).foregroundStyle(Color.pkMuted).lineLimit(1)
+            Text(hint(spots)).font(PKFont.bodyMedium).foregroundStyle(Color.pkMuted).lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20).padding(.bottom, 16)
@@ -400,12 +404,24 @@ private struct NearbySheet<G: Gesture>: View {
         }
     }
 
+    private func title(_ spots: [SpotOut]) -> String {
+        if spots.isEmpty, model.outsideTelAviv { return L("map_tel_aviv_only") }
+        if spots.isEmpty, model.tooFar { return L("map_get_closer_title") }
+        if model.locationUnknown { return L("map_no_location_title") }
+        if !model.spotsLoaded { return L("map_nearby_searching") }
+        return spots.isEmpty ? L("map_nearby_none") : LP("map_nearby_count", spots.count)
+    }
+
     private func hint(_ spots: [SpotOut]) -> String {
+        if spots.isEmpty, model.outsideTelAviv { return L("map_tel_aviv_only_hint") }
+        if spots.isEmpty, model.tooFar { return L("map_get_closer_hint") }
+        if model.locationUnknown { return L("map_no_location_hint") }
         if !model.spotsLoaded { return L("map_nearby_searching_hint") }
         let usable = spots.filter { !DriverFit(spot: $0, prefs: model.prefs).unusable }
         guard let nearest = (usable.isEmpty ? spots : usable).min(by: { model.coord($0).distance(to: model.reference) < model.coord($1).distance(to: model.reference) }) else {
-            return L(model.tooFar ? "map_get_closer_hint" : "map_nearby_empty_hint")
+            return L("map_nearby_empty_hint")
         }
+        if model.isRightHere(nearest) { return L("map_nearest_here", relativeLong(nearest.reportedAt)) }
         return L("map_nearest", model.distanceLabel(nearest), relativeLong(nearest.reportedAt))
     }
 
@@ -441,7 +457,7 @@ private struct SpotRow: View {
             HStack(spacing: 14) {
                 SpotThumb(url: spot.photoUrl.flatMap(ApiConfig.url(path:)), disabled: disabled, color: color)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(address ?? L("map_locating")).font(PKFont.titleSmall).foregroundStyle(address == nil ? Color.pkMuted : Color.pkText).lineLimit(1)
+                    Text(address ?? L(model.spotAddressFailed.contains(spot.id) ? "map_address_unavailable" : "map_locating")).font(PKFont.titleSmall).foregroundStyle(address == nil ? Color.pkMuted : Color.pkText).lineLimit(1)
                     Text(details(disabled: disabled)).font(PKFont.bodySmall).foregroundStyle(Color.pkMuted).lineLimit(2)
                     if fit.needsDisabledPermit {
                         Text(L("fit_needs_disabled_permit")).font(PKFont.labelMedium).foregroundStyle(Color.pkMuted).lineLimit(1)
@@ -509,7 +525,7 @@ private struct ClaimTripCard: View {
                     .background(Color.pkOrange.opacity(0.14), in: RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading) {
                     Text(L("claim_trip_title")).font(PKFont.labelMedium).foregroundStyle(Color.pkOrange)
-                    Text(spot.address ?? L("map_locating")).font(PKFont.titleSmall).foregroundStyle(Color.pkText).lineLimit(1)
+                    Text(spot.address ?? model.spotAddresses[spot.id] ?? L(model.spotAddressFailed.contains(spot.id) ? "map_address_unavailable" : "map_locating")).font(PKFont.titleSmall).foregroundStyle(Color.pkText).lineLimit(1)
                 }
                 Spacer()
             }

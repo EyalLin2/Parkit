@@ -85,7 +85,7 @@ final class Session: ObservableObject {
     private func startScreen() -> RootScreen {
         if token != nil {
             if needsProfile { return .details }
-            if !onboardingSeen { return .onboarding }
+            if Features.firstRunCarStep, !onboardingSeen { return .onboarding }
             return .main
         }
         return introSeen ? .login : .intro
@@ -180,7 +180,14 @@ final class Session: ObservableObject {
 
     func loggedIn(needsProfile: Bool) {
         self.needsProfile = needsProfile
-        if needsProfile { root = .details } else { root = onboardingSeen ? .main : .onboarding }
+        if needsProfile { root = .details } else { root = afterDetails }
+    }
+
+    // Where sign-up goes next; each step can be switched off in Features.
+    var afterCarStep: RootScreen { Features.firstRunTips && !tipsSeen ? .tips : .main }
+    var afterDetails: RootScreen {
+        if !Features.firstRunCarStep { return afterCarStep }
+        return onboardingSeen ? .main : .onboarding
     }
 
     func setLanguage(_ code: String) {

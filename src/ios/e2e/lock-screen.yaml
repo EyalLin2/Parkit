@@ -7,8 +7,7 @@ appId: com.parkit.israel
     clearState: true
     permissions:
       all: allow
-- tapOn: "איך זה עובד"
-- tapOn: "דלג"
+- tapOn: "יאללה"
 - extendedWaitUntil:
     visible: "שליחת קוד"
     timeout: 8000
@@ -45,14 +44,6 @@ appId: com.parkit.israel
     timeout: 1500
     optional: true
 - tapOn: "שמירה והמשך"
-- extendedWaitUntil:
-    visible: "דלג"
-    timeout: 15000
-- tapOn: "דלג"
-- extendedWaitUntil:
-    visible: "דלג"
-    timeout: 8000
-- tapOn: "דלג"
 - extendedWaitUntil:
     visible: "דווח"
     timeout: 20000

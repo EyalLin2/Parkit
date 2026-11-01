@@ -47,7 +47,7 @@ struct ProfileScreen: View {
         .background(Color.pkBackground.ignoresSafeArea())
         .task { await load() }
         .task(id: homeCity) {
-            if let city = homeCity { cityBoard = (try? await API.shared.leaderboard(city: city)) ?? [] }
+            if Features.league, let city = homeCity { cityBoard = (try? await API.shared.leaderboard(city: city)) ?? [] }
         }
         .sheet(isPresented: $pickAvatar) {
             AvatarPickerSheet(selected: profile?.avatar) { id in
@@ -66,7 +66,7 @@ struct ProfileScreen: View {
             let p = try await API.shared.myProfile()
             profile = p
             session.syncDriver(p.preferences ?? Preferences())
-            leaderboard = try await API.shared.leaderboard()
+            if Features.league { leaderboard = try await API.shared.leaderboard() }
         } catch {
             self.error = friendly(error)
         }
@@ -189,7 +189,7 @@ struct ProfileScreen: View {
         HStack(alignment: .top, spacing: 10) {
             ShortcutTile(icon: "gift.fill", tint: Color(hex: 0xB06000), bg: Color(hex: 0xFEF7E0), title: L("rewards_title"), hint: L("profile_rewards_hint", p.pointsBalance ?? 0)) { open(.rewards(tab: 1)) }
             ShortcutTile(icon: "mappin.circle.fill", tint: .pkBlue, bg: Color(hex: 0xE8F0FE), title: L("profile_tab_reports"), hint: LP("profile_reports_count", p.totalReports ?? 0)) { page = "reports" }
-            ShortcutTile(icon: "trophy.fill", tint: .pkGreen, bg: Color(hex: 0xE6F4EA), title: L("profile_tab_league"), hint: homeCity ?? L("league_all_israel")) { page = "league" }
+            if Features.league { ShortcutTile(icon: "trophy.fill", tint: .pkGreen, bg: Color(hex: 0xE6F4EA), title: L("profile_tab_league"), hint: homeCity ?? L("league_all_israel")) { page = "league" } }
         }
         .padding(.horizontal, 16).padding(.top, 16)
         nextLevel(p)
@@ -205,8 +205,10 @@ struct ProfileScreen: View {
         .padding(.horizontal, 16).padding(.top, 12)
         let earned = Badge.allCases.filter { $0.have(p) >= $0.goal }.count
         VStack(spacing: 0) {
-            linkRow("rosette", L("badges_title"), L("badges_progress_short", earned, Badge.allCases.count)) { page = "badges" }
-            Divider().padding(.leading, 64)
+            if Features.badges {
+                linkRow("rosette", L("badges_title"), L("badges_progress_short", earned, Badge.allCases.count)) { page = "badges" }
+                Divider().padding(.leading, 64)
+            }
             linkRow("star.fill", L("profile_levels_link"), nil) { page = "levels" }
             Divider().padding(.leading, 64)
             linkRow("person.badge.plus", L("map_empty_invite"), nil, action: invite)
@@ -419,7 +421,7 @@ struct RewardsScreen: View {
             }
         }
         .background(Color.pkBackground.ignoresSafeArea())
-        .onAppear { tab = initialTab }
+        .onAppear { tab = initialTab == 0 && !Features.partners ? 1 : initialTab }
         .task { await load() }
         .alert(confirm?.title ?? "", isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
             Button(L("rewards_buy")) { if let r = confirm { buy(r) } }
@@ -450,11 +452,14 @@ struct RewardsScreen: View {
     private var tabs: some View {
         HStack(spacing: 0) {
             ForEach(Array(["rewards_tab_partners", "rewards_tab_legends", "rewards_tab_car", "rewards_tab_backdrops"].enumerated()), id: \.offset) { i, key in
-                let on = i == tab
-                Button { tab = i } label: {
-                    Text(L(key)).font(PKFont.labelLarge).foregroundStyle(on ? Color.pkText : Color.pkMuted).lineLimit(1).minimumScaleFactor(0.8)
-                        .frame(maxWidth: .infinity).padding(.vertical, 8)
-                        .background(on ? Color.pkSurface : .clear, in: Capsule())
+                // The index is the tab's id, so hiding one doesn't renumber the rest.
+                if i != 0 || Features.partners {
+                    let on = i == tab
+                    Button { tab = i } label: {
+                        Text(L(key)).font(PKFont.labelLarge).foregroundStyle(on ? Color.pkText : Color.pkMuted).lineLimit(1).minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity).padding(.vertical, 8)
+                            .background(on ? Color.pkSurface : .clear, in: Capsule())
+                    }
                 }
             }
         }
@@ -814,7 +819,7 @@ struct DriverProfileScreen: View {
 
     private func lookup() {
         let digits = plate.filter(\.isNumber)
-        guard (7...8).contains(digits.count) else {
+        guard (5...8).contains(digits.count) else {
             lookupError = L("driver_plate_invalid")
             return
         }

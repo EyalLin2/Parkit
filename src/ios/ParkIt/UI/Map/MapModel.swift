@@ -27,9 +27,14 @@ enum MapConst {
     static let nearMeM = 20.0
     static let arrivedM = 80.0
     static let arrivalPrompt: TimeInterval = 20 * 60
-    static let claimHold: TimeInterval = 120 // the backend's CLAIM_TTL_SECONDS
+    static let claimHold: TimeInterval = 300 // the backend's CLAIM_TTL_SECONDS
+    static let spotsPoll: Duration = .seconds(30)
+    static let spotsRetry: Duration = .seconds(10)
     static let reminderSoonMin = 15
     static func inService(_ c: Coord) -> Bool { c.distance(to: telAviv) <= serviceRadiusM }
+    /// The launch city: the same box as the server (service_area.py). Applies only while
+    /// the server's GET /spots/service-area says tel_aviv_only.
+    static func inTelAviv(_ c: Coord) -> Bool { (32.03...32.15).contains(c.latitude) && (34.73...34.85).contains(c.longitude) }
 }
 
 enum MapSheet: Identifiable, Equatable {
@@ -101,6 +106,11 @@ final class MapModel: NSObject, ObservableObject {
     @Published var addressLoading = true
     @Published var addressFailed = false
     @Published var spotAddresses: [String: String] = [:]
+    /// Lookups that finished with no address: the row says so instead of "finding…".
+    @Published var spotAddressFailed: Set<String> = []
+    @Published var carAddressFailed = false
+    /// A failed fetch means no restriction: the server still enforces it.
+    @Published var telAvivOnly = false
     @Published var parkedCar: ParkedCar? {
         didSet {
             session.parkedCar = parkedCar
@@ -132,6 +142,9 @@ final class MapModel: NSObject, ObservableObject {
     private var started = false
     private var handingOn = false
     private var cell: String?
+    private var pollTask: Task<Void, Never>?
+    private var mapOnScreen = false
+    private var inForeground = true
 
     override init() {
         let s = Session.shared
@@ -185,6 +198,11 @@ final class MapModel: NSObject, ObservableObject {
         }
     }
 
+    /// Nobody asked the server, so this is "we don't know where you are", not "no spots".
+    var locationUnknown: Bool { deviceLocation == nil && !locating }
+
+    var outsideTelAviv: Bool { telAvivOnly && deviceLocation.map { !MapConst.inTelAviv($0) } == true }
+
     /// The pin is further from the phone than the server shows spots.
     var tooFar: Bool {
         guard let me = deviceLocation else { return false }
@@ -192,6 +210,7 @@ final class MapModel: NSObject, ObservableObject {
     }
 
     func coord(_ s: SpotOut) -> Coord { Coord(latitude: s.lat, longitude: s.lng) }
+    func isRightHere(_ s: SpotOut) -> Bool { coord(s).distance(to: reference) < MapConst.nearMeM }
     func distanceLabel(_ s: SpotOut) -> String { formatDistance(coord(s).distance(to: reference)) }
 
     var nearMyCar: Bool {
@@ -218,7 +237,11 @@ final class MapModel: NSObject, ObservableObject {
         guard !started else { return }
         started = true
         Task { await refreshMyProfile() }
+        Task { await restoreDriver() }
+        Task { telAvivOnly = (try? await api.serviceArea().telAvivOnly) ?? false }
         targetChanged(debounced: false)
+        resolveAddresses()
+        resolveCarAddress()
         ParkedNotification.sync(parkedCar)
         NotificationCenter.default.addObserver(forName: .parkedCarChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.syncCarFromSession() }
@@ -236,6 +259,62 @@ final class MapModel: NSObject, ObservableObject {
         }
     }
 
+    /// The car step also brought a returning driver's car and city onto this phone. Without
+    /// it the map still needs them. onboardingSeen is cleared on logout, so the next sign-in
+    /// fetches again; offline, the next launch does.
+    private func restoreDriver() async {
+        guard !Features.firstRunCarStep, !session.onboardingSeen, let server = try? await api.myProfile().preferences else { return }
+        session.syncDriver(server)
+        if let name = server.homeCity, let city = (try? await api.cities())?.first(where: { $0.name == name }) {
+            session.saveDriver(DriverPrefs(preferences: server, homeLat: city.lat, homeLng: city.lng))
+        }
+        session.onboardingSeen = true
+    }
+
+    /// Spots come and go without this driver doing anything, so the list is polled while
+    /// the map is on screen, and never in the background.
+    func mapAppeared() {
+        mapOnScreen = true
+        updatePolling()
+    }
+
+    func mapDisappeared() {
+        mapOnScreen = false
+        updatePolling()
+    }
+
+    private func updatePolling() {
+        pollTask?.cancel()
+        pollTask = nil
+        guard mapOnScreen, inForeground else { return }
+        pollTask = Task { [weak self] in
+            var wait = MapConst.spotsPoll
+            while !Task.isCancelled {
+                try? await Task.sleep(for: wait)
+                guard !Task.isCancelled, let self else { return }
+                wait = await self.pollSpots() ? MapConst.spotsPoll : MapConst.spotsRetry
+            }
+        }
+    }
+
+    /// One look at the server; false means try again soon. The sheet shows the problem and a retry button.
+    private func pollSpots() async -> Bool {
+        guard let me = deviceLocation else { return true }
+        let target = geocodeTarget
+        do {
+            let result = try await api.nearbySpots(lat: target.latitude, lng: target.longitude, radiusM: MapConst.radiusM, me: me)
+            guard !Task.isCancelled, target == geocodeTarget else { return true }
+            if result != spots { spots = result }
+            spotsLoaded = true
+            spotsFailed = false
+            return true
+        } catch {
+            if Task.isCancelled || session.token == nil { return true }
+            spotsFailed = true
+            return false
+        }
+    }
+
     /// "I'm leaving" on the lock screen ends the parking while the map isn't looking.
     private func syncCarFromSession() {
         if parkedCar != session.parkedCar {
@@ -245,8 +324,11 @@ final class MapModel: NSObject, ObservableObject {
     }
 
     func becameActive() {
+        inForeground = true
         guard started else { return }
         syncCarFromSession()
+        refreshSpotsNow()
+        updatePolling()
         Task { await refreshMyProfile() }
         if hasPermission {
             manager.startUpdatingLocation()
@@ -256,6 +338,8 @@ final class MapModel: NSObject, ObservableObject {
     }
 
     func wentToBackground() {
+        inForeground = false
+        updatePolling()
         manager.stopUpdatingLocation()
         // Fresh on the lock screen right when the phone is put away.
         if let car = parkedCar { ParkedNotification.show(car, delay: 1) }
@@ -295,10 +379,10 @@ final class MapModel: NSObject, ObservableObject {
         targetTasks.removeAll()
         let target = geocodeTarget
         if let hit = Geocoder.cached(lat: target.latitude, lng: target.longitude) {
-            resolvedAddress = hit.label
-            resolvedStreet = hit.street
+            resolvedAddress = hit.shortLabel
+            resolvedStreet = hit.streetLabel
             addressLoading = false
-            addressFailed = false
+            addressFailed = hit.shortLabel == nil
         } else {
             addressLoading = true
             targetTasks.append(Task {
@@ -306,9 +390,9 @@ final class MapModel: NSObject, ObservableObject {
                 guard !Task.isCancelled else { return }
                 let r = await Geocoder.reverse(lat: target.latitude, lng: target.longitude)
                 guard !Task.isCancelled else { return }
-                resolvedAddress = r?.label
-                resolvedStreet = r?.street
-                addressFailed = r?.label == nil
+                resolvedAddress = r?.shortLabel
+                resolvedStreet = r?.streetLabel
+                addressFailed = r?.shortLabel == nil
                 addressLoading = false
             })
         }
@@ -335,7 +419,7 @@ final class MapModel: NSObject, ObservableObject {
         // No fix, no spots: the server only answers for a real position.
         guard let me = deviceLocation else {
             spots = []
-            spotsLoaded = !locating
+            spotsLoaded = false
             spotsFailed = false
             return
         }
@@ -379,14 +463,22 @@ final class MapModel: NSObject, ObservableObject {
     /// only older ones (and the English UI) need a lookup.
     private func resolveAddresses() {
         addressTask?.cancel()
-        let list = sortedSpots
+        // Ones that already failed go last, so they can't starve the rest.
+        let list = sortedSpots.filter { !spotAddressFailed.contains($0.id) } + sortedSpots.filter { spotAddressFailed.contains($0.id) }
         addressTask = Task {
             for spot in list where spot.localAddress == nil && spotAddresses[spot.id] == nil {
                 if let hit = Geocoder.spot(spot.id) {
                     spotAddresses[spot.id] = hit
                     continue
                 }
-                if let label = await Geocoder.resolve(spot: spot.id, lat: spot.lat, lng: spot.lng) { spotAddresses[spot.id] = label }
+                let label = await Geocoder.resolve(spot: spot.id, lat: spot.lat, lng: spot.lng)
+                if Task.isCancelled { return }
+                if let label {
+                    spotAddresses[spot.id] = label
+                    spotAddressFailed.remove(spot.id)
+                } else {
+                    spotAddressFailed.insert(spot.id)
+                }
                 try? await Task.sleep(for: .milliseconds(150))
                 if Task.isCancelled { return }
             }
@@ -530,6 +622,10 @@ final class MapModel: NSObject, ObservableObject {
     /// Reports must be made near the spot (the server enforces the same limit):
     /// say so up front instead of after the photo.
     func openReportFlow() {
+        if outsideTelAviv {
+            show(L("map_tel_aviv_only"))
+            return
+        }
         guard let here = deviceLocation else {
             show(L("report_needs_location"))
             return
@@ -565,11 +661,17 @@ final class MapModel: NSObject, ObservableObject {
         }
         let car = ParkedCar(lat: at.latitude, lng: at.longitude, at: Date(), address: address, spotType: spotType)
         parkedCar = car
-        if address == nil {
-            Task {
-                guard let label = await Geocoder.reverse(lat: at.latitude, lng: at.longitude)?.label, parkedCar?.at == car.at else { return }
-                parkedCar?.address = label
-            }
+        resolveCarAddress()
+    }
+
+    /// The saved car's address, also for one saved before the app was closed.
+    private func resolveCarAddress() {
+        carAddressFailed = false
+        guard let car = parkedCar, car.address == nil else { return }
+        Task {
+            let label = await Geocoder.reverse(lat: car.lat, lng: car.lng)?.shortLabel
+            guard parkedCar?.at == car.at else { return }
+            if let label { parkedCar?.address = label } else { carAddressFailed = true }
         }
     }
 
@@ -616,6 +718,11 @@ final class MapModel: NSObject, ObservableObject {
     /// they're standing right at it (the distance check still runs).
     func leave(_ car: ParkedCar) {
         guard !handingOn else { return } // the answer can take a few seconds; a second tap adds nothing
+        // Outside the launch city there's nobody to hand it to: just end the parking.
+        if telAvivOnly, !MapConst.inTelAviv(Coord(latitude: car.lat, longitude: car.lng)) {
+            forgetCar()
+            return
+        }
         handingOn = true
         Task {
             defer { handingOn = false }
@@ -634,7 +741,7 @@ final class MapModel: NSObject, ObservableObject {
                 await refreshMyProfile()
                 show(L("car_leaving_thanks"))
             } catch {
-                show(friendly(error))
+                if error.isOutsideServiceArea { forgetCar() } else { show(friendly(error)) }
             }
         }
     }
@@ -645,6 +752,7 @@ final class MapModel: NSObject, ObservableObject {
             show(L("location_denied"))
             return
         }
+        if outsideTelAviv { return }
         Task {
             do {
                 _ = try await api.reportSpot(SpotCreate(
@@ -657,7 +765,7 @@ final class MapModel: NSObject, ObservableObject {
                 await refreshMyProfile()
                 show(L("map_reported_snackbar"))
             } catch {
-                show(friendly(error))
+                if !error.isOutsideServiceArea { show(friendly(error)) } // nothing to hand on here, and nothing to complain about
             }
         }
     }
@@ -882,10 +990,10 @@ func pinColor(_ spot: SpotOut) -> String {
     if spot.reporterLevel == "legend" { return "#7B3FE4" }
     // A free spot starts deep green and pales as it waits, in five steps the eye can tell apart.
     switch ageMinutes(spot.reportedAt) {
-    case ..<5: return "#0B5E2B"
-    case ..<15: return "#188038"
-    case ..<30: return "#2E9E4F"
-    case ..<45: return "#55B56E"
+    case ..<2: return "#0B5E2B"
+    case ..<4: return "#188038"
+    case ..<6: return "#2E9E4F"
+    case ..<8: return "#55B56E"
     default: return "#7EC791"
     }
 }

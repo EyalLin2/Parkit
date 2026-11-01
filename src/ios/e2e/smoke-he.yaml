@@ -7,11 +7,9 @@ appId: com.parkit.israel
     permissions:
       all: allow
 
-- assertVisible: "איך זה עובד"
+- assertNotVisible: "איך זה עובד"
 - takeScreenshot: he-01-welcome
-- tapOn: "איך זה עובד"
-- takeScreenshot: he-02-intro-slide
-- tapOn: "דלג"
+- tapOn: "יאללה"
 
 - extendedWaitUntil:
     visible: "שליחת קוד"
@@ -32,7 +30,7 @@ appId: com.parkit.israel
 
 # First-time details, unless the English run stopped before deleting its account.
 - extendedWaitUntil:
-    visible: "ברוכים הבאים ל-ParkIt!|דלג"
+    visible: "ברוכים הבאים ל-ParkIt!|דווח"
     timeout: 15000
 - runFlow:
     when:
@@ -59,14 +57,6 @@ appId: com.parkit.israel
           optional: true
       - takeScreenshot: he-06-details-email-locked
       - tapOn: "שמירה והמשך"
-
-- extendedWaitUntil:
-    visible: "דלג"
-    timeout: 15000
-- takeScreenshot: he-07-car-onboarding
-- tapOn: "דלג"
-- takeScreenshot: he-08-tips
-- tapOn: "דלג"
 
 - extendedWaitUntil:
     visible: "דווח"
@@ -150,8 +140,6 @@ appId: com.parkit.israel
 - tapOn: "הטבות"
 - takeScreenshot: he-20-rewards
 - tapOn: "חזרה"
-- tapOn: "ליגה"
-- takeScreenshot: he-21-league
-- tapOn: "חזרה"
+- assertNotVisible: "ליגה"
 - tapOn: "הגדרות"
 - takeScreenshot: he-22-settings

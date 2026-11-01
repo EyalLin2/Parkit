@@ -14,6 +14,7 @@ struct SpotSheet: View {
     @State private var photoFailed = false
     @State private var photoFull = false
     @State private var askReport = false
+    @State private var addressLookupDone = false
 
     private var isMine: Bool { spot.mine }
     private var isClaimed: Bool { spot.status == "claimed" }
@@ -24,7 +25,7 @@ struct SpotSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
-                Text(address ?? spot.localAddress ?? L("map_locating")).font(PKFont.titleLarge).foregroundStyle(Color.pkText).lineLimit(2)
+                Text(address ?? spot.localAddress ?? L(addressLookupDone ? "map_address_unavailable" : "map_locating")).font(PKFont.titleLarge).foregroundStyle(Color.pkText).lineLimit(2)
                 Spacer(minLength: 12)
                 Button { dismiss() } label: {
                     Image(systemName: "xmark").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.pkText)
@@ -92,6 +93,7 @@ struct SpotSheet: View {
         .task {
             address = spot.localAddress ?? Geocoder.spot(spot.id)
             if address == nil { address = await Geocoder.resolve(spot: spot.id, lat: spot.lat, lng: spot.lng) }
+            addressLookupDone = true
         }
         .confirmationDialog(L("content_report_title"), isPresented: $askReport, titleVisibility: .visible) {
             if photoURL != nil { reportButton("photo", "content_report_photo") }
@@ -120,7 +122,7 @@ struct SpotSheet: View {
         let age = short == L("time_now_short") ? L("time_now_long") : L("spot_age_short", short)
         let text = isClaimed ? L("spot_someone_on_the_way") : isMine ? L("map_spot_yours") : L(spot.left ? "spot_source_left" : "spot_source_seen")
         let minutes = ageMinutes(spot.reportedAt)
-        let color: Color = isClaimed ? .pkOrange : isMine ? .pkBlue : minutes < 10 ? .pkGreen : minutes < 30 ? .pkOrange : Color(hex: 0x80868B)
+        let color: Color = isClaimed ? .pkOrange : isMine ? .pkBlue : minutes < 3 ? .pkGreen : minutes < 7 ? .pkOrange : Color(hex: 0x80868B)
         return HStack(spacing: 10) {
             HStack(spacing: 6) {
                 Circle().fill(color).frame(width: 8, height: 8)
@@ -128,7 +130,7 @@ struct SpotSheet: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(color.opacity(0.12), in: Capsule())
-            Text(L("spot_distance_away", model.distanceLabel(spot))).font(PKFont.bodyMedium).foregroundStyle(Color.pkMuted).lineLimit(1)
+            Text(model.isRightHere(spot) ? L("distance_right_here") : L("spot_distance_away", model.distanceLabel(spot))).font(PKFont.bodyMedium).foregroundStyle(Color.pkMuted).lineLimit(1)
         }
     }
 
@@ -344,7 +346,7 @@ struct CarSheet: View {
                         .background(Color.pkPrimary.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                     VStack(alignment: .leading) {
                         Text(L("car_card_title", since)).font(PKFont.labelMedium).foregroundStyle(Color.pkPrimary)
-                        Text(car.address ?? L("map_locating")).font(PKFont.titleSmall).foregroundStyle(Color.pkText).lineLimit(1)
+                        Text(car.address ?? L(model.carAddressFailed ? "map_address_unavailable" : "map_locating")).font(PKFont.titleSmall).foregroundStyle(Color.pkText).lineLimit(1)
                         if let at = ParkingReminder.activeChangeAt {
                             Text(L("reminder_countdown", reminderClock(at))).font(PKFont.labelMedium).foregroundStyle(Color.pkAmber).padding(.top, 2)
                         }

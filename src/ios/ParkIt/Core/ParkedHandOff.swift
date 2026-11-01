@@ -85,6 +85,20 @@ enum ParkedHandOff {
                 handoff: true
             ))
         } catch {
+            // Outside the launch city there's nobody to hand it to: just end the parking.
+            if error.isOutsideServiceArea {
+                session.parkedCar = nil
+                ParkingReminder.cancel()
+                let paying = ParkingPay.session != nil
+                ParkingPay.clearSession()
+                if paying {
+                    ParkedNotification.finished(L("parked_notification_ended_stop_paying"))
+                } else {
+                    ParkedNotification.cancel()
+                }
+                NotificationCenter.default.post(name: .parkedCarChanged, object: nil)
+                return paying ? .stopPaying : .noCar
+            }
             let far = (error as? APIError)?.status == 422
             ParkedNotification.show(car, message: L(far ? "parked_notification_far" : "parked_notification_failed"))
             return far ? .tooFar : .tryAgain

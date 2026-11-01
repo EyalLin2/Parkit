@@ -21,6 +21,14 @@ struct APIError: Error {
     let detail: String?
 }
 
+extension Error {
+    /// POST /spots refused the place, not the driver: ParkIt isn't open there yet.
+    var isOutsideServiceArea: Bool {
+        guard let e = self as? APIError else { return false }
+        return e.status == 403 && e.detail?.contains("Tel Aviv") == true
+    }
+}
+
 /// Every error a driver can see has a short code, the same table as Android
 /// (ApiErrors.kt, docs/error-codes.md).
 enum ParkItError {
@@ -225,6 +233,7 @@ final class API {
         try await get("parking-lots", [("lat", "\(lat)"), ("lng", "\(lng)"), ("radius_m", "\(radiusM)")])
     }
     func cities() async throws -> [CityOut] { try await get("places/cities") }
+    func serviceArea() async throws -> ServiceAreaOut { try await get("spots/service-area") }
     func leaderboard(limit: Int = 10, city: String? = nil) async throws -> [LeaderboardEntry] {
         var items = [("limit", "\(limit)")]
         if let city { items.append(("city", city)) }
@@ -262,7 +271,9 @@ final class API {
         for attempt in 0..<attempts {
             if Task.isCancelled { return nil }
             if let r = try? await API.shared.reverseGeocode(lat: lat, lng: lng) {
-                cache[key(lat, lng)] = r
+                // An answer with no label is still an answer ("nothing mapped here"), so no
+                // retries now, but it isn't kept: the data may have changed by the next time.
+                if r.shortLabel != nil { cache[key(lat, lng)] = r }
                 return r
             }
             if attempt < attempts - 1 { try? await Task.sleep(for: .milliseconds(600 * (attempt + 1))) }
@@ -274,7 +285,7 @@ final class API {
 
     static func resolve(spot id: String, lat: Double, lng: Double) async -> String? {
         if let hit = spot(id) { return hit }
-        guard let label = await reverse(lat: lat, lng: lng, attempts: 1)?.street else { return nil }
+        guard let label = await reverse(lat: lat, lng: lng, attempts: 1)?.streetLabel else { return nil }
         spotCache["\(L10n.language)|\(id)"] = label
         return label
     }

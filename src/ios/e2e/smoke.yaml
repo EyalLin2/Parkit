@@ -13,16 +13,8 @@ appId: com.parkit.israel
 - assertVisible: "English"
 - takeScreenshot: 00-first-launch-hebrew
 - tapOn: "English"
-- assertVisible: "How it works"
+- assertNotVisible: "How it works"
 - takeScreenshot: 01-welcome
-- tapOn: "How it works"
-- takeScreenshot: 02-intro-slide
-- repeat:
-    while:
-      visible: "Next"
-    times: 8
-    commands:
-      - tapOn: "Next"
 - tapOn: "Let's go"
 
 # Sign in with the fixed test code (REVIEW_LOGIN in the workflow)
@@ -66,21 +58,6 @@ appId: com.parkit.israel
 - takeScreenshot: 06-details-email-locked
 - tapOn: "Save and continue"
 
-# Car onboarding and tips
-- extendedWaitUntil:
-    visible: "Skip"
-    timeout: 15000
-- takeScreenshot: 07-car-onboarding
-- tapOn: "Skip"
-- takeScreenshot: 08-tips
-- repeat:
-    while:
-      notVisible: "Got it, let's go"
-    times: 8
-    commands:
-      - tapOn: "Next"
-- tapOn: "Got it, let's go"
-
 # Location: the explanation first, then iOS's own prompt
 - extendedWaitUntil:
     visible: "Where are you now?"
@@ -99,6 +76,7 @@ appId: com.parkit.israel
     visible: ".*Dizengoff.*"
     timeout: 20000
 - assertVisible: "Can I park?"
+- assertNotVisible: "Skip"
 - assertNotVisible: ".*PK-[0-9]+.*"
 - takeScreenshot: 10-map
 - tapOn: "Car parks"
@@ -405,7 +383,31 @@ appId: com.parkit.israel
 - tapOn: "End parking"
 - tapOn: "Just end"
 
-# Profile, rewards, league, reports
+# Outside the launch city (the workflow sets TEL_AVIV_ONLY): the map says so, Report says so,
+# and "Can I park?" keeps working
+- setLocation:
+    latitude: 32.7940
+    longitude: 34.9896
+- extendedWaitUntil:
+    visible: "ParkIt is only open in Tel Aviv for now"
+    timeout: 45000
+- takeScreenshot: 39a-outside-tel-aviv
+- tapOn: "Report"
+- assertVisible: "ParkIt is only open in Tel Aviv for now"
+- assertNotVisible: "Report a free spot"
+- tapOn: "Can I park?"
+- assertVisible: "Can I park here?"
+- takeScreenshot: 39b-outside-tel-aviv-sign-reader
+- tapOn:
+    point: "50%,10%"
+- setLocation:
+    latitude: 32.0853
+    longitude: 34.7818
+- extendedWaitUntil:
+    notVisible: "ParkIt is only open in Tel Aviv for now"
+    timeout: 45000
+
+# Profile, rewards, reports. League and badges are switched off.
 - extendedWaitUntil:
     visible: "My profile"
     timeout: 8000
@@ -413,24 +415,20 @@ appId: com.parkit.israel
 - extendedWaitUntil:
     visible: ".*Test D.*"
     timeout: 15000
+- assertNotVisible: "League"
+- assertNotVisible: "Badges"
 - takeScreenshot: 40-profile
 - tapOn: "Rewards"
 - extendedWaitUntil:
     visible: "points to spend"
     timeout: 15000
+- assertNotVisible: "Partners"
 - assertNotVisible: ".*PK-[0-9]+.*"
 - takeScreenshot: 41-rewards-characters
 - tapOn: "Car"
 - takeScreenshot: 42-rewards-car
 - tapOn: "Themes"
 - takeScreenshot: 43-rewards-themes
-- tapOn: "Back"
-- tapOn: "League"
-- extendedWaitUntil:
-    visible: "All of Israel|.*Israel.*"
-    timeout: 10000
-    optional: true
-- takeScreenshot: 44-league
 - tapOn: "Back"
 - tapOn: "My reports"
 - takeScreenshot: 45-my-reports
@@ -445,6 +443,14 @@ appId: com.parkit.israel
 - tapOn: "My details"
 - takeScreenshot: 47-my-details-email-locked
 - tapOn: "Back"
+# What the first run skips is still reachable from Settings
+- tapOn: "How ParkIt works"
+- assertVisible: "Next"
+- takeScreenshot: 47a-tips
+- tapOn: "Skip"
+- extendedWaitUntil:
+    visible: "My details"
+    timeout: 8000
 - scrollUntilVisible:
     element: "Delete account"
     direction: DOWN

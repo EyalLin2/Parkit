@@ -65,11 +65,11 @@ struct RootView: View {
             case .details:
                 DetailsScreen(firstTime: true) {
                     session.needsProfile = false
-                    session.root = session.onboardingSeen ? .main : .onboarding
+                    session.root = session.afterDetails
                 }
             case .onboarding:
                 DriverProfileScreen(onboarding: true) {
-                    session.root = session.tipsSeen ? .main : .tips
+                    session.root = session.afterCarStep
                 }
             case .tips:
                 TipsScreen {

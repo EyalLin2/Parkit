@@ -96,7 +96,6 @@ struct ReportSheet: View {
     @State private var camera = false
     private let lat: Double
     private let lng: Double
-    private let addressLabel: String?
     private let street: String?
     private let noteMax = 120
 
@@ -104,7 +103,6 @@ struct ReportSheet: View {
         self.model = model
         lat = model.geocodeTarget.latitude
         lng = model.geocodeTarget.longitude
-        addressLabel = model.addressLoading ? nil : model.resolvedAddress
         street = model.resolvedStreet
         _size = State(initialValue: model.prefs.vehicleSize ?? "regular")
     }
@@ -130,7 +128,7 @@ struct ReportSheet: View {
                 }
                 HStack(spacing: 4) {
                     Image(systemName: "mappin.circle.fill").font(.system(size: 14)).foregroundStyle(Color.pkPrimary)
-                    Text(addressLabel ?? L("map_locating")).font(PKFont.bodyMedium).foregroundStyle(Color.pkMuted).lineLimit(1)
+                    Text(model.addressLoading ? L("map_locating") : model.resolvedAddress ?? L("map_address_unavailable")).font(PKFont.bodyMedium).foregroundStyle(Color.pkMuted).lineLimit(1)
                 }
                 .padding(.top, 6)
 
@@ -331,7 +329,7 @@ struct ReportSheet: View {
                 model.refreshSpotsNow()
                 await model.refreshMyProfile()
             } catch {
-                self.error = friendly(error)
+                self.error = error.isOutsideServiceArea ? L("map_tel_aviv_only") : friendly(error)
             }
         }
     }

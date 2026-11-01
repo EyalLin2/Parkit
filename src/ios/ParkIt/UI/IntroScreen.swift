@@ -40,8 +40,8 @@ struct PageDots: View {
     }
 }
 
-/// Once per install, before the first sign-in: pick a language, then four slides
-/// that show the real app in the chosen language. Skippable.
+/// Once per install, before the first sign-in: pick a language. The four slides that show
+/// the real app stay behind Features.introSlides.
 struct IntroScreen: View {
     let onDone: () -> Void
     @EnvironmentObject private var session: Session
@@ -58,7 +58,7 @@ struct IntroScreen: View {
     }
 
     var body: some View {
-        let pages = slides.count + 1
+        let pages = Features.introSlides ? slides.count + 1 : 1
         let last = page == pages - 1
         VStack(spacing: 0) {
             HStack {
@@ -71,8 +71,8 @@ struct IntroScreen: View {
             Pager(page: $page, count: pages) { i in
                 if i == 0 { welcome } else { slideView(slides[i - 1]) }
             }
-            PageDots(count: pages, current: page)
-            Button(page == 0 ? L("intro_how_it_works") : last ? L("intro_start") : L("intro_next")) {
+            if pages > 1 { PageDots(count: pages, current: page) }
+            Button(last ? L("intro_start") : page == 0 ? L("intro_how_it_works") : L("intro_next")) {
                 if last { onDone() } else { withAnimation { page += 1 } }
             }
             .buttonStyle(PillButtonStyle())
